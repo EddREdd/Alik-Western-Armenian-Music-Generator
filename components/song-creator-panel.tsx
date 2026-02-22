@@ -6,13 +6,6 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { LyricsImportDialog } from "@/components/lyrics-import-dialog"
 
 interface SongCreatorPanelProps {
@@ -20,7 +13,6 @@ interface SongCreatorPanelProps {
     title: string
     lyrics: string
     prompt: string
-    duration: string
   }) => void
   isGenerating: boolean
 }
@@ -29,7 +21,6 @@ export function SongCreatorPanel({ onGenerate, isGenerating }: SongCreatorPanelP
   const [lyrics, setLyrics] = useState("")
   const [prompt, setPrompt] = useState("")
   const [title, setTitle] = useState("")
-  const [duration, setDuration] = useState("medium")
   const [importOpen, setImportOpen] = useState(false)
 
   const handleImportLyrics = (importedLyrics: string, importedTitle: string) => {
@@ -39,7 +30,7 @@ export function SongCreatorPanel({ onGenerate, isGenerating }: SongCreatorPanelP
 
   const handleGenerate = () => {
     if (!lyrics.trim() && !prompt.trim()) return
-    onGenerate({ title: title || "Untitled Song", lyrics, prompt, duration })
+    onGenerate({ title: title || "Untitled Song", lyrics, prompt })
   }
 
   return (
@@ -145,20 +136,7 @@ export function SongCreatorPanel({ onGenerate, isGenerating }: SongCreatorPanelP
             </div>
           </div>
 
-          {/* Duration */}
-          <div className="flex flex-col gap-2">
-            <Label className="text-sm font-semibold text-foreground">Duration</Label>
-            <Select value={duration} onValueChange={setDuration}>
-              <SelectTrigger className="border-border bg-card text-foreground">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="short">Short (~1 min)</SelectItem>
-                <SelectItem value="medium">Medium (~3 min)</SelectItem>
-                <SelectItem value="long">Long (~5 min)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+
         </div>
       </div>
 

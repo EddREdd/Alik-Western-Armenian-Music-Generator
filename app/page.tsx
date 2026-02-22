@@ -17,7 +17,6 @@ export default function Home() {
       title: string
       lyrics: string
       prompt: string
-      duration: string
     }) => {
       setIsGenerating(true)
 
@@ -25,7 +24,7 @@ export default function Home() {
         id: Date.now().toString(),
         title: data.title,
         genre: data.prompt.split(",")[0]?.trim() || "Mixed",
-        duration: data.duration === "short" ? "1:15" : data.duration === "long" ? "5:02" : "3:18",
+        duration: "3:18",
         createdAt: "Just now",
         status: "generating",
         prompt: data.prompt,
