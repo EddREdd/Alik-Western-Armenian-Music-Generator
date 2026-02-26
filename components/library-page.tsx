@@ -23,12 +23,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-interface LibrarySong {
+export interface LibrarySong {
   id: string
   title: string
   genre: string
   duration: string
   createdAt: string
+  status?: "completed" | "generating" | "failed"
+  prompt?: string
+}
+
+interface LibraryPageProps {
+  onPlaySong?: (song: LibrarySong) => void
 }
 
 const librarySongs: LibrarySong[] = [
@@ -42,7 +48,7 @@ const librarySongs: LibrarySong[] = [
   { id: "8", title: "Thunder Road", genre: "Rock", duration: "4:45", createdAt: "Feb 8, 2026" },
 ]
 
-export function LibraryPage() {
+export function LibraryPage({ onPlaySong }: LibraryPageProps) {
   const [search, setSearch] = useState("")
   const [playingId, setPlayingId] = useState<string | null>(null)
   const [progress, setProgress] = useState<Record<string, number>>({})
@@ -54,7 +60,8 @@ export function LibraryPage() {
     }
   }, [])
 
-  const togglePlay = (songId: string) => {
+  const togglePlay = (song: LibrarySong) => {
+    const songId = song.id
     if (playingId === songId) {
       setPlayingId(null)
       if (intervalRef.current) clearInterval(intervalRef.current)
@@ -73,6 +80,15 @@ export function LibraryPage() {
           return { ...prev, [songId]: c + 0.5 }
         })
       }, 100)
+      
+      // Trigger mobile player
+      if (onPlaySong) {
+        onPlaySong({
+          ...song,
+          status: "completed",
+          prompt: "",
+        })
+      }
     }
   }
 
@@ -122,7 +138,7 @@ export function LibraryPage() {
                 }`}
               >
                 <button
-                  onClick={() => togglePlay(song.id)}
+                  onClick={() => togglePlay(song)}
                   className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg"
                   aria-label={playingId === song.id ? "Pause" : "Play"}
                 >
