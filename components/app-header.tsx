@@ -25,7 +25,7 @@ export function AppHeader({ activeTab, onTabChange }: AppHeaderProps) {
           <span className="text-lg font-bold tracking-wide">SongForge</span>
         </div>
 
-        <nav className="flex items-center gap-1">
+        <nav className="hidden lg:flex items-center gap-1">
           <button
             onClick={() => onTabChange("library")}
             className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium tracking-wide transition-colors ${
@@ -53,7 +53,7 @@ export function AppHeader({ activeTab, onTabChange }: AppHeaderProps) {
         <div className="flex items-center gap-3">
           <Button
             onClick={() => onTabChange("create")}
-            className={`gap-1.5 font-medium tracking-wide ${
+            className={`hidden lg:flex gap-1.5 font-medium tracking-wide ${
               activeTab === "create"
                 ? "bg-secondary text-secondary-foreground hover:bg-secondary/90"
                 : "bg-primary-foreground/15 text-primary-foreground hover:bg-primary-foreground/25"

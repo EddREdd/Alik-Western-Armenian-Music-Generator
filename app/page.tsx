@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react"
 import { AppHeader } from "@/components/app-header"
+import { BottomNav } from "@/components/bottom-nav"
 import { SongCreatorPanel } from "@/components/song-creator-panel"
 import { SongLibraryPanel, type Song } from "@/components/song-library-panel"
 import { LibraryPage } from "@/components/library-page"
@@ -49,25 +50,29 @@ export default function Home() {
     <div className="flex h-screen flex-col bg-background">
       <AppHeader activeTab={activeTab} onTabChange={setActiveTab} />
 
-      {activeTab === "create" && (
-        <main className="flex flex-1 overflow-hidden">
-          {/* Left Panel - Song Creator */}
-          <div className="w-full lg:w-1/2 lg:border-r border-border overflow-hidden">
-            <SongCreatorPanel
-              onGenerate={handleGenerate}
-              isGenerating={isGenerating}
-            />
-          </div>
+      <div className="flex flex-1 flex-col overflow-hidden pb-[4.5rem] lg:pb-0">
+        {activeTab === "create" && (
+          <main className="flex flex-1 overflow-hidden">
+            {/* Left Panel - Song Creator */}
+            <div className="w-full lg:w-1/2 lg:border-r border-border overflow-hidden">
+              <SongCreatorPanel
+                onGenerate={handleGenerate}
+                isGenerating={isGenerating}
+              />
+            </div>
 
-          {/* Right Panel - Song Library (hidden on mobile/tablet) */}
-          <div className="hidden lg:block lg:w-1/2 overflow-hidden">
-            <SongLibraryPanel songs={generatedSongs} />
-          </div>
-        </main>
-      )}
+            {/* Right Panel - Song Library (hidden on mobile/tablet) */}
+            <div className="hidden lg:block lg:w-1/2 overflow-hidden">
+              <SongLibraryPanel songs={generatedSongs} />
+            </div>
+          </main>
+        )}
 
-      {activeTab === "library" && <LibraryPage />}
-      {activeTab === "lyrics" && <LyricsPage />}
+        {activeTab === "library" && <LibraryPage />}
+        {activeTab === "lyrics" && <LyricsPage />}
+      </div>
+
+      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   )
 }
