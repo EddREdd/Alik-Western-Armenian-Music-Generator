@@ -161,14 +161,15 @@ export default function Home() {
     []
   )
 
-  // Bottom padding: nav (4.5rem) + player if visible (~4rem)
-  const bottomPadding = currentSong ? "pb-[8.5rem]" : "pb-[4.5rem]"
+  // Bottom padding: mobile/tablet = nav (4.5rem) + player if visible (~4rem), desktop = player only (~4rem) if visible
+  const bottomPaddingMobile = currentSong ? "pb-[8.5rem]" : "pb-[4.5rem]"
+  const bottomPaddingDesktop = currentSong ? "lg:pb-[4rem]" : "lg:pb-0"
 
   return (
     <div className="flex h-screen flex-col bg-background">
       <AppHeader activeTab={activeTab} onTabChange={setActiveTab} />
 
-      <div className={`flex flex-1 flex-col overflow-hidden ${bottomPadding} lg:pb-0`}>
+      <div className={`flex flex-1 flex-col overflow-hidden ${bottomPaddingMobile} ${bottomPaddingDesktop}`}>
         {activeTab === "create" && (
           <main className="flex flex-1 overflow-hidden">
             {/* Left Panel - Song Creator */}
