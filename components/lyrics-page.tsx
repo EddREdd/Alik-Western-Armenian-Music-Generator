@@ -9,6 +9,7 @@ import {
   Trash2,
   Edit3,
   Calendar,
+  ArrowLeft,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -80,6 +81,8 @@ const initialLyrics: LyricsEntry[] = [
   },
 ]
 
+type MobileView = "list" | "preview" | "create"
+
 export function LyricsPage() {
   const [search, setSearch] = useState("")
   const [lyrics, setLyrics] = useState(initialLyrics)
@@ -87,6 +90,7 @@ export function LyricsPage() {
   const [newTitle, setNewTitle] = useState("")
   const [newContent, setNewContent] = useState("")
   const [selectedLyric, setSelectedLyric] = useState<LyricsEntry | null>(null)
+  const [mobileView, setMobileView] = useState<MobileView>("list")
 
   const filtered = lyrics.filter(
     (l) =>
@@ -107,26 +111,158 @@ export function LyricsPage() {
     setNewTitle("")
     setNewContent("")
     setCreateOpen(false)
+    setMobileView("list")
   }
 
   const handleDelete = (id: string) => {
     setLyrics(lyrics.filter((l) => l.id !== id))
-    if (selectedLyric?.id === id) setSelectedLyric(null)
+    if (selectedLyric?.id === id) {
+      setSelectedLyric(null)
+      setMobileView("list")
+    }
   }
 
+  const handleSelectLyric = (entry: LyricsEntry) => {
+    setSelectedLyric(entry)
+    setMobileView("preview")
+  }
+
+  const handleMobileNewClick = () => {
+    setNewTitle("")
+    setNewContent("")
+    setMobileView("create")
+  }
+
+  const handleMobileBack = () => {
+    setMobileView("list")
+    setSelectedLyric(null)
+  }
+
+  // --- Mobile/Tablet: Full-screen Create View ---
+  if (mobileView === "create") {
+    return (
+      <main className="flex flex-1 flex-col overflow-hidden lg:hidden">
+        <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleMobileBack}
+            className="h-8 w-8 p-0 text-foreground"
+          >
+            <ArrowLeft className="h-5 w-5" />
+            <span className="sr-only">Back to lyrics list</span>
+          </Button>
+          <h1 className="text-lg font-bold tracking-wide text-foreground">
+            New Lyrics
+          </h1>
+        </div>
+        <ScrollArea className="flex-1">
+          <div className="flex flex-col gap-4 p-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="mobile-lyric-title" className="text-foreground">
+                Title
+              </Label>
+              <Input
+                id="mobile-lyric-title"
+                placeholder="Enter a title..."
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                className="border-border text-foreground"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="mobile-lyric-content" className="text-foreground">
+                Lyrics
+              </Label>
+              <Textarea
+                id="mobile-lyric-content"
+                placeholder="Write your lyrics here..."
+                value={newContent}
+                onChange={(e) => setNewContent(e.target.value)}
+                className="min-h-[300px] resize-none border-border text-foreground"
+              />
+            </div>
+            <Button
+              onClick={handleCreate}
+              disabled={!newTitle.trim() || !newContent.trim()}
+              className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold"
+            >
+              Save to Library
+            </Button>
+          </div>
+        </ScrollArea>
+      </main>
+    )
+  }
+
+  // --- Mobile/Tablet: Full-screen Preview View ---
+  if (mobileView === "preview" && selectedLyric) {
+    return (
+      <main className="flex flex-1 flex-col overflow-hidden lg:hidden">
+        <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleMobileBack}
+            className="h-8 w-8 p-0 text-foreground"
+          >
+            <ArrowLeft className="h-5 w-5" />
+            <span className="sr-only">Back to lyrics list</span>
+          </Button>
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-lg font-bold tracking-wide text-foreground">
+              {selectedLyric.title}
+            </h1>
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                {selectedLyric.createdAt}
+              </span>
+              <span>{selectedLyric.wordCount} words</span>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0 gap-1.5 border-border text-foreground"
+          >
+            <Edit3 className="h-3.5 w-3.5" />
+            Edit
+          </Button>
+        </div>
+        <ScrollArea className="flex-1 px-4 py-5">
+          <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground/90">
+            {selectedLyric.content}
+          </pre>
+        </ScrollArea>
+      </main>
+    )
+  }
+
+  // --- Default: List + Desktop Preview ---
   return (
     <main className="flex flex-1 overflow-hidden">
       {/* Lyrics List */}
-      <div className="w-1/3 border-r border-border">
+      <div className="w-full lg:w-1/3 lg:border-r border-border">
         <div className="flex flex-col gap-3 border-b border-border p-4">
           <div className="flex items-center justify-between">
             <h1 className="text-lg font-bold tracking-wide text-foreground">
               Lyrics Library
             </h1>
+            {/* Desktop: opens dialog */}
             <Button
               size="sm"
               onClick={() => setCreateOpen(true)}
-              className="gap-1.5 bg-secondary text-secondary-foreground hover:bg-secondary/90"
+              className="hidden lg:flex gap-1.5 bg-secondary text-secondary-foreground hover:bg-secondary/90"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              New
+            </Button>
+            {/* Mobile/Tablet: navigates to full-screen create */}
+            <Button
+              size="sm"
+              onClick={handleMobileNewClick}
+              className="flex lg:hidden gap-1.5 bg-secondary text-secondary-foreground hover:bg-secondary/90"
             >
               <Plus className="h-3.5 w-3.5" />
               New
@@ -148,7 +284,7 @@ export function LyricsPage() {
             {filtered.map((entry) => (
               <button
                 key={entry.id}
-                onClick={() => setSelectedLyric(entry)}
+                onClick={() => handleSelectLyric(entry)}
                 className={`group flex w-full items-start gap-3 rounded-lg p-3 text-left transition-colors ${
                   selectedLyric?.id === entry.id
                     ? "bg-primary/10 border border-primary/20"
@@ -202,8 +338,8 @@ export function LyricsPage() {
         </ScrollArea>
       </div>
 
-      {/* Lyrics Preview */}
-      <div className="flex-1 bg-primary/[0.03]">
+      {/* Lyrics Preview - Desktop only */}
+      <div className="hidden lg:block flex-1 bg-primary/[0.03]">
         {selectedLyric ? (
           <div className="flex h-full flex-col">
             <div className="flex items-center justify-between border-b border-border px-8 py-5">
@@ -249,7 +385,7 @@ export function LyricsPage() {
         )}
       </div>
 
-      {/* Create Lyrics Dialog */}
+      {/* Create Lyrics Dialog - Desktop only */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -260,7 +396,9 @@ export function LyricsPage() {
           </DialogHeader>
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="lyric-title" className="text-foreground">Title</Label>
+              <Label htmlFor="lyric-title" className="text-foreground">
+                Title
+              </Label>
               <Input
                 id="lyric-title"
                 placeholder="Enter a title..."
@@ -270,7 +408,9 @@ export function LyricsPage() {
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="lyric-content" className="text-foreground">Lyrics</Label>
+              <Label htmlFor="lyric-content" className="text-foreground">
+                Lyrics
+              </Label>
               <Textarea
                 id="lyric-content"
                 placeholder="Write your lyrics here..."
