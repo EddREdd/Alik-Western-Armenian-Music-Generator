@@ -145,26 +145,31 @@ export function SongLibraryPanel({ songs: externalSongs }: SongLibraryPanelProps
               }`}
             >
               <div className="flex items-center gap-3">
-                {/* Play Button */}
+                {/* Play Button with Image */}
                 <button
                   onClick={() => song.status === "completed" && togglePlay(song.id)}
                   disabled={song.status !== "completed"}
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors ${
-                    playingId === song.id
-                      ? "bg-secondary text-secondary-foreground"
-                      : song.status === "completed"
-                      ? "bg-primary/10 text-primary hover:bg-secondary hover:text-secondary-foreground"
-                      : "bg-muted text-muted-foreground"
-                  }`}
+                  className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg"
                   aria-label={playingId === song.id ? "Pause" : "Play"}
                 >
-                  {song.status === "generating" ? (
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  ) : playingId === song.id ? (
-                    <Pause className="h-4 w-4" />
-                  ) : (
-                    <Play className="h-4 w-4 pl-0.5" />
-                  )}
+                  {/* Background Image */}
+                  <img
+                    src={`https://picsum.photos/seed/${song.id}/100/100`}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                  {/* Teal Overlay */}
+                  <div className="absolute inset-0 bg-primary/70 transition-colors hover:bg-primary/80" />
+                  {/* Icon */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    {song.status === "generating" ? (
+                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    ) : playingId === song.id ? (
+                      <Pause className="h-5 w-5 text-white" />
+                    ) : (
+                      <Play className="h-5 w-5 pl-0.5 text-white" />
+                    )}
+                  </div>
                 </button>
 
                 {/* Song Info */}

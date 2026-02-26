@@ -123,18 +123,25 @@ export function LibraryPage() {
               >
                 <button
                   onClick={() => togglePlay(song.id)}
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors ${
-                    playingId === song.id
-                      ? "bg-secondary text-secondary-foreground"
-                      : "bg-primary/10 text-primary hover:bg-secondary hover:text-secondary-foreground"
-                  }`}
+                  className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg"
                   aria-label={playingId === song.id ? "Pause" : "Play"}
                 >
-                  {playingId === song.id ? (
-                    <Pause className="h-4 w-4" />
-                  ) : (
-                    <Play className="h-4 w-4 pl-0.5" />
-                  )}
+                  {/* Background Image */}
+                  <img
+                    src={`https://picsum.photos/seed/${song.id}/100/100`}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                  {/* Teal Overlay */}
+                  <div className="absolute inset-0 bg-primary/70 transition-colors hover:bg-primary/80" />
+                  {/* Icon */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    {playingId === song.id ? (
+                      <Pause className="h-5 w-5 text-white" />
+                    ) : (
+                      <Play className="h-5 w-5 pl-0.5 text-white" />
+                    )}
+                  </div>
                 </button>
 
                 <div className="min-w-0 flex-1">
