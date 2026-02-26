@@ -1,6 +1,7 @@
 "use client"
 
-import { Music, Library, FileText, Plus, Settings, LogOut } from "lucide-react"
+import Image from "next/image"
+import { Library, FileText, Plus, Settings, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -20,9 +21,15 @@ export function AppHeader({ activeTab, onTabChange }: AppHeaderProps) {
   return (
     <header className="bg-primary text-primary-foreground">
       <div className="flex items-center justify-between px-6 py-3">
-        <div className="flex items-center gap-2">
-          <Music className="h-6 w-6 text-secondary" />
-          <span className="text-lg font-bold tracking-wide">SongForge</span>
+        <div className="flex items-center">
+          <Image
+            src="/images/logo.png"
+            alt="SongForge logo"
+            width={120}
+            height={40}
+            className="h-8 w-auto object-contain"
+            priority
+          />
         </div>
 
         <nav className="hidden lg:flex items-center gap-1">
