@@ -69,7 +69,14 @@ export default function Home() {
         )}
 
         {activeTab === "library" && <LibraryPage />}
-        {activeTab === "lyrics" && <LyricsPage />}
+        {activeTab === "lyrics" && (
+          <LyricsPage
+            onNavigateToSong={(songId) => {
+              setActiveTab("library")
+              // Could also pass songId to LibraryPage to highlight the song
+            }}
+          />
+        )}
       </div>
 
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />

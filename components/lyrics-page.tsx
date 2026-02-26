@@ -10,11 +10,14 @@ import {
   Edit3,
   Calendar,
   ArrowLeft,
+  Music,
+  Lock,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Badge } from "@/components/ui/badge"
 import {
   Dialog,
   DialogContent,
@@ -29,13 +32,30 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Label } from "@/components/ui/label"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
-interface LyricsEntry {
+export interface LyricsSong {
+  id: string
+  title: string
+  genre: string
+}
+
+export interface LyricsEntry {
   id: string
   title: string
   content: string
   createdAt: string
   wordCount: number
+  songs?: LyricsSong[]
+}
+
+interface LyricsPageProps {
+  onNavigateToSong?: (songId: string) => void
 }
 
 const initialLyrics: LyricsEntry[] = [
@@ -46,6 +66,10 @@ const initialLyrics: LyricsEntry[] = [
       "Cruising down the boulevard\nCity lights are shining bright\nThe radio plays our favorite song\nAs we disappear into the night\n\n[Chorus]\nMidnight drive, we're alive\nNothing left to fear tonight\nWindows down, turn the sound\nLet the music take us higher",
     createdAt: "Feb 20, 2026",
     wordCount: 48,
+    songs: [
+      { id: "s1", title: "Midnight Drive (Synthwave)", genre: "Synthwave" },
+      { id: "s2", title: "Midnight Drive (Lo-Fi)", genre: "Lo-Fi" },
+    ],
   },
   {
     id: "2",
@@ -54,6 +78,7 @@ const initialLyrics: LyricsEntry[] = [
       "The tide rolls in, the tide rolls out\nWashing all my fears away\nSalt and sand between my toes\nI could stay here every day\n\n[Chorus]\nOcean waves, carry me\nTo a place where I am free\nUnderneath the golden sun\nWhere the sky and water run as one",
     createdAt: "Feb 15, 2026",
     wordCount: 52,
+    songs: [{ id: "s3", title: "Ocean Waves", genre: "Ambient" }],
   },
   {
     id: "3",
@@ -81,14 +106,18 @@ const initialLyrics: LyricsEntry[] = [
   },
 ]
 
-type MobileView = "list" | "preview" | "create"
+type MobileView = "list" | "preview" | "create" | "edit"
 
-export function LyricsPage() {
+export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
   const [search, setSearch] = useState("")
-  const [lyrics, setLyrics] = useState(initialLyrics)
+  const [lyrics, setLyrics] = useState<LyricsEntry[]>(initialLyrics)
   const [createOpen, setCreateOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
   const [newTitle, setNewTitle] = useState("")
   const [newContent, setNewContent] = useState("")
+  const [editTitle, setEditTitle] = useState("")
+  const [editContent, setEditContent] = useState("")
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [selectedLyric, setSelectedLyric] = useState<LyricsEntry | null>(null)
   const [mobileView, setMobileView] = useState<MobileView>("list")
 
@@ -97,6 +126,8 @@ export function LyricsPage() {
       l.title.toLowerCase().includes(search.toLowerCase()) ||
       l.content.toLowerCase().includes(search.toLowerCase())
   )
+
+  const hasSongs = (entry: LyricsEntry) => entry.songs && entry.songs.length > 0
 
   const handleCreate = () => {
     if (!newTitle.trim() || !newContent.trim()) return
@@ -114,7 +145,47 @@ export function LyricsPage() {
     setMobileView("list")
   }
 
+  const handleStartEdit = (entry: LyricsEntry) => {
+    if (hasSongs(entry)) return
+    setEditingId(entry.id)
+    setEditTitle(entry.title)
+    setEditContent(entry.content)
+    setEditOpen(true)
+    setMobileView("edit")
+  }
+
+  const handleSaveEdit = () => {
+    if (!editTitle.trim() || !editContent.trim() || !editingId) return
+    setLyrics(
+      lyrics.map((l) =>
+        l.id === editingId
+          ? {
+              ...l,
+              title: editTitle,
+              content: editContent,
+              wordCount: editContent.split(/\s+/).filter(Boolean).length,
+            }
+          : l
+      )
+    )
+    if (selectedLyric?.id === editingId) {
+      setSelectedLyric({
+        ...selectedLyric,
+        title: editTitle,
+        content: editContent,
+        wordCount: editContent.split(/\s+/).filter(Boolean).length,
+      })
+    }
+    setEditingId(null)
+    setEditTitle("")
+    setEditContent("")
+    setEditOpen(false)
+    setMobileView(selectedLyric ? "preview" : "list")
+  }
+
   const handleDelete = (id: string) => {
+    const entry = lyrics.find((l) => l.id === id)
+    if (entry && hasSongs(entry)) return
     setLyrics(lyrics.filter((l) => l.id !== id))
     if (selectedLyric?.id === id) {
       setSelectedLyric(null)
@@ -136,6 +207,13 @@ export function LyricsPage() {
   const handleMobileBack = () => {
     setMobileView("list")
     setSelectedLyric(null)
+    setEditingId(null)
+  }
+
+  const handleSongClick = (songId: string) => {
+    if (onNavigateToSong) {
+      onNavigateToSong(songId)
+    }
   }
 
   // --- Mobile/Tablet: Full-screen Create View ---
@@ -195,8 +273,69 @@ export function LyricsPage() {
     )
   }
 
+  // --- Mobile/Tablet: Full-screen Edit View ---
+  if (mobileView === "edit" && editingId) {
+    return (
+      <main className="flex flex-1 flex-col overflow-hidden lg:hidden">
+        <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setMobileView(selectedLyric ? "preview" : "list")
+              setEditingId(null)
+            }}
+            className="h-8 w-8 p-0 text-foreground"
+          >
+            <ArrowLeft className="h-5 w-5" />
+            <span className="sr-only">Back</span>
+          </Button>
+          <h1 className="text-lg font-bold tracking-wide text-foreground">
+            Edit Lyrics
+          </h1>
+        </div>
+        <ScrollArea className="flex-1">
+          <div className="flex flex-col gap-4 p-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="mobile-edit-title" className="text-foreground">
+                Title
+              </Label>
+              <Input
+                id="mobile-edit-title"
+                placeholder="Enter a title..."
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                className="border-border text-foreground"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="mobile-edit-content" className="text-foreground">
+                Lyrics
+              </Label>
+              <Textarea
+                id="mobile-edit-content"
+                placeholder="Write your lyrics here..."
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                className="min-h-[300px] resize-none border-border text-foreground"
+              />
+            </div>
+            <Button
+              onClick={handleSaveEdit}
+              disabled={!editTitle.trim() || !editContent.trim()}
+              className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold"
+            >
+              Save Changes
+            </Button>
+          </div>
+        </ScrollArea>
+      </main>
+    )
+  }
+
   // --- Mobile/Tablet: Full-screen Preview View ---
   if (mobileView === "preview" && selectedLyric) {
+    const canEdit = !hasSongs(selectedLyric)
     return (
       <main className="flex flex-1 flex-col overflow-hidden lg:hidden">
         <div className="flex items-center gap-3 border-b border-border px-4 py-3">
@@ -221,15 +360,54 @@ export function LyricsPage() {
               <span>{selectedLyric.wordCount} words</span>
             </div>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="shrink-0 gap-1.5 border-border text-foreground"
-          >
-            <Edit3 className="h-3.5 w-3.5" />
-            Edit
-          </Button>
+          {canEdit ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0 gap-1.5 border-border text-foreground"
+              onClick={() => handleStartEdit(selectedLyric)}
+            >
+              <Edit3 className="h-3.5 w-3.5" />
+              Edit
+            </Button>
+          ) : (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Lock className="h-3.5 w-3.5" />
+                    <span>Locked</span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Cannot edit lyrics with generated songs</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
+
+        {/* Song Tags */}
+        {selectedLyric.songs && selectedLyric.songs.length > 0 && (
+          <div className="border-b border-border px-4 py-3">
+            <p className="mb-2 text-xs font-medium text-muted-foreground">
+              Generated Songs
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {selectedLyric.songs.map((song) => (
+                <button
+                  key={song.id}
+                  onClick={() => handleSongClick(song.id)}
+                  className="flex items-center gap-1.5 rounded-full bg-secondary/10 px-3 py-1.5 text-xs font-medium text-secondary transition-colors hover:bg-secondary/20"
+                >
+                  <Music className="h-3 w-3" />
+                  {song.title}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <ScrollArea className="flex-1 px-4 py-5">
           <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground/90">
             {selectedLyric.content}
@@ -281,59 +459,103 @@ export function LyricsPage() {
 
         <ScrollArea className="h-[calc(100vh-200px)]">
           <div className="flex flex-col gap-1 p-2">
-            {filtered.map((entry) => (
-              <button
-                key={entry.id}
-                onClick={() => handleSelectLyric(entry)}
-                className={`group flex w-full items-start gap-3 rounded-lg p-3 text-left transition-colors ${
-                  selectedLyric?.id === entry.id
-                    ? "bg-primary/10 border border-primary/20"
-                    : "hover:bg-muted border border-transparent"
-                }`}
-              >
-                <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-secondary/10">
-                  <FileText className="h-4 w-4 text-secondary" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-foreground">
-                    {entry.title}
-                  </p>
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                    {entry.content.split("\n")[0]}
-                  </p>
-                  <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground/60">
-                    <span>{entry.wordCount} words</span>
-                    <span>{entry.createdAt}</span>
+            {filtered.map((entry) => {
+              const locked = hasSongs(entry)
+              return (
+                <button
+                  key={entry.id}
+                  onClick={() => handleSelectLyric(entry)}
+                  className={`group flex w-full items-start gap-3 rounded-lg p-3 text-left transition-colors ${
+                    selectedLyric?.id === entry.id
+                      ? "bg-primary/10 border border-primary/20"
+                      : "hover:bg-muted border border-transparent"
+                  }`}
+                >
+                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-secondary/10">
+                    <FileText className="h-4 w-4 text-secondary" />
                   </div>
-                </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0 text-muted-foreground opacity-0 group-hover:opacity-100"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <MoreHorizontal className="h-3.5 w-3.5" />
-                      <span className="sr-only">Lyrics options</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
-                      <Edit3 className="mr-2 h-4 w-4" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-destructive"
-                      onClick={() => handleDelete(entry.id)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </button>
-            ))}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-sm font-semibold text-foreground">
+                        {entry.title}
+                      </p>
+                      {locked && (
+                        <Lock className="h-3 w-3 shrink-0 text-muted-foreground" />
+                      )}
+                    </div>
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                      {entry.content.split("\n")[0]}
+                    </p>
+                    <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground/60">
+                      <span>{entry.wordCount} words</span>
+                      <span>{entry.createdAt}</span>
+                      {entry.songs && entry.songs.length > 0 && (
+                        <Badge
+                          variant="outline"
+                          className="border-secondary/30 text-secondary text-[10px] px-1.5 py-0"
+                        >
+                          {entry.songs.length} song
+                          {entry.songs.length > 1 ? "s" : ""}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  {!locked && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-muted-foreground opacity-0 group-hover:opacity-100"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <MoreHorizontal className="h-3.5 w-3.5" />
+                          <span className="sr-only">Lyrics options</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleStartEdit(entry)
+                          }}
+                        >
+                          <Edit3 className="mr-2 h-4 w-4" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDelete(entry.id)
+                          }}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                  {locked && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div
+                            className="h-6 w-6 flex items-center justify-center text-muted-foreground/50"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Lock className="h-3.5 w-3.5" />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Cannot modify lyrics with songs</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </button>
+              )
+            })}
           </div>
         </ScrollArea>
       </div>
@@ -344,9 +566,14 @@ export function LyricsPage() {
           <div className="flex h-full flex-col">
             <div className="flex items-center justify-between border-b border-border px-8 py-5">
               <div>
-                <h2 className="text-xl font-bold text-foreground">
-                  {selectedLyric.title}
-                </h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-bold text-foreground">
+                    {selectedLyric.title}
+                  </h2>
+                  {hasSongs(selectedLyric) && (
+                    <Lock className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </div>
                 <div className="mt-1 flex items-center gap-3 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <Calendar className="h-3.5 w-3.5" />
@@ -355,15 +582,60 @@ export function LyricsPage() {
                   <span>{selectedLyric.wordCount} words</span>
                 </div>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 border-border text-foreground"
-              >
-                <Edit3 className="h-3.5 w-3.5" />
-                Edit
-              </Button>
+              {!hasSongs(selectedLyric) ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 border-border text-foreground"
+                  onClick={() => handleStartEdit(selectedLyric)}
+                >
+                  <Edit3 className="h-3.5 w-3.5" />
+                  Edit
+                </Button>
+              ) : (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <Lock className="h-4 w-4" />
+                        <span>Locked</span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Cannot edit lyrics with generated songs</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </div>
+
+            {/* Song Tags */}
+            {selectedLyric.songs && selectedLyric.songs.length > 0 && (
+              <div className="border-b border-border px-8 py-4">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Generated Songs
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {selectedLyric.songs.map((song) => (
+                    <button
+                      key={song.id}
+                      onClick={() => handleSongClick(song.id)}
+                      className="flex items-center gap-1.5 rounded-full bg-secondary/10 px-3 py-1.5 text-sm font-medium text-secondary transition-colors hover:bg-secondary/20"
+                    >
+                      <Music className="h-3.5 w-3.5" />
+                      {song.title}
+                      <Badge
+                        variant="outline"
+                        className="ml-1 border-secondary/30 text-secondary text-[10px] px-1.5 py-0"
+                      >
+                        {song.genre}
+                      </Badge>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <ScrollArea className="flex-1 px-8 py-6">
               <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground/90">
                 {selectedLyric.content}
@@ -425,6 +697,51 @@ export function LyricsPage() {
               className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold"
             >
               Save to Library
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Lyrics Dialog - Desktop only */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Edit Lyrics</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Make changes to your lyrics.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="edit-lyric-title" className="text-foreground">
+                Title
+              </Label>
+              <Input
+                id="edit-lyric-title"
+                placeholder="Enter a title..."
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                className="border-border text-foreground"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="edit-lyric-content" className="text-foreground">
+                Lyrics
+              </Label>
+              <Textarea
+                id="edit-lyric-content"
+                placeholder="Write your lyrics here..."
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                className="min-h-[200px] resize-none border-border text-foreground"
+              />
+            </div>
+            <Button
+              onClick={handleSaveEdit}
+              disabled={!editTitle.trim() || !editContent.trim()}
+              className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold"
+            >
+              Save Changes
             </Button>
           </div>
         </DialogContent>
