@@ -209,9 +209,6 @@ export function SongLibraryPanel({ songs: externalSongs, onSongClick }: SongLibr
                     )}
                   </div>
                   <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-                    <span className="rounded bg-primary/10 px-1.5 py-0.5 text-primary font-medium">
-                      {song.genre}
-                    </span>
                     <span className="flex items-center gap-0.5">
                       <Clock className="h-3 w-3" />
                       {song.duration}

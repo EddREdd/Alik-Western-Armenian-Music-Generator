@@ -13,7 +13,6 @@ import {
   Music,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -107,9 +106,6 @@ export function SongDetailPage({
             {song.title}
           </h1>
           <div className="flex items-center gap-3 text-xs text-muted-foreground lg:text-sm">
-            <Badge variant="outline" className="border-primary/20 text-primary">
-              {song.genre}
-            </Badge>
             <span className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
               {song.duration}

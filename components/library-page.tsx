@@ -15,7 +15,6 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   DropdownMenu,
@@ -314,9 +313,6 @@ export function LibraryPage({ onPlaySong, onNavigateToLyrics, initialSelectedSon
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-foreground">{song.title}</p>
                   <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                    <Badge variant="outline" className="border-primary/20 text-primary text-xs font-medium">
-                      {song.genre}
-                    </Badge>
                     <span className="flex items-center gap-0.5">
                       <Clock className="h-3 w-3" />
                       {song.duration}
