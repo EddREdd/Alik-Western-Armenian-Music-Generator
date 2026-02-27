@@ -260,10 +260,18 @@ export function LibraryPage({ onPlaySong, onNavigateToLyrics }: LibraryPageProps
         <ScrollArea className="h-[calc(100vh-220px)]">
           <div className="flex flex-col gap-2">
             {filtered.map((song) => (
-              <button
+              <div
                 key={song.id}
                 onClick={() => handleSongClick(song)}
-                className={`group flex w-full items-center gap-3 rounded-xl border bg-card p-3 text-left transition-all lg:gap-4 lg:p-4 ${
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault()
+                    handleSongClick(song)
+                  }
+                }}
+                className={`group flex w-full cursor-pointer items-center gap-3 rounded-xl border bg-card p-3 text-left transition-all lg:gap-4 lg:p-4 ${
                   playingId === song.id
                     ? "border-secondary shadow-md shadow-secondary/10"
                     : "border-border hover:border-primary/30 hover:shadow-sm"
@@ -340,7 +348,7 @@ export function LibraryPage({ onPlaySong, onNavigateToLyrics }: LibraryPageProps
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-              </button>
+              </div>
             ))}
 
             {filtered.length === 0 && (
