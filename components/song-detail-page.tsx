@@ -14,7 +14,6 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -123,8 +122,8 @@ export function SongDetailPage({
         </div>
       </div>
 
-      <ScrollArea className="flex-1">
-        <div className="mx-auto max-w-2xl p-4 lg:p-8">
+      <div className="flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-2xl p-4 pb-8 lg:p-8 lg:pb-12">
           {/* Album Art & Player */}
           <div className="mb-8 flex flex-col items-center">
             <div className="relative mb-6 h-48 w-48 overflow-hidden rounded-2xl shadow-lg lg:h-64 lg:w-64">
@@ -240,7 +239,7 @@ export function SongDetailPage({
             </AlertDialog>
           </div>
         </div>
-      </ScrollArea>
+      </div>
     </main>
   )
 }
