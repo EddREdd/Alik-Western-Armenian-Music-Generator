@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import { Mail, Lock, Eye, EyeOff, Ticket, User, CheckCircle2, ArrowLeft } from "lucide-react"
+import { Mail, Lock, Eye, EyeOff, Ticket, CheckCircle2, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,7 +14,6 @@ interface RegisterPageProps {
 
 export function RegisterPage({ onRegisterComplete, onSwitchToLogin }: RegisterPageProps) {
   const [step, setStep] = useState<"form" | "verify">("form")
-  const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -160,25 +159,6 @@ export function RegisterPage({ onRegisterComplete, onSwitchToLogin }: RegisterPa
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Name */}
-          <div className="space-y-2">
-            <Label htmlFor="name" className="text-sm font-medium text-foreground">
-              Full Name
-            </Label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="name"
-                type="text"
-                placeholder="Enter your name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="pl-10"
-                required
-              />
-            </div>
-          </div>
-
           {/* Email */}
           <div className="space-y-2">
             <Label htmlFor="email" className="text-sm font-medium text-foreground">
