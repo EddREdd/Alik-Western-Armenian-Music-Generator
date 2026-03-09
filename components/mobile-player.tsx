@@ -30,7 +30,7 @@ export function MobilePlayer({
   if (!song) return null
 
   return (
-    <div className="fixed bottom-[4.5rem] lg:bottom-0 left-0 right-0 z-40 border-t border-primary/20 bg-card shadow-lg">
+    <div className="fixed bottom-[3.5rem] lg:bottom-0 left-0 right-0 z-40 border-t border-primary/20 bg-card shadow-lg">
       {/* Progress bar at top */}
       <div className="h-1 w-full bg-muted">
         <div

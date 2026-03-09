@@ -162,8 +162,8 @@ export default function Home() {
     []
   )
 
-  // Bottom padding: mobile/tablet = nav (4.5rem) + player if visible (~4rem), desktop = player only (~4rem) if visible
-  const bottomPaddingMobile = currentSong ? "pb-[8.5rem]" : "pb-[4.5rem]"
+  // Bottom padding: mobile/tablet = nav (3.5rem) + player if visible (~4rem), desktop = player only (~4rem) if visible
+  const bottomPaddingMobile = currentSong ? "pb-[7.5rem]" : "pb-[3.5rem]"
   const bottomPaddingDesktop = currentSong ? "lg:pb-[4rem]" : "lg:pb-0"
 
   return (
