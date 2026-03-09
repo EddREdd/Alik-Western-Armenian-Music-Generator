@@ -65,6 +65,17 @@ export default function Home() {
     }
   }, [])
 
+  const loadSongWithoutPlaying = useCallback((song: Song) => {
+    setCurrentSong({
+      id: song.id,
+      title: song.title,
+      genre: song.genre,
+      duration: song.duration,
+      progress: 0,
+    })
+    setIsPlaying(false)
+  }, [])
+
   const playSong = useCallback((song: Song) => {
     if (intervalRef.current) clearInterval(intervalRef.current)
     
@@ -171,11 +182,19 @@ export default function Home() {
   const bottomPaddingMobile = "pb-[7.5rem]"
   const bottomPaddingDesktop = "lg:pb-[4rem]"
 
+  const handleAuthSuccess = useCallback(() => {
+    const mostRecent = [...generatedSongs, ...demoSongs].find(
+      (s) => s.status === "completed"
+    )
+    if (mostRecent) loadSongWithoutPlaying(mostRecent)
+    setAuthView("app")
+  }, [generatedSongs, loadSongWithoutPlaying])
+
   // Auth views
   if (authView === "login") {
     return (
       <LoginPage
-        onLogin={() => setAuthView("app")}
+        onLogin={handleAuthSuccess}
         onSwitchToRegister={() => setAuthView("register")}
       />
     )
@@ -184,7 +203,7 @@ export default function Home() {
   if (authView === "register") {
     return (
       <RegisterPage
-        onRegisterComplete={() => setAuthView("app")}
+        onRegisterComplete={handleAuthSuccess}
         onSwitchToLogin={() => setAuthView("login")}
       />
     )
