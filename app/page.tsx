@@ -8,6 +8,8 @@ import { SongCreatorPanel } from "@/components/song-creator-panel"
 import { SongLibraryPanel, type Song } from "@/components/song-library-panel"
 import { LibraryPage } from "@/components/library-page"
 import { LyricsPage } from "@/components/lyrics-page"
+import { LoginPage } from "@/components/login-page"
+import { RegisterPage } from "@/components/register-page"
 
 // Demo songs for the library
 const demoSongs: Song[] = [
@@ -41,6 +43,7 @@ const demoSongs: Song[] = [
 ]
 
 export default function Home() {
+  const [authView, setAuthView] = useState<"login" | "register" | "app">("login")
   const [activeTab, setActiveTab] = useState("create")
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedSongs, setGeneratedSongs] = useState<Song[]>([])
@@ -165,6 +168,25 @@ export default function Home() {
   // Bottom padding: mobile/tablet = nav (3.75rem) + player (~4rem), desktop = player only (~4rem)
   const bottomPaddingMobile = "pb-[7.5rem]"
   const bottomPaddingDesktop = "lg:pb-[4rem]"
+
+  // Auth views
+  if (authView === "login") {
+    return (
+      <LoginPage
+        onLogin={() => setAuthView("app")}
+        onSwitchToRegister={() => setAuthView("register")}
+      />
+    )
+  }
+
+  if (authView === "register") {
+    return (
+      <RegisterPage
+        onRegisterComplete={() => setAuthView("app")}
+        onSwitchToLogin={() => setAuthView("login")}
+      />
+    )
+  }
 
   return (
     <div className="flex h-screen flex-col bg-background">
