@@ -104,39 +104,6 @@ export function SongCreatorPanel({ onGenerate, isGenerating }: SongCreatorPanelP
             />
           </div>
 
-          {/* Quick Style Tags */}
-          <div className="flex flex-col gap-2">
-            <Label className="text-sm font-semibold text-foreground">
-              Quick Styles
-            </Label>
-            <div className="flex flex-wrap gap-2">
-              {[
-                "Pop",
-                "Rock",
-                "R&B",
-                "Hip-Hop",
-                "Jazz",
-                "Country",
-                "Electronic",
-                "Folk",
-                "Classical",
-              ].map((genre) => (
-                <button
-                  key={genre}
-                  onClick={() =>
-                    setPrompt((prev) =>
-                      prev ? `${prev}, ${genre.toLowerCase()}` : genre.toLowerCase()
-                    )
-                  }
-                  className="rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-foreground transition-colors hover:border-secondary hover:bg-secondary/10 hover:text-secondary"
-                >
-                  {genre}
-                </button>
-              ))}
-            </div>
-          </div>
-
-
         </div>
       </div>
 

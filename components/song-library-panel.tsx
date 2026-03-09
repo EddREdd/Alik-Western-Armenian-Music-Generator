@@ -1,6 +1,5 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
 import {
   Play,
   Pause,
@@ -9,6 +8,7 @@ import {
   Download,
   Trash2,
   Music,
+  ChevronRight,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -80,43 +80,13 @@ const initialSongs: Song[] = [
 
 interface SongLibraryPanelProps {
   songs: Song[]
+  onSongClick?: (song: Song) => void
+  onPlaySong?: (song: Song) => void
+  currentPlayingId?: string | null
 }
 
-export function SongLibraryPanel({ songs: externalSongs }: SongLibraryPanelProps) {
+export function SongLibraryPanel({ songs: externalSongs, onSongClick, onPlaySong, currentPlayingId }: SongLibraryPanelProps) {
   const allSongs = [...externalSongs, ...initialSongs]
-  const [playingId, setPlayingId] = useState<string | null>(null)
-  const [progress, setProgress] = useState<Record<string, number>>({})
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
-    }
-  }, [])
-
-  const togglePlay = (songId: string) => {
-    if (playingId === songId) {
-      setPlayingId(null)
-      if (intervalRef.current) clearInterval(intervalRef.current)
-    } else {
-      setPlayingId(songId)
-      if (intervalRef.current) clearInterval(intervalRef.current)
-      if (!progress[songId]) {
-        setProgress((prev) => ({ ...prev, [songId]: 0 }))
-      }
-      intervalRef.current = setInterval(() => {
-        setProgress((prev) => {
-          const current = prev[songId] || 0
-          if (current >= 100) {
-            setPlayingId(null)
-            if (intervalRef.current) clearInterval(intervalRef.current)
-            return { ...prev, [songId]: 0 }
-          }
-          return { ...prev, [songId]: current + 0.5 }
-        })
-      }, 100)
-    }
-  }
 
   return (
     <div className="flex h-full flex-col bg-primary/[0.03]">
@@ -138,33 +108,52 @@ export function SongLibraryPanel({ songs: externalSongs }: SongLibraryPanelProps
           {allSongs.map((song) => (
             <div
               key={song.id}
+              onClick={() => onSongClick?.(song)}
+              role={onSongClick ? "button" : undefined}
+              tabIndex={onSongClick ? 0 : undefined}
+              onKeyDown={(e) => {
+                if (onSongClick && (e.key === "Enter" || e.key === " ")) {
+                  e.preventDefault()
+                  onSongClick(song)
+                }
+              }}
               className={`group rounded-xl border bg-card p-4 transition-all ${
-                playingId === song.id
+                onSongClick ? "cursor-pointer" : ""
+              } ${
+                currentPlayingId === song.id
                   ? "border-secondary shadow-md shadow-secondary/10"
                   : "border-border hover:border-primary/30 hover:shadow-sm"
               }`}
             >
               <div className="flex items-center gap-3">
-                {/* Play Button */}
+                {/* Play Button with Image */}
                 <button
-                  onClick={() => song.status === "completed" && togglePlay(song.id)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (song.status === "completed" && onPlaySong) onPlaySong(song)
+                  }}
                   disabled={song.status !== "completed"}
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors ${
-                    playingId === song.id
-                      ? "bg-secondary text-secondary-foreground"
-                      : song.status === "completed"
-                      ? "bg-primary/10 text-primary hover:bg-secondary hover:text-secondary-foreground"
-                      : "bg-muted text-muted-foreground"
-                  }`}
-                  aria-label={playingId === song.id ? "Pause" : "Play"}
+                  className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg"
+                  aria-label={currentPlayingId === song.id ? "Pause" : "Play"}
                 >
-                  {song.status === "generating" ? (
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  ) : playingId === song.id ? (
-                    <Pause className="h-4 w-4" />
-                  ) : (
-                    <Play className="h-4 w-4 pl-0.5" />
-                  )}
+                  {/* Background Image */}
+                  <img
+                    src={`https://picsum.photos/seed/${song.id}/100/100`}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                  {/* Teal Overlay */}
+                  <div className="absolute inset-0 bg-primary/70 transition-colors hover:bg-primary/80" />
+                  {/* Icon */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    {song.status === "generating" ? (
+                      <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    ) : currentPlayingId === song.id ? (
+                      <Pause className="h-5 w-5 text-white" />
+                    ) : (
+                      <Play className="h-5 w-5 pl-0.5 text-white" />
+                    )}
+                  </div>
                 </button>
 
                 {/* Song Info */}
@@ -188,9 +177,6 @@ export function SongLibraryPanel({ songs: externalSongs }: SongLibraryPanelProps
                     )}
                   </div>
                   <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-                    <span className="rounded bg-primary/10 px-1.5 py-0.5 text-primary font-medium">
-                      {song.genre}
-                    </span>
                     <span className="flex items-center gap-0.5">
                       <Clock className="h-3 w-3" />
                       {song.duration}
@@ -206,6 +192,7 @@ export function SongLibraryPanel({ songs: externalSongs }: SongLibraryPanelProps
                       variant="ghost"
                       size="sm"
                       className="h-8 w-8 p-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       <MoreHorizontal className="h-4 w-4" />
                       <span className="sr-only">Song options</span>
@@ -222,19 +209,13 @@ export function SongLibraryPanel({ songs: externalSongs }: SongLibraryPanelProps
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+
+                {/* Chevron for clickable cards */}
+                {onSongClick && (
+                  <ChevronRight className="h-5 w-5 text-muted-foreground/50 transition-colors group-hover:text-primary" />
+                )}
               </div>
 
-              {/* Progress Bar */}
-              {playingId === song.id && (
-                <div className="mt-3">
-                  <div className="h-1 overflow-hidden rounded-full bg-primary/10">
-                    <div
-                      className="h-full rounded-full bg-secondary transition-all"
-                      style={{ width: `${progress[song.id] || 0}%` }}
-                    />
-                  </div>
-                </div>
-              )}
             </div>
           ))}
 
