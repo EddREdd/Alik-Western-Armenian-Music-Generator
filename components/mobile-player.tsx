@@ -30,16 +30,16 @@ export function MobilePlayer({
   if (!song) return null
 
   return (
-    <div className="fixed bottom-[3.5rem] lg:bottom-0 left-0 right-0 z-40 border-t border-primary/20 bg-card shadow-lg">
+    <div className="fixed bottom-[3.75rem] lg:bottom-0 left-0 right-0 z-40 border-t border-primary/20 bg-card shadow-lg">
       {/* Progress bar at top */}
-      <div className="h-1 w-full bg-muted">
+      <div className="h-0.5 w-full bg-muted">
         <div
           className="h-full bg-secondary transition-all duration-100"
           style={{ width: `${song.progress}%` }}
         />
       </div>
 
-      <div className="flex items-center gap-3 px-4 py-3">
+      <div className="flex items-center gap-3 px-4 py-2">
         {/* Album Art */}
         <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg">
           <img
