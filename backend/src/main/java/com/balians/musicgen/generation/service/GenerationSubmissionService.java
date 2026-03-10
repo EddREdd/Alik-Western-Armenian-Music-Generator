@@ -5,6 +5,7 @@ import com.balians.musicgen.common.enums.ProviderJobStatus;
 import com.balians.musicgen.common.exception.BadRequestException;
 import com.balians.musicgen.common.exception.NotFoundException;
 import com.balians.musicgen.common.exception.ProviderIntegrationException;
+import com.balians.musicgen.config.FeatureFlagsProperties;
 import com.balians.musicgen.generation.dto.GenerationJobResponse;
 import com.balians.musicgen.generation.mapper.GenerationJobMapper;
 import com.balians.musicgen.generation.model.GenerationJob;
@@ -32,9 +33,13 @@ public class GenerationSubmissionService {
     private final GenerationJobMapper generationJobMapper;
     private final ProviderSubmissionValidator providerSubmissionValidator;
     private final ProviderProperties providerProperties;
+    private final FeatureFlagsProperties featureFlagsProperties;
     private final SunoClient sunoClient;
 
     public GenerationJobResponse submitJob(String id) {
+        if (!featureFlagsProperties.isProviderSubmissionEnabled()) {
+            throw new BadRequestException("Provider submission is disabled by configuration");
+        }
         GenerationJob job = generationJobRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Generation job not found: " + id));
 
@@ -62,6 +67,8 @@ public class GenerationSubmissionService {
             job.setInternalStatus(InternalJobStatus.SUBMITTED);
             job.setProviderStatus(ProviderJobStatus.PENDING);
             job.setSubmittedAt(Instant.now());
+            job.setNextPollAt(Instant.now());
+            job.setPollAttemptCount(0);
             job.setErrorCode(null);
             job.setErrorMessage(null);
             appendHistory(job, InternalJobStatus.SUBMITTED, ProviderJobStatus.PENDING, "Job submitted to Suno provider");

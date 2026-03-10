@@ -16,6 +16,11 @@ management:
     web:
       exposure:
         include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when_authorized
 
 logging:
   level:
@@ -28,3 +33,31 @@ provider:
   base-url: ${PROVIDER_BASE_URL:https://api.sunoapi.org}
   api-key: ${PROVIDER_API_KEY:change-me}
   callback-base-url: ${PROVIDER_CALLBACK_BASE_URL:http://localhost:${SERVER_PORT:8080}}
+
+polling:
+  enabled: ${POLLING_ENABLED:true}
+  interval-ms: ${POLLING_INTERVAL_MS:60000}
+  batch-size: ${POLLING_BATCH_SIZE:10}
+  base-delay-seconds: ${POLLING_BASE_DELAY_SECONDS:60}
+  max-delay-seconds: ${POLLING_MAX_DELAY_SECONDS:900}
+
+schedules:
+  execution:
+    enabled: ${SCHEDULE_EXECUTION_ENABLED:true}
+    interval-ms: ${SCHEDULE_EXECUTION_INTERVAL_MS:60000}
+    batch-size: ${SCHEDULE_EXECUTION_BATCH_SIZE:10}
+
+ops:
+  stuck-threshold-minutes: ${OPS_STUCK_THRESHOLD_MINUTES:30}
+  raw-payload-preview-length: ${OPS_RAW_PAYLOAD_PREVIEW_LENGTH:200}
+
+features:
+  provider-submission-enabled: ${FEATURE_PROVIDER_SUBMISSION_ENABLED:false}
+  callback-processing-enabled: ${FEATURE_CALLBACK_PROCESSING_ENABLED:true}
+  admin-endpoints-enabled: ${FEATURE_ADMIN_ENDPOINTS_ENABLED:true}
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html

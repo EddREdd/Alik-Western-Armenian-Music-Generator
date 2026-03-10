@@ -61,6 +61,10 @@ public class GenerationJob extends AuditableDocument {
     private Instant submittedAt;
     private Instant completedAt;
     private Instant failedAt;
+    @Indexed(name = "idx_generation_jobs_next_poll_at", sparse = true)
+    private Instant nextPollAt;
+    private Instant lastPolledAt;
+    private Integer pollAttemptCount;
 
     @Builder.Default
     private List<JobStatusHistoryEntry> statusHistory = new ArrayList<>();

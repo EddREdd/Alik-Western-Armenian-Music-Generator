@@ -1,8 +1,10 @@
 package com.balians.musicgen.common.enums;
 
 public enum ScheduleRunStatus {
-    PENDING,
-    RUNNING,
-    SUCCESS,
+    STARTED,
+    SKIPPED,
+    CREATED,
+    SUBMITTED,
+    COMPLETED,
     FAILED
 }

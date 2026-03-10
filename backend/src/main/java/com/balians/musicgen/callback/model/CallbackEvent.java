@@ -20,7 +20,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @AllArgsConstructor
 @Document(collection = "callback_events")
 @CompoundIndexes({
-        @CompoundIndex(name = "idx_callback_events_task_received_at", def = "{'providerTaskId': 1, 'receivedAt': -1}")
+        @CompoundIndex(name = "idx_callback_events_task_received_at", def = "{'providerTaskId': 1, 'receivedAt': -1}"),
+        @CompoundIndex(name = "idx_callback_events_task_type_hash", def = "{'providerTaskId': 1, 'callbackType': 1, 'payloadHash': 1}")
 })
 public class CallbackEvent {
 
@@ -30,6 +31,7 @@ public class CallbackEvent {
     @Indexed(name = "idx_callback_events_provider_task_id")
     private String providerTaskId;
 
+    private String generationJobId;
     private String callbackType;
     private String callbackCode;
     private String message;
@@ -45,4 +47,6 @@ public class CallbackEvent {
 
     @Indexed(name = "idx_callback_events_processing_status")
     private CallbackProcessingStatus processingStatus;
+
+    private String processingError;
 }

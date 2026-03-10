@@ -1,4 +1,7 @@
 spring:
+  config:
+    activate:
+      on-profile: local
   data:
     mongodb:
       uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017}
@@ -7,3 +10,6 @@ spring:
 logging:
   level:
     root: ${LOG_LEVEL_ROOT:DEBUG}
+
+features:
+  provider-submission-enabled: ${FEATURE_PROVIDER_SUBMISSION_ENABLED:false}

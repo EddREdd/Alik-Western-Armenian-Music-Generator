@@ -21,7 +21,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @AllArgsConstructor
 @Document(collection = "generation_tracks")
 @CompoundIndexes({
-        @CompoundIndex(name = "idx_generation_tracks_job_track_index", def = "{'generationJobId': 1, 'trackIndex': 1}")
+        @CompoundIndex(name = "idx_generation_tracks_job_track_index", def = "{'generationJobId': 1, 'trackIndex': 1}"),
+        @CompoundIndex(name = "idx_generation_tracks_job_provider_music", def = "{'generationJobId': 1, 'providerMusicId': 1}")
 })
 public class GenerationTrack extends AuditableDocument {
 
@@ -39,6 +40,7 @@ public class GenerationTrack extends AuditableDocument {
     private String streamAudioUrl;
     private String imageUrl;
     private String lyricsOrPrompt;
+    private String modelName;
     private String title;
     private List<String> tags;
     private Integer durationSeconds;

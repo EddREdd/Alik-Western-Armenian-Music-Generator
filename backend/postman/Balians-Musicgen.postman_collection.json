@@ -1,0 +1,690 @@
+{
+  "info": {
+    "_postman_id": "2d90ca4b-8c0d-4c4e-a0ca-4f9d3b1d04c7",
+    "name": "Balians Musicgen Backend",
+    "description": "Postman collection for Balians Spring Boot backend and direct Suno provider verification. Fill the collection variables before running requests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "API Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{backendBaseUrl}}/api/v1/health",
+              "host": [
+                "{{backendBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Health Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{backendBaseUrl}}/api/v1/admin/health/summary",
+              "host": [
+                "{{backendBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "health",
+                "summary"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Prompt Templates",
+      "item": [
+        {
+          "name": "Create Prompt Template",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"projectId\": \"{{projectId}}\",\n  \"name\": \"Daily Western Armenian Template\",\n  \"customMode\": true,\n  \"instrumental\": false,\n  \"model\": \"V4\",\n  \"promptTemplate\": \"Write a Western Armenian song about hope and homeland.\",\n  \"styleTemplate\": \"folk-pop\",\n  \"titleTemplate\": \"Daily Armenian Song\",\n  \"active\": true,\n  \"isDefault\": false\n}"
+            },
+            "url": {
+              "raw": "{{backendBaseUrl}}/api/v1/prompt-templates",
+              "host": [
+                "{{backendBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "prompt-templates"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Prompt Templates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{backendBaseUrl}}/api/v1/prompt-templates?projectId={{projectId}}&activeOnly=true",
+              "host": [
+                "{{backendBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "prompt-templates"
+              ],
+              "query": [
+                {
+                  "key": "projectId",
+                  "value": "{{projectId}}"
+                },
+                {
+                  "key": "activeOnly",
+                  "value": "true"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Prompt Template",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{backendBaseUrl}}/api/v1/prompt-templates/{{templateId}}",
+              "host": [
+                "{{backendBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "prompt-templates",
+                "{{templateId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Generation Jobs",
+      "item": [
+        {
+          "name": "Create Generation Job",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"projectId\": \"{{projectId}}\",\n  \"templateId\": \"{{templateId}}\",\n  \"sourceType\": \"MANUAL\",\n  \"promptFinal\": \"Write a Western Armenian song about resilience.\",\n  \"styleFinal\": \"folk-pop\",\n  \"titleFinal\": \"Resilient Hearts\",\n  \"customMode\": true,\n  \"instrumental\": false,\n  \"model\": \"V4\"\n}"
+            },
+            "url": {
+              "raw": "{{backendBaseUrl}}/api/v1/generation-jobs",
+              "host": [
+                "{{backendBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "generation-jobs"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Generation Jobs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{backendBaseUrl}}/api/v1/generation-jobs?projectId={{projectId}}&page=0&size=20",
+              "host": [
+                "{{backendBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "generation-jobs"
+              ],
+              "query": [
+                {
+                  "key": "projectId",
+                  "value": "{{projectId}}"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Generation Job",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{backendBaseUrl}}/api/v1/generation-jobs/{{jobId}}",
+              "host": [
+                "{{backendBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "generation-jobs",
+                "{{jobId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Submit Generation Job",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{backendBaseUrl}}/api/v1/generation-jobs/{{jobId}}/submit",
+              "host": [
+                "{{backendBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "generation-jobs",
+                "{{jobId}}",
+                "submit"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reconcile Generation Job Now",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{backendBaseUrl}}/api/v1/generation-jobs/{{jobId}}/reconcile-now",
+              "host": [
+                "{{backendBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "generation-jobs",
+                "{{jobId}}",
+                "reconcile-now"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Poll Attempts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{backendBaseUrl}}/api/v1/generation-jobs/{{jobId}}/poll-attempts",
+              "host": [
+                "{{backendBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "generation-jobs",
+                "{{jobId}}",
+                "poll-attempts"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Suno Callback Testing",
+      "item": [
+        {
+          "name": "Send Complete Callback To Backend",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": 200,\n  \"msg\": \"ok\",\n  \"data\": {\n    \"callbackType\": \"complete\",\n    \"task_id\": \"{{providerTaskId}}\",\n    \"data\": [\n      {\n        \"id\": \"track-001\",\n        \"audio_url\": \"https://cdn.example.com/audio-001.mp3\",\n        \"stream_audio_url\": \"https://cdn.example.com/audio-001-stream.mp3\",\n        \"image_url\": \"https://cdn.example.com/image-001.jpg\",\n        \"prompt\": \"Write a Western Armenian song about resilience.\",\n        \"model_name\": \"V4\",\n        \"title\": \"Resilient Hearts\",\n        \"tags\": \"folk-pop,western-armenian\",\n        \"createTime\": \"2026-03-10T12:00:00Z\",\n        \"duration\": 132\n      }\n    ]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{backendBaseUrl}}/api/v1/integrations/suno/callback",
+              "host": [
+                "{{backendBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "integrations",
+                "suno",
+                "callback"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Schedules",
+      "item": [
+        {
+          "name": "Create Schedule",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"projectId\": \"{{projectId}}\",\n  \"templateId\": \"{{templateId}}\",\n  \"name\": \"Daily 9AM UTC\",\n  \"timezone\": \"UTC\",\n  \"cronExpression\": \"0 0 9 * * *\",\n  \"enabled\": true,\n  \"autoSubmitToProvider\": true,\n  \"creditsMinThreshold\": 1\n}"
+            },
+            "url": {
+              "raw": "{{backendBaseUrl}}/api/v1/schedules",
+              "host": [
+                "{{backendBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "schedules"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Schedules",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{backendBaseUrl}}/api/v1/schedules",
+              "host": [
+                "{{backendBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "schedules"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Run Schedule Now",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{backendBaseUrl}}/api/v1/schedules/{{scheduleId}}/run-now",
+              "host": [
+                "{{backendBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "schedules",
+                "{{scheduleId}}",
+                "run-now"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Schedule Runs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{backendBaseUrl}}/api/v1/schedules/{{scheduleId}}/runs",
+              "host": [
+                "{{backendBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "schedules",
+                "{{scheduleId}}",
+                "runs"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin Ops",
+      "item": [
+        {
+          "name": "Admin List Jobs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{backendBaseUrl}}/api/v1/admin/generation-jobs?projectId={{projectId}}&page=0&size=20",
+              "host": [
+                "{{backendBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "generation-jobs"
+              ],
+              "query": [
+                {
+                  "key": "projectId",
+                  "value": "{{projectId}}"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Get Tracks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{backendBaseUrl}}/api/v1/admin/generation-jobs/{{jobId}}/tracks",
+              "host": [
+                "{{backendBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "generation-jobs",
+                "{{jobId}}",
+                "tracks"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Get Callback Events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{backendBaseUrl}}/api/v1/admin/generation-jobs/{{jobId}}/callback-events",
+              "host": [
+                "{{backendBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "generation-jobs",
+                "{{jobId}}",
+                "callback-events"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Get Poll Attempts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{backendBaseUrl}}/api/v1/admin/generation-jobs/{{jobId}}/poll-attempts",
+              "host": [
+                "{{backendBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "generation-jobs",
+                "{{jobId}}",
+                "poll-attempts"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Retry Submit",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{backendBaseUrl}}/api/v1/admin/generation-jobs/{{jobId}}/retry-submit",
+              "host": [
+                "{{backendBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "generation-jobs",
+                "{{jobId}}",
+                "retry-submit"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Mark Expired",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{backendBaseUrl}}/api/v1/admin/generation-jobs/{{jobId}}/mark-expired",
+              "host": [
+                "{{backendBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "generation-jobs",
+                "{{jobId}}",
+                "mark-expired"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Admin Stuck Jobs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{backendBaseUrl}}/api/v1/admin/generation-jobs/stuck",
+              "host": [
+                "{{backendBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "generation-jobs",
+                "stuck"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Direct Suno API",
+      "description": "Use these only when you want to call Suno directly from Postman. They do not go through the Balians backend.",
+      "item": [
+        {
+          "name": "Suno Generate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{providerApiKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"Write a Western Armenian song about resilience.\",\n  \"customMode\": true,\n  \"instrumental\": false,\n  \"model\": \"V4\",\n  \"style\": \"folk-pop\",\n  \"title\": \"Resilient Hearts\",\n  \"callBackUrl\": \"{{providerCallbackUrl}}\"\n}"
+            },
+            "url": {
+              "raw": "{{providerBaseUrl}}/api/v1/generate",
+              "host": [
+                "{{providerBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "generate"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Suno Record Info",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{providerApiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{providerBaseUrl}}/api/v1/generate/record-info?taskId={{providerTaskId}}",
+              "host": [
+                "{{providerBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "generate",
+                "record-info"
+              ],
+              "query": [
+                {
+                  "key": "taskId",
+                  "value": "{{providerTaskId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Suno Credits",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{providerApiKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{providerBaseUrl}}/api/v1/get-credits",
+              "host": [
+                "{{providerBaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "get-credits"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "backendBaseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "projectId",
+      "value": "project-1"
+    },
+    {
+      "key": "templateId",
+      "value": ""
+    },
+    {
+      "key": "jobId",
+      "value": ""
+    },
+    {
+      "key": "scheduleId",
+      "value": ""
+    },
+    {
+      "key": "providerTaskId",
+      "value": ""
+    },
+    {
+      "key": "providerBaseUrl",
+      "value": "https://api.sunoapi.org"
+    },
+    {
+      "key": "providerApiKey",
+      "value": ""
+    },
+    {
+      "key": "providerCallbackUrl",
+      "value": "http://localhost:8080/api/v1/integrations/suno/callback"
+    }
+  ]
+}

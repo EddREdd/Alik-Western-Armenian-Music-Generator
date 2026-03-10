@@ -8,7 +8,10 @@ import com.balians.musicgen.generation.dto.GenerationJobResponse;
 import com.balians.musicgen.generation.dto.GenerationJobSummaryResponse;
 import com.balians.musicgen.generation.service.GenerationJobService;
 import com.balians.musicgen.generation.service.GenerationSubmissionService;
+import com.balians.musicgen.polling.dto.PollAttemptResponse;
+import com.balians.musicgen.polling.service.PollingReconciliationService;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.validation.annotation.Validated;
@@ -28,6 +31,7 @@ public class GenerationJobController {
 
     private final GenerationJobService generationJobService;
     private final GenerationSubmissionService generationSubmissionService;
+    private final PollingReconciliationService pollingReconciliationService;
 
     @PostMapping
     public StandardSuccessResponse<GenerationJobResponse> createJob(
@@ -44,6 +48,16 @@ public class GenerationJobController {
     @PostMapping("/{id}/submit")
     public StandardSuccessResponse<GenerationJobResponse> submitJob(@PathVariable String id) {
         return StandardSuccessResponse.ok(generationSubmissionService.submitJob(id));
+    }
+
+    @PostMapping("/{id}/reconcile-now")
+    public StandardSuccessResponse<GenerationJobResponse> reconcileNow(@PathVariable String id) {
+        return StandardSuccessResponse.ok(pollingReconciliationService.reconcileNow(id));
+    }
+
+    @GetMapping("/{id}/poll-attempts")
+    public StandardSuccessResponse<List<PollAttemptResponse>> getPollAttempts(@PathVariable String id) {
+        return StandardSuccessResponse.ok(pollingReconciliationService.getPollAttempts(id));
     }
 
     @GetMapping
