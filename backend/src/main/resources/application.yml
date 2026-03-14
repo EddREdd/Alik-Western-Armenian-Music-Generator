@@ -29,9 +29,17 @@ logging:
 app:
   name: ${APP_NAME:musicgen-backend}
 
+media:
+  storage:
+    root-path: ${MEDIA_STORAGE_ROOT_PATH:storage}
+    public-base-url: ${MEDIA_STORAGE_PUBLIC_BASE_URL:http://localhost:${SERVER_PORT:8080}}
+
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001}
+
 provider:
   base-url: ${PROVIDER_BASE_URL:https://api.sunoapi.org}
-  api-key: ${PROVIDER_API_KEY:change-me}
+  api-key: ${PROVIDER_API_KEY:e7aa14b6ae0a72ed03311a9650158f9b}
   callback-base-url: ${PROVIDER_CALLBACK_BASE_URL:http://localhost:${SERVER_PORT:8080}}
 
 polling:
@@ -51,8 +59,20 @@ ops:
   stuck-threshold-minutes: ${OPS_STUCK_THRESHOLD_MINUTES:30}
   raw-payload-preview-length: ${OPS_RAW_PAYLOAD_PREVIEW_LENGTH:200}
 
+auth:
+  session-ttl-hours: ${AUTH_SESSION_TTL_HOURS:168}
+  otp-ttl-minutes: ${AUTH_OTP_TTL_MINUTES:10}
+  expose-otp-in-response: ${AUTH_EXPOSE_OTP_IN_RESPONSE:false}
+  default-invite-code: ${AUTH_DEFAULT_INVITE_CODE:}
+  google-oauth-enabled: ${AUTH_GOOGLE_OAUTH_ENABLED:false}
+  google-client-id: ${AUTH_GOOGLE_CLIENT_ID:}
+  google-token-info-url: ${AUTH_GOOGLE_TOKEN_INFO_URL:https://oauth2.googleapis.com/tokeninfo}
+  max-users: ${AUTH_MAX_USERS:100}
+  standard-credits: ${AUTH_STANDARD_CREDITS:50}
+  admin-emails: ${AUTH_ADMIN_EMAILS:}
+
 features:
-  provider-submission-enabled: ${FEATURE_PROVIDER_SUBMISSION_ENABLED:false}
+  provider-submission-enabled: ${FEATURE_PROVIDER_SUBMISSION_ENABLED:true}
   callback-processing-enabled: ${FEATURE_CALLBACK_PROCESSING_ENABLED:true}
   admin-endpoints-enabled: ${FEATURE_ADMIN_ENDPOINTS_ENABLED:true}
 

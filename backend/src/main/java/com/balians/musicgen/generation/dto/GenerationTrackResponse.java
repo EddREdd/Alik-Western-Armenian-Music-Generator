@@ -10,6 +10,8 @@ public record GenerationTrackResponse(
         String audioUrl,
         String streamAudioUrl,
         String imageUrl,
+        String localAudioUrl,
+        String localImageUrl,
         String lyricsOrPrompt,
         String title,
         List<String> tags,

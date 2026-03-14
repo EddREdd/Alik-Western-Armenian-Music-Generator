@@ -1,0 +1,295 @@
+{
+  "info": {
+    "_postman_id": "41db9c76-75eb-4b6f-8ae9-c904ca5538bc",
+    "name": "Frontend To Backend Flow",
+    "description": "Exact frontend-to-backend request flow for the current Next.js app. This covers the manual generation flow used by the UI.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{backendBaseUrl}}/api/v1/health",
+          "host": [
+            "{{backendBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "health"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Create Generation Job",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"projectId\": \"{{projectId}}\",\n  \"templateId\": null,\n  \"sourceType\": \"MANUAL\",\n  \"promptFinal\": \"{{promptFinal}}\",\n  \"styleFinal\": \"{{styleFinal}}\",\n  \"titleFinal\": \"{{titleFinal}}\",\n  \"customMode\": true,\n  \"instrumental\": {{instrumental}},\n  \"model\": \"{{model}}\"\n}"
+        },
+        "url": {
+          "raw": "{{backendBaseUrl}}/api/v1/generation-jobs",
+          "host": [
+            "{{backendBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "generation-jobs"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();",
+              "if (response && response.data && response.data.id) {",
+              "  pm.collectionVariables.set('jobId', response.data.id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Submit Generation Job",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{backendBaseUrl}}/api/v1/generation-jobs/{{jobId}}/submit",
+          "host": [
+            "{{backendBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "generation-jobs",
+            "{{jobId}}",
+            "submit"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();",
+              "if (response && response.data && response.data.providerTaskId) {",
+              "  pm.collectionVariables.set('providerTaskId', response.data.providerTaskId);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get Generation Job",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{backendBaseUrl}}/api/v1/generation-jobs/{{jobId}}",
+          "host": [
+            "{{backendBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "generation-jobs",
+            "{{jobId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "List Generation Jobs By Project",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{backendBaseUrl}}/api/v1/generation-jobs?projectId={{projectId}}&page=0&size=50",
+          "host": [
+            "{{backendBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "generation-jobs"
+          ],
+          "query": [
+            {
+              "key": "projectId",
+              "value": "{{projectId}}"
+            },
+            {
+              "key": "page",
+              "value": "0"
+            },
+            {
+              "key": "size",
+              "value": "50"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Manual Reconcile Job",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{backendBaseUrl}}/api/v1/generation-jobs/{{jobId}}/reconcile-now",
+          "host": [
+            "{{backendBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "generation-jobs",
+            "{{jobId}}",
+            "reconcile-now"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Admin Job Detail",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{backendBaseUrl}}/api/v1/admin/generation-jobs/{{jobId}}",
+          "host": [
+            "{{backendBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "generation-jobs",
+            "{{jobId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Admin Job Tracks",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{backendBaseUrl}}/api/v1/admin/generation-jobs/{{jobId}}/tracks",
+          "host": [
+            "{{backendBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "generation-jobs",
+            "{{jobId}}",
+            "tracks"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Admin Callback Events",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{backendBaseUrl}}/api/v1/admin/generation-jobs/{{jobId}}/callback-events",
+          "host": [
+            "{{backendBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "generation-jobs",
+            "{{jobId}}",
+            "callback-events"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Admin Poll Attempts",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{backendBaseUrl}}/api/v1/admin/generation-jobs/{{jobId}}/poll-attempts",
+          "host": [
+            "{{backendBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "generation-jobs",
+            "{{jobId}}",
+            "poll-attempts"
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "backendBaseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "projectId",
+      "value": "project-1"
+    },
+    {
+      "key": "titleFinal",
+      "value": "Resilient Hearts"
+    },
+    {
+      "key": "promptFinal",
+      "value": "Write a Western Armenian song about resilience and hope."
+    },
+    {
+      "key": "styleFinal",
+      "value": "folk-pop, warm vocals, duduk, acoustic guitar"
+    },
+    {
+      "key": "instrumental",
+      "value": "false"
+    },
+    {
+      "key": "model",
+      "value": "V4"
+    },
+    {
+      "key": "jobId",
+      "value": ""
+    },
+    {
+      "key": "providerTaskId",
+      "value": ""
+    }
+  ]
+}

@@ -3,6 +3,7 @@ package com.balians.musicgen.generation.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -18,6 +19,7 @@ import com.balians.musicgen.generation.repository.GenerationJobRepository;
 import com.balians.musicgen.generation.repository.GenerationTrackRepository;
 import com.balians.musicgen.provider.client.SunoClient;
 import com.balians.musicgen.provider.config.ProviderProperties;
+import com.balians.musicgen.provider.dto.SunoGenerateRequest;
 import com.balians.musicgen.provider.dto.SunoGenerateResponse;
 import com.balians.musicgen.provider.dto.SunoGenerateResponseData;
 import com.balians.musicgen.provider.service.ProviderSubmissionValidator;
@@ -46,6 +48,8 @@ class GenerationSubmissionServiceTest {
     private FeatureFlagsProperties featureFlagsProperties;
     @Mock
     private SunoClient sunoClient;
+    @Mock
+    private WesternArmenianLyricsTransformer westernArmenianLyricsTransformer;
 
     @InjectMocks
     private GenerationSubmissionService service;
@@ -56,6 +60,7 @@ class GenerationSubmissionServiceTest {
         when(generationJobRepository.findById("job-1")).thenReturn(Optional.of(job));
         when(featureFlagsProperties.isProviderSubmissionEnabled()).thenReturn(true);
         when(providerProperties.getCallbackBaseUrl()).thenReturn("http://localhost:8080");
+        when(westernArmenianLyricsTransformer.transform("բձգճդպծջկտ")).thenReturn("փցքջթբձչգդ");
         when(sunoClient.submitGeneration(any())).thenReturn(new SunoGenerateResponse(200, "ok", new SunoGenerateResponseData("task-123")));
         when(generationJobRepository.save(any(GenerationJob.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -65,7 +70,17 @@ class GenerationSubmissionServiceTest {
         assertThat(job.getInternalStatus()).isEqualTo(InternalJobStatus.SUBMITTED);
         assertThat(job.getProviderStatus()).isEqualTo(ProviderJobStatus.PENDING);
         assertThat(job.getNextPollAt()).isNotNull();
+        assertThat(job.getPromptFinal()).isEqualTo("բձգճդպծջկտ");
         verify(generationJobRepository).save(job);
+        verify(sunoClient).submitGeneration(eq(new SunoGenerateRequest(
+                "փցքջթբձչգդ",
+                true,
+                false,
+                null,
+                "style",
+                "title",
+                "http://localhost:8080/api/v1/integrations/suno/callback"
+        )));
     }
 
     @Test
@@ -94,7 +109,7 @@ class GenerationSubmissionServiceTest {
                 .sourceType(JobSourceType.MANUAL)
                 .internalStatus(InternalJobStatus.VALIDATED)
                 .providerStatus(ProviderJobStatus.NOT_SUBMITTED)
-                .promptFinal("prompt")
+                .promptFinal("բձգճդպծջկտ")
                 .styleFinal("style")
                 .titleFinal("title")
                 .customMode(true)

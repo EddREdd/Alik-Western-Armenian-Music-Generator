@@ -4,6 +4,7 @@ import com.balians.musicgen.callback.dto.SunoCallbackTrackDto;
 import com.balians.musicgen.generation.model.GenerationJob;
 import com.balians.musicgen.generation.model.GenerationTrack;
 import com.balians.musicgen.generation.repository.GenerationTrackRepository;
+import com.balians.musicgen.media.service.TrackMediaStorageService;
 import com.balians.musicgen.provider.dto.SunoRecordInfoTrackDto;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Service;
 public class GenerationTrackUpsertService {
 
     private final GenerationTrackRepository generationTrackRepository;
+    private final TrackMediaStorageService trackMediaStorageService;
 
     public int upsertTracks(GenerationJob job, List<SunoCallbackTrackDto> tracks) {
         if (tracks == null || tracks.isEmpty()) {
@@ -39,7 +41,12 @@ public class GenerationTrackUpsertService {
             GenerationTrack track = generationTrackRepository
                     .findByGenerationJobIdAndProviderMusicId(job.getId(), trackDto.id().trim())
                     .orElseGet(() -> GenerationTrack.builder()
+                            .ownerUserId(job.getOwnerUserId())
                             .generationJobId(job.getId())
+                            .projectId(job.getProjectId())
+                            .lyricId(job.getLyricId())
+                            .lyricTitle(job.getLyricTitle())
+                            .lyricText(job.getPromptFinal())
                             .providerMusicId(trackDto.id().trim())
                             .build());
 
@@ -56,6 +63,7 @@ public class GenerationTrackUpsertService {
                     trackDto.duration(),
                     trackDto.createTime()
             );
+            trackMediaStorageService.storeTrackAssets(track);
             generationTrackRepository.save(track);
             upsertedCount++;
         }
@@ -81,7 +89,12 @@ public class GenerationTrackUpsertService {
             GenerationTrack track = generationTrackRepository
                     .findByGenerationJobIdAndProviderMusicId(job.getId(), trackDto.id().trim())
                     .orElseGet(() -> GenerationTrack.builder()
+                            .ownerUserId(job.getOwnerUserId())
                             .generationJobId(job.getId())
+                            .projectId(job.getProjectId())
+                            .lyricId(job.getLyricId())
+                            .lyricTitle(job.getLyricTitle())
+                            .lyricText(job.getPromptFinal())
                             .providerMusicId(trackDto.id().trim())
                             .build());
 
@@ -98,6 +111,7 @@ public class GenerationTrackUpsertService {
                     trackDto.duration(),
                     trackDto.createTime()
             );
+            trackMediaStorageService.storeTrackAssets(track);
             generationTrackRepository.save(track);
             upsertedCount++;
         }

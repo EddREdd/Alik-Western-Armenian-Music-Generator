@@ -14,29 +14,42 @@ import {
   ShieldCheck,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { GoogleAuthButton } from "@/components/google-auth-button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
+import {
+  changePassword,
+  linkGoogleAccount,
+  requestEmailChange,
+  unlinkGoogleAccount,
+  verifyEmailChange,
+  type AuthUser,
+} from "@/lib/auth-api"
 
 interface SettingsPageProps {
   onBack: () => void
+  sessionToken: string
+  user: AuthUser
+  onUserChange: (user: AuthUser) => void
+  onLogout: () => void
 }
 
 type Section = "main" | "change-email" | "verify-email" | "change-password"
 
-// Mock user account state
-const mockUser = {
-  email: "user@example.com",
-  hasPassword: true,
-  googleLinked: true,
-}
-
-export function SettingsPage({ onBack }: SettingsPageProps) {
+export function SettingsPage({
+  onBack,
+  sessionToken,
+  user,
+  onUserChange,
+  onLogout,
+}: SettingsPageProps) {
   const [section, setSection] = useState<Section>("main")
 
   // Email change state
   const [newEmail, setNewEmail] = useState("")
   const [emailLoading, setEmailLoading] = useState(false)
+  const [emailChallengePreview, setEmailChallengePreview] = useState<string | null>(null)
   const [verificationCode, setVerificationCode] = useState("")
   const [verifyLoading, setVerifyLoading] = useState(false)
   const [verifyError, setVerifyError] = useState("")
@@ -51,36 +64,45 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
   const [passwordLoading, setPasswordLoading] = useState(false)
   const [passwordError, setPasswordError] = useState("")
   const [passwordSuccess, setPasswordSuccess] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
+  const [googleError, setGoogleError] = useState("")
+  const [accountMessage, setAccountMessage] = useState("")
 
-  // Google state
-  const [googleLinked, setGoogleLinked] = useState(mockUser.googleLinked)
-  const [hasPassword] = useState(mockUser.hasPassword)
-  const [userEmail] = useState(mockUser.email)
-
-  const canUnlinkGoogle = hasPassword
+  const canUnlinkGoogle = user.hasPassword && !!user.email
 
   // --- Email change ---
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setVerifyError("")
     setEmailLoading(true)
-    await new Promise((r) => setTimeout(r, 1000))
-    setEmailLoading(false)
-    setSection("verify-email")
+    try {
+      const challenge = await requestEmailChange(sessionToken, newEmail)
+      setEmailChallengePreview(challenge.devOtpPreview ?? null)
+      setSection("verify-email")
+    } catch (emailError) {
+      setVerifyError(emailError instanceof Error ? emailError.message : "Unable to change email")
+    } finally {
+      setEmailLoading(false)
+    }
   }
 
   const handleVerifyCode = async (e: React.FormEvent) => {
     e.preventDefault()
     setVerifyError("")
     setVerifyLoading(true)
-    await new Promise((r) => setTimeout(r, 1000))
-    setVerifyLoading(false)
-    if (verificationCode !== "123456") {
-      setVerifyError("Invalid code. Please try again.")
-      return
+    try {
+      const updatedUser = await verifyEmailChange(sessionToken, verificationCode)
+      onUserChange(updatedUser)
+      setAccountMessage("Email updated successfully")
+      setSection("main")
+      setNewEmail("")
+      setVerificationCode("")
+      setEmailChallengePreview(null)
+    } catch (codeError) {
+      setVerifyError(codeError instanceof Error ? codeError.message : "Invalid code")
+    } finally {
+      setVerifyLoading(false)
     }
-    setSection("main")
-    setNewEmail("")
-    setVerificationCode("")
   }
 
   // --- Password change ---
@@ -96,28 +118,46 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
       return
     }
     setPasswordLoading(true)
-    await new Promise((r) => setTimeout(r, 1000))
-    setPasswordLoading(false)
-    setPasswordSuccess(true)
-    setCurrentPassword("")
-    setNewPassword("")
-    setConfirmPassword("")
-    setTimeout(() => {
-      setPasswordSuccess(false)
-      setSection("main")
-    }, 1800)
+    try {
+      const updatedUser = await changePassword(sessionToken, {
+        currentPassword,
+        newPassword,
+        confirmPassword,
+      })
+      onUserChange(updatedUser)
+      setPasswordSuccess(true)
+      setCurrentPassword("")
+      setNewPassword("")
+      setConfirmPassword("")
+      setTimeout(() => {
+        setPasswordSuccess(false)
+        setSection("main")
+      }, 1800)
+    } catch (changeError) {
+      setPasswordError(
+        changeError instanceof Error ? changeError.message : "Unable to update password",
+      )
+    } finally {
+      setPasswordLoading(false)
+    }
   }
 
   // --- Google ---
-  const handleGoogleLink = async () => {
-    await new Promise((r) => setTimeout(r, 800))
-    setGoogleLinked(true)
-  }
-
   const handleGoogleUnlink = async () => {
     if (!canUnlinkGoogle) return
-    await new Promise((r) => setTimeout(r, 800))
-    setGoogleLinked(false)
+    setGoogleError("")
+    setGoogleLoading(true)
+    try {
+      const updatedUser = await unlinkGoogleAccount(sessionToken)
+      onUserChange(updatedUser)
+      setAccountMessage("Google account unlinked")
+    } catch (unlinkError) {
+      setGoogleError(
+        unlinkError instanceof Error ? unlinkError.message : "Unable to unlink Google account",
+      )
+    } finally {
+      setGoogleLoading(false)
+    }
   }
 
   // ---- Sections ----
@@ -136,7 +176,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
         </div>
         <div className="flex-1 overflow-y-auto px-6 py-6">
           <p className="mb-6 text-sm text-muted-foreground">
-            Your current email is <span className="font-medium text-foreground">{userEmail}</span>. Enter a new email address and we'll send a verification code to confirm it.
+            Your current email is <span className="font-medium text-foreground">{user.email}</span>. Enter a new email address and we'll send a verification code to confirm it.
           </p>
           <form onSubmit={handleEmailSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -204,6 +244,11 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
               {verifyError && (
                 <p className="text-xs text-destructive">{verifyError}</p>
               )}
+              {emailChallengePreview ? (
+                <p className="text-xs text-muted-foreground">
+                  Local/dev OTP preview: <span className="font-semibold text-foreground">{emailChallengePreview}</span>
+                </p>
+              ) : null}
             </div>
             <Button
               type="submit"
@@ -342,7 +387,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-foreground">Email Address</p>
-                  <p className="text-xs text-muted-foreground">{userEmail}</p>
+                  <p className="text-xs text-muted-foreground">{user.email}</p>
                 </div>
               </div>
               <Button
@@ -364,7 +409,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                 <div>
                   <p className="text-sm font-medium text-foreground">Password</p>
                   <p className="text-xs text-muted-foreground">
-                    {hasPassword ? "Last changed recently" : "No password set"}
+                    {user.hasPassword ? "Last changed recently" : "No password set"}
                   </p>
                 </div>
               </div>
@@ -374,7 +419,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                 className="text-xs"
                 onClick={() => setSection("change-password")}
               >
-                {hasPassword ? "Change" : "Set"}
+                {user.hasPassword ? "Change" : "Set"}
               </Button>
             </div>
           </div>
@@ -393,10 +438,10 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
               <div className="flex-1">
                 <p className="text-sm font-medium text-foreground">Google</p>
                 <p className="text-xs text-muted-foreground">
-                  {googleLinked ? "Connected" : "Not connected"}
+                  {user.googleLinked ? "Connected" : "Not connected"}
                 </p>
               </div>
-              {googleLinked ? (
+              {user.googleLinked ? (
                 <div className="flex items-center gap-2">
                   <ShieldCheck className="h-4 w-4 text-secondary" />
                   <Button
@@ -404,31 +449,68 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                     size="sm"
                     className={`gap-1.5 text-xs ${!canUnlinkGoogle ? "cursor-not-allowed opacity-50" : "text-destructive hover:text-destructive"}`}
                     onClick={canUnlinkGoogle ? handleGoogleUnlink : undefined}
-                    disabled={!canUnlinkGoogle}
+                    disabled={!canUnlinkGoogle || googleLoading}
                     title={!canUnlinkGoogle ? "Set a password before unlinking Google" : "Unlink Google account"}
                   >
                     <Link2Off className="h-3.5 w-3.5" />
-                    Unlink
+                    {googleLoading ? "Unlinking..." : "Unlink"}
                   </Button>
                 </div>
               ) : (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 text-xs"
-                  onClick={handleGoogleLink}
-                >
-                  <Link2 className="h-3.5 w-3.5" />
-                  Link
-                </Button>
+                <div className="w-[220px]">
+                  <GoogleAuthButton
+                    text="continue_with"
+                    disabled={googleLoading}
+                    onCredential={async (credential) => {
+                      setGoogleError("")
+                      setGoogleLoading(true)
+                      try {
+                        const updatedUser = await linkGoogleAccount(sessionToken, credential)
+                        onUserChange(updatedUser)
+                        setAccountMessage("Google account linked")
+                      } catch (linkError) {
+                        setGoogleError(
+                          linkError instanceof Error
+                            ? linkError.message
+                            : "Unable to link Google account",
+                        )
+                      } finally {
+                        setGoogleLoading(false)
+                      }
+                    }}
+                  />
+                </div>
               )}
             </div>
-            {googleLinked && !canUnlinkGoogle && (
+            {user.googleLinked && !canUnlinkGoogle && (
               <p className="mt-3 rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
                 You need to set a password before unlinking your Google account.
               </p>
             )}
+            {googleError ? (
+              <p className="mt-3 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                {googleError}
+              </p>
+            ) : null}
           </div>
+        </div>
+
+        <Separator />
+
+        <div className="px-6 py-5">
+          <h3 className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Session</h3>
+          {accountMessage ? (
+            <p className="mb-4 rounded-lg bg-secondary/10 px-3 py-2 text-xs text-secondary">
+              {accountMessage}
+            </p>
+          ) : null}
+          <Button
+            variant="outline"
+            className="w-full border-border"
+            onClick={onLogout}
+          >
+            Sign Out
+          </Button>
         </div>
       </div>
     </div>

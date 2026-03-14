@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { Library, FileText, Plus, Settings, LogOut, User, Coins } from "lucide-react"
+import { Library, FileText, Plus, Settings, LogOut, User, Coins, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -16,9 +16,11 @@ interface AppHeaderProps {
   activeTab: string
   onTabChange: (tab: string) => void
   onOpenSettings: () => void
+  creditsLabel?: string
+  showAdmin?: boolean
 }
 
-export function AppHeader({ activeTab, onTabChange, onOpenSettings }: AppHeaderProps) {
+export function AppHeader({ activeTab, onTabChange, onOpenSettings, creditsLabel = "0", showAdmin = false }: AppHeaderProps) {
   return (
     <header className="bg-primary text-primary-foreground">
       <div className="flex items-center justify-between px-6 py-3">
@@ -59,6 +61,19 @@ export function AppHeader({ activeTab, onTabChange, onOpenSettings }: AppHeaderP
             <FileText className="h-4 w-4" />
             Lyrics
           </button>
+          {showAdmin ? (
+            <button
+              onClick={() => onTabChange("admin")}
+              className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium tracking-wide transition-colors ${
+                activeTab === "admin"
+                  ? "bg-secondary text-secondary-foreground"
+                  : "text-primary-foreground/80 hover:bg-primary-foreground/10 hover:text-primary-foreground"
+              }`}
+            >
+              <Shield className="h-4 w-4" />
+              Admin
+            </button>
+          ) : null}
         </nav>
 
         <div className="flex items-center gap-2 lg:gap-3">
@@ -78,7 +93,7 @@ export function AppHeader({ activeTab, onTabChange, onOpenSettings }: AppHeaderP
           {/* Credit Counter */}
           <div className="flex items-center gap-1.5 rounded-full bg-primary-foreground/10 px-3 py-1.5">
             <Coins className="h-4 w-4 text-secondary" />
-            <span className="text-sm font-semibold text-primary-foreground">250</span>
+            <span className="text-sm font-semibold text-primary-foreground">{creditsLabel}</span>
           </div>
 
           <DropdownMenu>

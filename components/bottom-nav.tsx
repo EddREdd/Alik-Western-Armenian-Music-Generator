@@ -1,17 +1,19 @@
 "use client"
 
-import { Library, FileText, Plus } from "lucide-react"
+import { Library, FileText, Plus, Shield } from "lucide-react"
 
 interface BottomNavProps {
   activeTab: string
   onTabChange: (tab: string) => void
+  showAdmin?: boolean
 }
 
-export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
+export function BottomNav({ activeTab, onTabChange, showAdmin = false }: BottomNavProps) {
   const items = [
     { id: "library", label: "Library", icon: Library },
     { id: "create", label: "Create", icon: Plus, accent: true },
     { id: "lyrics", label: "Lyrics", icon: FileText },
+    ...(showAdmin ? [{ id: "admin", label: "Admin", icon: Shield }] : []),
   ]
 
   return (

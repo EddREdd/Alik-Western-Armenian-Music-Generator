@@ -5,6 +5,7 @@ import java.util.Map;
 public record AdminHealthSummaryResponse(
         Map<String, Long> jobsByInternalStatus,
         Map<String, Long> jobsByProviderStatus,
+        long totalUsersCount,
         long failedJobsCount,
         long stuckJobsCount,
         long enabledSchedulesCount,

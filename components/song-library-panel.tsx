@@ -28,65 +28,31 @@ export interface Song {
   createdAt: string
   status: "completed" | "generating" | "failed"
   prompt: string
+  lyrics?: string
+  lyricsId?: string
+  lyricsTitle?: string
+  audioUrl?: string
+  streamAudioUrl?: string
 }
-
-const initialSongs: Song[] = [
-  {
-    id: "1",
-    title: "Electric Sunset",
-    genre: "Synthwave",
-    duration: "3:24",
-    createdAt: "Today",
-    status: "completed",
-    prompt: "Synthwave, retro 80s, pulsing bass",
-  },
-  {
-    id: "2",
-    title: "Mountain Echo",
-    genre: "Folk",
-    duration: "4:12",
-    createdAt: "Yesterday",
-    status: "completed",
-    prompt: "Acoustic folk, warm, fingerpicking",
-  },
-  {
-    id: "3",
-    title: "Urban Pulse",
-    genre: "Hip-Hop",
-    duration: "2:58",
-    createdAt: "2 days ago",
-    status: "completed",
-    prompt: "Lo-fi hip hop, chill beats, jazzy",
-  },
-  {
-    id: "4",
-    title: "Starlight Waltz",
-    genre: "Classical",
-    duration: "5:01",
-    createdAt: "3 days ago",
-    status: "completed",
-    prompt: "Orchestral waltz, elegant, strings",
-  },
-  {
-    id: "5",
-    title: "Neon Rush",
-    genre: "Electronic",
-    duration: "3:45",
-    createdAt: "1 week ago",
-    status: "completed",
-    prompt: "EDM, high energy, festival anthem",
-  },
-]
 
 interface SongLibraryPanelProps {
   songs: Song[]
   onSongClick?: (song: Song) => void
   onPlaySong?: (song: Song) => void
   currentPlayingId?: string | null
+  onDownloadSong?: (song: Song) => void
+  onDeleteSong?: (song: Song) => void
 }
 
-export function SongLibraryPanel({ songs: externalSongs, onSongClick, onPlaySong, currentPlayingId }: SongLibraryPanelProps) {
-  const allSongs = [...externalSongs, ...initialSongs]
+export function SongLibraryPanel({
+  songs,
+  onSongClick,
+  onPlaySong,
+  currentPlayingId,
+  onDownloadSong,
+  onDeleteSong,
+}: SongLibraryPanelProps) {
+  const allSongs = songs
 
   return (
     <div className="flex h-full flex-col bg-primary/[0.03]">
@@ -199,11 +165,22 @@ export function SongLibraryPanel({ songs: externalSongs, onSongClick, onPlaySong
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onDownloadSong?.(song)
+                      }}
+                    >
                       <Download className="mr-2 h-4 w-4" />
                       Download
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive">
+                    <DropdownMenuItem
+                      className="text-destructive"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onDeleteSong?.(song)
+                      }}
+                    >
                       <Trash2 className="mr-2 h-4 w-4" />
                       Delete
                     </DropdownMenuItem>

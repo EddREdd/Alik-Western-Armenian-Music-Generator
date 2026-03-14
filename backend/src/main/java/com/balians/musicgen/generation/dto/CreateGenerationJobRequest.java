@@ -14,6 +14,9 @@ public record CreateGenerationJobRequest(
         @Size(max = 100, message = "templateId must be at most 100 characters")
         String templateId,
 
+        @Size(max = 100, message = "lyricId must be at most 100 characters")
+        String lyricId,
+
         @NotNull(message = "sourceType is required")
         JobSourceType sourceType,
 

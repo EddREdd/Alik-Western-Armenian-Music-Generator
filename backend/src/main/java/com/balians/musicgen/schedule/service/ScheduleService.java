@@ -190,6 +190,7 @@ public class ScheduleService {
             GenerationJobResponse createdJob = generationJobService.createJob(new CreateGenerationJobRequest(
                     schedule.getProjectId(),
                     template.getId(),
+                    null,
                     JobSourceType.SCHEDULED,
                     template.getPromptTemplate(),
                     template.getStyleTemplate(),

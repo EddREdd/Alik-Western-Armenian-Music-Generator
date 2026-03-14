@@ -35,10 +35,15 @@ public class GenerationJob extends AuditableDocument {
     @Id
     private String id;
 
+    @Indexed(name = "idx_generation_jobs_owner_user_id", sparse = true)
+    private String ownerUserId;
+
     @Indexed(name = "idx_generation_jobs_project_id")
     private String projectId;
 
     private String templateId;
+    private String lyricId;
+    private String lyricTitle;
     private JobSourceType sourceType;
 
     @Indexed(name = "idx_generation_jobs_internal_status")
@@ -61,6 +66,8 @@ public class GenerationJob extends AuditableDocument {
     private Instant submittedAt;
     private Instant completedAt;
     private Instant failedAt;
+    private Instant userDeletedAt;
+    private Boolean hiddenFromLibrary;
     @Indexed(name = "idx_generation_jobs_next_poll_at", sparse = true)
     private Instant nextPollAt;
     private Instant lastPolledAt;

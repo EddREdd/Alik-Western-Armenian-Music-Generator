@@ -6,6 +6,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.balians.musicgen.common.enums.InternalJobStatus;
+import com.balians.musicgen.common.enums.JobSourceType;
+import com.balians.musicgen.common.enums.ProviderJobStatus;
 import com.balians.musicgen.common.enums.GenerationModel;
 import com.balians.musicgen.common.enums.ScheduleRunStatus;
 import com.balians.musicgen.generation.dto.GenerationJobResponse;
@@ -62,9 +65,32 @@ class ScheduleServiceTest {
         when(sunoClient.getCredits()).thenReturn(new SunoCreditResponse(200, "ok", 10));
         when(promptTemplateRepository.findById("template-1")).thenReturn(Optional.of(template));
         when(scheduleRunRepository.save(any(ScheduleRun.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(generationJobService.createJob(any())).thenReturn(new GenerationJobResponse("job-1", "project-1", "template-1", null,
-                null, null, null, "prompt", "style", "title", true, false, GenerationModel.V4,
-                null, null, Instant.now(), Instant.now(), null, null, null, java.util.List.of(), java.util.List.of()));
+        when(generationJobService.createJob(any())).thenReturn(new GenerationJobResponse(
+                "job-1",
+                "project-1",
+                "template-1",
+                null,
+                null,
+                JobSourceType.SCHEDULED,
+                InternalJobStatus.VALIDATED,
+                ProviderJobStatus.NOT_SUBMITTED,
+                null,
+                "prompt",
+                "style",
+                "title",
+                true,
+                false,
+                GenerationModel.V4,
+                null,
+                null,
+                Instant.now(),
+                Instant.now(),
+                null,
+                null,
+                null,
+                java.util.List.of(),
+                java.util.List.of()
+        ));
 
         ScheduleRunResponse response = scheduleService.runNow("schedule-1");
 

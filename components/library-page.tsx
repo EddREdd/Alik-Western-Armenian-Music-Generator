@@ -1,9 +1,7 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
-  Play,
-  Pause,
   Clock,
   Download,
   Trash2,
@@ -45,197 +43,81 @@ export interface LibrarySong {
   lyrics?: string
   lyricsId?: string
   lyricsTitle?: string
+  audioUrl?: string
+  streamAudioUrl?: string
 }
 
 interface LibraryPageProps {
+  songs: LibrarySong[]
+  currentPlayingId?: string | null
   onPlaySong?: (song: LibrarySong) => void
+  onDownloadSong?: (song: LibrarySong) => void
+  onDeleteSong?: (songId: string) => Promise<void> | void
   onNavigateToLyrics?: (lyricsId: string) => void
   initialSelectedSongId?: string | null
   onClearInitialSong?: () => void
 }
 
-const initialLibrarySongs: LibrarySong[] = [
-  {
-    id: "1",
-    title: "Electric Sunset",
-    genre: "Synthwave",
-    duration: "3:24",
-    createdAt: "Feb 20, 2026",
-    lyrics: "Cruising down the boulevard\nCity lights are shining bright\nThe radio plays our favorite song\nAs we disappear into the night\n\n[Chorus]\nMidnight drive, we're alive\nNothing left to fear tonight\nWindows down, turn the sound\nLet the music take us higher",
-    lyricsId: "1",
-    lyricsTitle: "Midnight Drive",
-    prompt: "Synthwave, retro 80s, pulsing bass, neon vibes",
-  },
-  {
-    id: "2",
-    title: "Mountain Echo",
-    genre: "Folk",
-    duration: "4:12",
-    createdAt: "Feb 19, 2026",
-    lyrics: "The tide rolls in, the tide rolls out\nWashing all my fears away\nSalt and sand between my toes\nI could stay here every day",
-    lyricsId: "2",
-    lyricsTitle: "Ocean Waves",
-    prompt: "Acoustic folk, warm, fingerpicking",
-  },
-  {
-    id: "3",
-    title: "Urban Pulse",
-    genre: "Hip-Hop",
-    duration: "2:58",
-    createdAt: "Feb 18, 2026",
-    prompt: "Lo-fi hip hop, chill beats, jazzy",
-  },
-  {
-    id: "4",
-    title: "Starlight Waltz",
-    genre: "Classical",
-    duration: "5:01",
-    createdAt: "Feb 17, 2026",
-    prompt: "Orchestral, romantic, sweeping strings",
-  },
-  {
-    id: "5",
-    title: "Neon Rush",
-    genre: "Electronic",
-    duration: "3:45",
-    createdAt: "Feb 14, 2026",
-    prompt: "EDM, high energy, drop bass",
-  },
-  {
-    id: "6",
-    title: "Desert Wind",
-    genre: "Ambient",
-    duration: "6:33",
-    createdAt: "Feb 12, 2026",
-    prompt: "Ambient, atmospheric, ethereal pads",
-  },
-  {
-    id: "7",
-    title: "City Lights",
-    genre: "Pop",
-    duration: "3:12",
-    createdAt: "Feb 10, 2026",
-    prompt: "Pop, catchy hook, modern production",
-  },
-  {
-    id: "8",
-    title: "Thunder Road",
-    genre: "Rock",
-    duration: "4:45",
-    createdAt: "Feb 8, 2026",
-    prompt: "Rock, guitar driven, powerful drums",
-  },
-]
-
-export function LibraryPage({ onPlaySong, onNavigateToLyrics, initialSelectedSongId, onClearInitialSong }: LibraryPageProps) {
+export function LibraryPage({
+  songs,
+  currentPlayingId,
+  onPlaySong,
+  onDownloadSong,
+  onDeleteSong,
+  onNavigateToLyrics,
+  initialSelectedSongId,
+  onClearInitialSong,
+}: LibraryPageProps) {
   const [search, setSearch] = useState("")
-  const [playingId, setPlayingId] = useState<string | null>(null)
-  const [progress, setProgress] = useState<Record<string, number>>({})
-  const [songs, setSongs] = useState<LibrarySong[]>(initialLibrarySongs)
-  const [selectedSong, setSelectedSong] = useState<LibrarySong | null>(null)
+  const [selectedSongId, setSelectedSongId] = useState<string | null>(initialSelectedSongId ?? null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [songToDelete, setSongToDelete] = useState<string | null>(null)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
-    }
-  }, [])
+  const filtered = useMemo(
+    () =>
+      songs.filter(
+        (song) =>
+          song.title.toLowerCase().includes(search.toLowerCase()) ||
+          song.genre.toLowerCase().includes(search.toLowerCase()),
+      ),
+    [songs, search],
+  )
 
-  // Open song detail if initialSelectedSongId is provided
+  const selectedSong = useMemo(
+    () => songs.find((song) => song.id === selectedSongId) ?? null,
+    [songs, selectedSongId],
+  )
+
   useEffect(() => {
     if (initialSelectedSongId) {
-      const song = songs.find((s) => s.id === initialSelectedSongId)
-      if (song) {
-        setSelectedSong(song)
-        onClearInitialSong?.()
-      }
+      setSelectedSongId(initialSelectedSongId)
+      onClearInitialSong?.()
     }
-  }, [initialSelectedSongId, songs, onClearInitialSong])
+  }, [initialSelectedSongId, onClearInitialSong])
 
-  const togglePlay = (song: LibrarySong, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation()
-    const songId = song.id
-    if (playingId === songId) {
-      setPlayingId(null)
-      if (intervalRef.current) clearInterval(intervalRef.current)
-    } else {
-      setPlayingId(songId)
-      if (intervalRef.current) clearInterval(intervalRef.current)
-      if (!progress[songId]) setProgress((p) => ({ ...p, [songId]: 0 }))
-      intervalRef.current = setInterval(() => {
-        setProgress((prev) => {
-          const c = prev[songId] || 0
-          if (c >= 100) {
-            setPlayingId(null)
-            if (intervalRef.current) clearInterval(intervalRef.current)
-            return { ...prev, [songId]: 0 }
-          }
-          return { ...prev, [songId]: c + 0.5 }
-        })
-      }, 100)
-      
-      if (onPlaySong) {
-        onPlaySong({
-          ...song,
-          status: "completed",
-        })
-      }
-    }
-  }
-
-  const handleSongClick = (song: LibrarySong) => {
-    setSelectedSong(song)
-  }
-
-  const handleBack = () => {
-    setSelectedSong(null)
-  }
-
-  const handleDeleteSong = (songId: string) => {
-    setSongs(songs.filter((s) => s.id !== songId))
-    if (selectedSong?.id === songId) {
-      setSelectedSong(null)
-    }
-    if (playingId === songId) {
-      setPlayingId(null)
-      if (intervalRef.current) clearInterval(intervalRef.current)
-    }
-  }
-
-  const openDeleteDialog = (songId: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    setSongToDelete(songId)
-    setDeleteDialogOpen(true)
-  }
-
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (songToDelete) {
-      handleDeleteSong(songToDelete)
-      setSongToDelete(null)
+      await onDeleteSong?.(songToDelete)
+      if (selectedSongId === songToDelete) {
+        setSelectedSongId(null)
+      }
     }
+    setSongToDelete(null)
     setDeleteDialogOpen(false)
   }
 
-  const filtered = songs.filter((s) =>
-    s.title.toLowerCase().includes(search.toLowerCase()) ||
-    s.genre.toLowerCase().includes(search.toLowerCase())
-  )
-
-  // Show song detail page if a song is selected
   if (selectedSong) {
     return (
       <SongDetailPage
         song={selectedSong as SongDetail}
-        onBack={handleBack}
-        onDelete={handleDeleteSong}
-        onNavigateToLyrics={onNavigateToLyrics}
-        onPlaySong={(song) => {
-          if (onPlaySong) {
-            onPlaySong(song as LibrarySong)
-          }
+        onBack={() => setSelectedSongId(null)}
+        onDelete={(songId) => {
+          setSongToDelete(songId)
+          setDeleteDialogOpen(true)
         }}
+        onDownload={(song) => onDownloadSong?.(song as LibrarySong)}
+        onNavigateToLyrics={onNavigateToLyrics}
+        onPlaySong={(song) => onPlaySong?.(song as LibrarySong)}
       />
     )
   }
@@ -259,10 +141,10 @@ export function LibraryPage({ onPlaySong, onNavigateToLyrics, initialSelectedSon
                 placeholder="Search songs..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full lg:w-64 pl-9 border-border bg-card text-foreground"
+                className="w-full pl-9 lg:w-64"
               />
             </div>
-            <Button variant="outline" size="sm" className="hidden lg:flex gap-1.5 border-border text-foreground">
+            <Button variant="outline" size="sm" className="hidden gap-1.5 lg:flex">
               <Filter className="h-3.5 w-3.5" />
               Filter
             </Button>
@@ -274,40 +156,36 @@ export function LibraryPage({ onPlaySong, onNavigateToLyrics, initialSelectedSon
             {filtered.map((song) => (
               <div
                 key={song.id}
-                onClick={() => handleSongClick(song)}
+                onClick={() => setSelectedSongId(song.id)}
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault()
-                    handleSongClick(song)
+                    setSelectedSongId(song.id)
                   }
                 }}
                 className={`group flex w-full cursor-pointer items-center gap-3 rounded-xl border bg-card p-3 text-left transition-all lg:gap-4 lg:p-4 ${
-                  playingId === song.id
+                  currentPlayingId === song.id
                     ? "border-secondary shadow-md shadow-secondary/10"
                     : "border-border hover:border-primary/30 hover:shadow-sm"
                 }`}
               >
                 <div
-                  onClick={(e) => togglePlay(song, e)}
-                  className="relative h-12 w-12 shrink-0 cursor-pointer overflow-hidden rounded-lg"
-                  role="button"
-                  aria-label={playingId === song.id ? "Pause" : "Play"}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (song.status === "completed") {
+                      onPlaySong?.(song)
+                    }
+                  }}
+                  className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg"
                 >
                   <img
                     src={`https://picsum.photos/seed/${song.id}/100/100`}
                     alt=""
                     className="absolute inset-0 h-full w-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-primary/70 transition-colors hover:bg-primary/80" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    {playingId === song.id ? (
-                      <Pause className="h-5 w-5 text-white" />
-                    ) : (
-                      <Play className="h-5 w-5 pl-0.5 text-white" />
-                    )}
-                  </div>
+                  <div className="absolute inset-0 bg-primary/70" />
                 </div>
 
                 <div className="min-w-0 flex-1">
@@ -319,14 +197,6 @@ export function LibraryPage({ onPlaySong, onNavigateToLyrics, initialSelectedSon
                     </span>
                     <span className="hidden lg:inline">{song.createdAt}</span>
                   </div>
-                  {playingId === song.id && (
-                    <div className="mt-2 h-1 overflow-hidden rounded-full bg-primary/10">
-                      <div
-                        className="h-full rounded-full bg-secondary transition-all"
-                        style={{ width: `${progress[song.id] || 0}%` }}
-                      />
-                    </div>
-                  )}
                 </div>
 
                 <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground/50" />
@@ -340,17 +210,25 @@ export function LibraryPage({ onPlaySong, onNavigateToLyrics, initialSelectedSon
                       onClick={(e) => e.stopPropagation()}
                     >
                       <MoreHorizontal className="h-4 w-4" />
-                      <span className="sr-only">Song options</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onDownloadSong?.(song)
+                      }}
+                    >
                       <Download className="mr-2 h-4 w-4" />
                       Download
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="text-destructive"
-                      onClick={(e) => openDeleteDialog(song.id, e)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSongToDelete(song.id)
+                        setDeleteDialogOpen(true)
+                      }}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
                       Delete
@@ -360,32 +238,29 @@ export function LibraryPage({ onPlaySong, onNavigateToLyrics, initialSelectedSon
               </div>
             ))}
 
-            {filtered.length === 0 && (
+            {filtered.length === 0 ? (
               <div className="flex flex-col items-center py-16 text-center">
                 <Music className="h-12 w-12 text-muted-foreground/40" />
                 <p className="mt-4 font-semibold text-foreground">No songs found</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Try adjusting your search
-                </p>
+                <p className="mt-1 text-sm text-muted-foreground">Generate a song to see it here</p>
               </div>
-            )}
+            ) : null}
           </div>
         </ScrollArea>
       </div>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Song</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this song? This action cannot be undone.
+              This removes the song from your library view, but keeps the original cloud asset for admin and audit purposes.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={confirmDelete}
+              onClick={() => void confirmDelete()}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete

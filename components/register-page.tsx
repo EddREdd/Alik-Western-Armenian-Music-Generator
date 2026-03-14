@@ -4,11 +4,19 @@ import { useState } from "react"
 import Image from "next/image"
 import { Mail, Lock, Eye, EyeOff, Ticket, CheckCircle2, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { GoogleAuthButton } from "@/components/google-auth-button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import {
+  register,
+  verifyRegistration,
+  loginWithGoogle,
+  type AuthSession,
+  type OtpChallenge,
+} from "@/lib/auth-api"
 
 interface RegisterPageProps {
-  onRegisterComplete: () => void
+  onRegisterComplete: (session: AuthSession) => void
   onSwitchToLogin: () => void
 }
 
@@ -22,6 +30,8 @@ export function RegisterPage({ onRegisterComplete, onSwitchToLogin }: RegisterPa
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [verificationCode, setVerificationCode] = useState("")
+  const [otpChallenge, setOtpChallenge] = useState<OtpChallenge | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,25 +49,37 @@ export function RegisterPage({ onRegisterComplete, onSwitchToLogin }: RegisterPa
 
     setIsLoading(true)
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-
-    setIsLoading(false)
-    setStep("verify")
-  }
-
-  const handleGoogleRegister = async () => {
-    setIsLoading(true)
-    // Simulate Google OAuth
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    setIsLoading(false)
-    onRegisterComplete()
+    try {
+      const challenge = await register({
+        email,
+        password,
+        inviteCode,
+      })
+      setOtpChallenge(challenge)
+      setStep("verify")
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Unable to register")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleResendEmail = async () => {
+    setError("")
     setIsLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    setIsLoading(false)
+    try {
+      const challenge = await register({
+        email,
+        password,
+        inviteCode,
+      })
+      setOtpChallenge(challenge)
+      setStep("verify")
+    } catch (resendError) {
+      setError(resendError instanceof Error ? resendError.message : "Unable to resend code")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   // Email Verification Step
@@ -84,35 +106,80 @@ export function RegisterPage({ onRegisterComplete, onSwitchToLogin }: RegisterPa
 
           <h1 className="text-2xl font-bold text-foreground">Check Your Email</h1>
           <p className="mt-3 text-sm text-muted-foreground">
-            {"We've sent a verification link to"}
+            {"We've sent a verification code to"}
           </p>
           <p className="mt-1 font-medium text-foreground">{email}</p>
 
           <p className="mt-6 text-sm text-muted-foreground">
-            Click the link in the email to verify your account and start creating music.
+            Enter the 6-digit OTP from your email to activate your account and start creating music.
           </p>
 
-          <div className="mt-8 space-y-3">
+          {otpChallenge?.devOtpPreview ? (
+            <p className="mt-3 rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">
+              Local/dev OTP preview: <span className="font-semibold text-foreground">{otpChallenge.devOtpPreview}</span>
+            </p>
+          ) : null}
+
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault()
+              setError("")
+              setIsLoading(true)
+              try {
+                const session = await verifyRegistration(email, verificationCode)
+                onRegisterComplete(session)
+              } catch (verifyError) {
+                setError(
+                  verifyError instanceof Error ? verifyError.message : "Unable to verify account",
+                )
+              } finally {
+                setIsLoading(false)
+              }
+            }}
+            className="mt-6 space-y-3"
+          >
+            <Input
+              type="text"
+              inputMode="numeric"
+              placeholder="Enter 6-digit code"
+              value={verificationCode}
+              onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              className="text-center tracking-[0.4em] text-lg"
+              required
+            />
+
+            {error ? (
+              <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+                {error}
+              </div>
+            ) : null}
+
+            <Button
+              className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90"
+              disabled={isLoading || verificationCode.length !== 6}
+            >
+              {isLoading ? "Verifying..." : "Verify and Continue"}
+            </Button>
+          </form>
+
+          <div className="mt-4 space-y-3">
             <Button
               onClick={handleResendEmail}
               variant="outline"
               className="w-full border-border"
               disabled={isLoading}
             >
-              {isLoading ? "Sending..." : "Resend Email"}
-            </Button>
-
-            <Button
-              onClick={onRegisterComplete}
-              className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90"
-            >
-              I verified my email
+              {isLoading ? "Sending..." : "Resend Code"}
             </Button>
           </div>
 
           <button
             type="button"
-            onClick={() => setStep("form")}
+            onClick={() => {
+              setStep("form")
+              setVerificationCode("")
+              setError("")
+            }}
             className="mt-6 flex items-center justify-center gap-1 text-sm text-muted-foreground hover:text-foreground mx-auto"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -281,33 +348,29 @@ export function RegisterPage({ onRegisterComplete, onSwitchToLogin }: RegisterPa
         </div>
 
         {/* Google Button */}
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full gap-2 border-border"
-          onClick={handleGoogleRegister}
+        <GoogleAuthButton
+          text="signup_with"
           disabled={isLoading}
-        >
-          <svg className="h-5 w-5" viewBox="0 0 24 24">
-            <path
-              fill="#4285F4"
-              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-            />
-            <path
-              fill="#34A853"
-              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-            />
-            <path
-              fill="#FBBC05"
-              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-            />
-            <path
-              fill="#EA4335"
-              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-            />
-          </svg>
-          Continue with Google
-        </Button>
+          onCredential={async (credential) => {
+            if (!inviteCode.trim()) {
+              setError("Invite code is required for Google sign up")
+              return
+            }
+
+            setError("")
+            setIsLoading(true)
+            try {
+              const session = await loginWithGoogle(credential, inviteCode)
+              onRegisterComplete(session)
+            } catch (googleError) {
+              setError(
+                googleError instanceof Error ? googleError.message : "Google sign-up failed",
+              )
+            } finally {
+              setIsLoading(false)
+            }
+          }}
+        />
 
         {/* Switch to Login */}
         <p className="mt-6 text-center text-sm text-muted-foreground">

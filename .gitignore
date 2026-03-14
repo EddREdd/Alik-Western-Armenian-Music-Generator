@@ -9,6 +9,7 @@ node_modules/
 .env*.local
 .env
 .env.*
+backend/storage/
 .DS_Store
 .vercel
 backend/target/

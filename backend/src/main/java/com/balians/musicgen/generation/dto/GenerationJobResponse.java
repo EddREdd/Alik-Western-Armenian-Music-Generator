@@ -11,6 +11,8 @@ public record GenerationJobResponse(
         String id,
         String projectId,
         String templateId,
+        String lyricId,
+        String lyricTitle,
         JobSourceType sourceType,
         InternalJobStatus internalStatus,
         ProviderJobStatus providerStatus,

@@ -8,6 +8,7 @@ import com.balians.musicgen.callback.dto.SunoCallbackTrackDto;
 import com.balians.musicgen.generation.model.GenerationJob;
 import com.balians.musicgen.generation.model.GenerationTrack;
 import com.balians.musicgen.generation.repository.GenerationTrackRepository;
+import com.balians.musicgen.media.service.TrackMediaStorageService;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -21,6 +22,8 @@ class GenerationTrackUpsertServiceTest {
 
     @Mock
     private GenerationTrackRepository generationTrackRepository;
+    @Mock
+    private TrackMediaStorageService trackMediaStorageService;
 
     @InjectMocks
     private GenerationTrackUpsertService service;

@@ -1,5 +1,6 @@
 package com.balians.musicgen.generation.controller;
 
+import com.balians.musicgen.auth.service.AuthService;
 import com.balians.musicgen.common.enums.InternalJobStatus;
 import com.balians.musicgen.common.enums.ProviderJobStatus;
 import com.balians.musicgen.common.response.StandardSuccessResponse;
@@ -18,7 +19,9 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -29,15 +32,21 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/generation-jobs")
 public class GenerationJobController {
 
+    private static final String SESSION_HEADER = "X-Session-Token";
+
     private final GenerationJobService generationJobService;
     private final GenerationSubmissionService generationSubmissionService;
     private final PollingReconciliationService pollingReconciliationService;
+    private final AuthService authService;
 
     @PostMapping
     public StandardSuccessResponse<GenerationJobResponse> createJob(
+            @RequestHeader(name = SESSION_HEADER, required = false) String sessionToken,
             @Valid @RequestBody CreateGenerationJobRequest request
     ) {
-        return StandardSuccessResponse.ok(generationJobService.createJob(request));
+        return StandardSuccessResponse.ok(
+                generationJobService.createJob(request, authService.requireAuthenticatedUser(sessionToken))
+        );
     }
 
     @GetMapping("/{id}")
@@ -48,6 +57,12 @@ public class GenerationJobController {
     @PostMapping("/{id}/submit")
     public StandardSuccessResponse<GenerationJobResponse> submitJob(@PathVariable String id) {
         return StandardSuccessResponse.ok(generationSubmissionService.submitJob(id));
+    }
+
+    @DeleteMapping("/{id}")
+    public StandardSuccessResponse<String> deleteJob(@PathVariable String id) {
+        generationJobService.deleteJob(id);
+        return StandardSuccessResponse.ok("deleted");
     }
 
     @PostMapping("/{id}/reconcile-now")

@@ -1,0 +1,10 @@
+.git
+.github
+.idea
+.next
+node_modules
+backend/target
+backend/storage
+frontend-dev.log
+backend/backend-dev.log
+*.log

@@ -1,5 +1,6 @@
 package com.balians.musicgen.generation.service;
 
+import com.balians.musicgen.auth.model.UserAccount;
 import com.balians.musicgen.common.enums.InternalJobStatus;
 import com.balians.musicgen.common.enums.ProviderJobStatus;
 import com.balians.musicgen.common.exception.BadRequestException;
@@ -13,6 +14,8 @@ import com.balians.musicgen.generation.model.GenerationTrack;
 import com.balians.musicgen.generation.model.JobStatusHistoryEntry;
 import com.balians.musicgen.generation.repository.GenerationJobRepository;
 import com.balians.musicgen.generation.repository.GenerationTrackRepository;
+import com.balians.musicgen.lyrics.dto.LyricResponse;
+import com.balians.musicgen.lyrics.service.LyricsService;
 import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -35,13 +38,25 @@ public class GenerationJobService {
     private final GenerationJobRepository generationJobRepository;
     private final GenerationTrackRepository generationTrackRepository;
     private final GenerationJobMapper generationJobMapper;
+    private final LyricsService lyricsService;
 
     public GenerationJobResponse createJob(CreateGenerationJobRequest request) {
+        return createJob(request, UserAccount.builder().id(null).build());
+    }
+
+    public GenerationJobResponse createJob(CreateGenerationJobRequest request, UserAccount owner) {
         validateGenerationRequest(request);
+        LyricResponse lyric = null;
+        if (hasText(request.lyricId())) {
+            lyric = lyricsService.assertAvailableForGeneration(request.lyricId().trim());
+        }
 
         GenerationJob job = GenerationJob.builder()
+                .ownerUserId(owner.getId())
                 .projectId(request.projectId().trim())
                 .templateId(trimToNull(request.templateId()))
+                .lyricId(lyric == null ? null : lyric.id())
+                .lyricTitle(lyric == null ? null : lyric.title())
                 .sourceType(request.sourceType())
                 .internalStatus(InternalJobStatus.VALIDATED)
                 .providerStatus(ProviderJobStatus.NOT_SUBMITTED)
@@ -51,6 +66,7 @@ public class GenerationJobService {
                 .customMode(request.customMode())
                 .instrumental(request.instrumental())
                 .model(request.model())
+                .hiddenFromLibrary(false)
                 .statusHistory(List.of(JobStatusHistoryEntry.builder()
                         .internalStatus(InternalJobStatus.VALIDATED)
                         .providerStatus(ProviderJobStatus.NOT_SUBMITTED)
@@ -60,6 +76,9 @@ public class GenerationJobService {
                 .build();
 
         GenerationJob savedJob = generationJobRepository.save(job);
+        if (lyric != null) {
+            lyricsService.linkToSong(lyric.id(), savedJob.getId());
+        }
         log.info("Created generation job id={} projectId={} sourceType={} model={}",
                 savedJob.getId(), savedJob.getProjectId(), savedJob.getSourceType(), savedJob.getModel());
 
@@ -84,18 +103,30 @@ public class GenerationJobService {
         Page<GenerationJob> jobs;
 
         if (hasText(projectId) && internalStatus != null) {
-            jobs = generationJobRepository.findByProjectIdAndInternalStatus(projectId.trim(), internalStatus, pageable);
+            jobs = generationJobRepository.findByProjectIdAndInternalStatusAndHiddenFromLibraryFalse(projectId.trim(), internalStatus, pageable);
         } else if (hasText(projectId)) {
-            jobs = generationJobRepository.findByProjectId(projectId.trim(), pageable);
+            jobs = generationJobRepository.findByProjectIdAndHiddenFromLibraryFalse(projectId.trim(), pageable);
         } else if (internalStatus != null) {
-            jobs = generationJobRepository.findByInternalStatus(internalStatus, pageable);
+            jobs = generationJobRepository.findByInternalStatusAndHiddenFromLibraryFalse(internalStatus, pageable);
         } else if (providerStatus != null) {
-            jobs = generationJobRepository.findByProviderStatus(providerStatus, pageable);
+            jobs = generationJobRepository.findByProviderStatusAndHiddenFromLibraryFalse(providerStatus, pageable);
         } else {
-            jobs = generationJobRepository.findAll(pageable);
+            jobs = generationJobRepository.findByHiddenFromLibraryFalse(pageable);
         }
 
         return jobs.map(this::mapSummary);
+    }
+
+    public void deleteJob(String id) {
+        GenerationJob job = generationJobRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Generation job not found: " + id));
+        job.setHiddenFromLibrary(true);
+        job.setUserDeletedAt(Instant.now());
+        generationJobRepository.save(job);
+        if (hasText(job.getLyricId())) {
+            lyricsService.unlinkFromSong(job.getLyricId(), id);
+        }
+        log.info("Soft deleted generation job id={}", id);
     }
 
     private void validateGenerationRequest(CreateGenerationJobRequest request) {

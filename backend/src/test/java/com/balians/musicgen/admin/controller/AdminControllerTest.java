@@ -7,6 +7,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.balians.musicgen.admin.service.AdminOperationsService;
+import com.balians.musicgen.auth.model.UserAccount;
+import com.balians.musicgen.auth.service.AuthService;
 import com.balians.musicgen.common.exception.GlobalExceptionHandler;
 import com.balians.musicgen.common.exception.NotFoundException;
 import com.balians.musicgen.config.FeatureFlagsProperties;
@@ -28,6 +30,8 @@ class AdminControllerTest {
     private ScheduleService scheduleService;
     @Mock
     private FeatureFlagsProperties featureFlagsProperties;
+    @Mock
+    private AuthService authService;
 
     @InjectMocks
     private AdminController adminController;
@@ -40,8 +44,9 @@ class AdminControllerTest {
 
         when(adminOperationsService.getGenerationJob("missing")).thenThrow(new NotFoundException("Generation job not found: missing"));
         when(featureFlagsProperties.isAdminEndpointsEnabled()).thenReturn(true);
+        when(authService.requireAdminUser(any())).thenReturn(UserAccount.builder().id("admin-1").admin(true).build());
 
-        mockMvc.perform(get("/api/v1/admin/generation-jobs/missing"))
+        mockMvc.perform(get("/api/v1/admin/generation-jobs/missing").header("X-Session-Token", "admin-token"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("NOT_FOUND"))
                 .andExpect(jsonPath("$.message").value("Generation job not found: missing"));

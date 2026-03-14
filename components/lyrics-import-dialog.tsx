@@ -10,65 +10,45 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { useState } from "react"
-
-interface LyricsItem {
-  id: string
-  title: string
-  preview: string
-  createdAt: string
-}
-
-const savedLyrics: LyricsItem[] = [
-  {
-    id: "1",
-    title: "Midnight Drive",
-    preview: "Cruising down the boulevard, city lights are shining bright...",
-    createdAt: "2 days ago",
-  },
-  {
-    id: "2",
-    title: "Ocean Waves",
-    preview: "The tide rolls in, the tide rolls out, washing all my fears away...",
-    createdAt: "5 days ago",
-  },
-  {
-    id: "3",
-    title: "Rising Up",
-    preview: "From the ashes, from the dust, we rise above the noise of rust...",
-    createdAt: "1 week ago",
-  },
-  {
-    id: "4",
-    title: "Summer Haze",
-    preview: "Lazy afternoons and lemonade, the sun is golden, the air is warm...",
-    createdAt: "2 weeks ago",
-  },
-  {
-    id: "5",
-    title: "Neon Dreams",
-    preview: "Electric pulses through my veins, neon signs reflect the rain...",
-    createdAt: "3 weeks ago",
-  },
-]
+import { useEffect, useState } from "react"
+import { getLyric, listLyrics, type Lyric, type LyricSummary } from "@/lib/lyrics-api"
 
 interface LyricsImportDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSelect: (lyrics: string, title: string) => void
+  onSelect: (lyric: Lyric) => void
+  projectId: string
 }
 
 export function LyricsImportDialog({
   open,
   onOpenChange,
   onSelect,
+  projectId,
 }: LyricsImportDialogProps) {
   const [search, setSearch] = useState("")
+  const [lyrics, setLyrics] = useState<LyricSummary[]>([])
+  const [error, setError] = useState("")
 
-  const filtered = savedLyrics.filter(
+  useEffect(() => {
+    if (!open || !projectId.trim()) {
+      return
+    }
+
+    void listLyrics(projectId)
+      .then((items) => {
+        setLyrics(items)
+        setError("")
+      })
+      .catch((loadError) => {
+        setError(loadError instanceof Error ? loadError.message : "Unable to load lyrics")
+      })
+  }, [open, projectId])
+
+  const filtered = lyrics.filter(
     (l) =>
       l.title.toLowerCase().includes(search.toLowerCase()) ||
-      l.preview.toLowerCase().includes(search.toLowerCase())
+      l.bodyPreview.toLowerCase().includes(search.toLowerCase())
   )
 
   return (
@@ -94,9 +74,18 @@ export function LyricsImportDialog({
             {filtered.map((item) => (
               <button
                 key={item.id}
-                onClick={() => {
-                  onSelect(item.preview, item.title)
-                  onOpenChange(false)
+                onClick={async () => {
+                  try {
+                    const lyric = await getLyric(item.id)
+                    onSelect(lyric)
+                    onOpenChange(false)
+                  } catch (selectError) {
+                    setError(
+                      selectError instanceof Error
+                        ? selectError.message
+                        : "Unable to load lyric",
+                    )
+                  }
                 }}
                 className="flex items-start gap-3 rounded-lg border border-border bg-card p-3 text-left transition-colors hover:border-secondary hover:bg-accent/20"
               >
@@ -106,12 +95,18 @@ export function LyricsImportDialog({
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-foreground">{item.title}</p>
                   <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                    {item.preview}
+                    {item.bodyPreview}
                   </p>
-                  <p className="mt-1 text-xs text-muted-foreground/60">{item.createdAt}</p>
+                  <p className="mt-1 text-xs text-muted-foreground/60">
+                    {item.wordCount} words
+                    {item.locked ? " • Locked" : ""}
+                  </p>
                 </div>
               </button>
             ))}
+            {error ? (
+              <div className="py-4 text-center text-sm text-destructive">{error}</div>
+            ) : null}
             {filtered.length === 0 && (
               <div className="py-8 text-center text-sm text-muted-foreground">
                 No lyrics found matching your search.

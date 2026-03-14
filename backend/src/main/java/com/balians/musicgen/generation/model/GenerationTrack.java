@@ -29,9 +29,16 @@ public class GenerationTrack extends AuditableDocument {
     @Id
     private String id;
 
+    @Indexed(name = "idx_generation_tracks_owner_user_id", sparse = true)
+    private String ownerUserId;
+
     @Indexed(name = "idx_generation_tracks_job_id")
     private String generationJobId;
 
+    private String projectId;
+    private String lyricId;
+    private String lyricTitle;
+    private String lyricText;
     @Indexed(name = "idx_generation_tracks_provider_music_id", sparse = true)
     private String providerMusicId;
 
@@ -39,6 +46,10 @@ public class GenerationTrack extends AuditableDocument {
     private String audioUrl;
     private String streamAudioUrl;
     private String imageUrl;
+    private String localAudioPath;
+    private String localAudioUrl;
+    private String localImagePath;
+    private String localImageUrl;
     private String lyricsOrPrompt;
     private String modelName;
     private String title;

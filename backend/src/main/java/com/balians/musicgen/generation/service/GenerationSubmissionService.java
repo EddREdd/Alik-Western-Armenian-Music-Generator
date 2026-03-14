@@ -1,5 +1,8 @@
 package com.balians.musicgen.generation.service;
 
+import com.balians.musicgen.auth.model.UserAccount;
+import com.balians.musicgen.auth.repository.UserAccountRepository;
+import com.balians.musicgen.auth.service.AccountCreditsService;
 import com.balians.musicgen.common.enums.InternalJobStatus;
 import com.balians.musicgen.common.enums.ProviderJobStatus;
 import com.balians.musicgen.common.exception.BadRequestException;
@@ -35,6 +38,9 @@ public class GenerationSubmissionService {
     private final ProviderProperties providerProperties;
     private final FeatureFlagsProperties featureFlagsProperties;
     private final SunoClient sunoClient;
+    private final WesternArmenianLyricsTransformer westernArmenianLyricsTransformer;
+    private final UserAccountRepository userAccountRepository;
+    private final AccountCreditsService accountCreditsService;
 
     public GenerationJobResponse submitJob(String id) {
         if (!featureFlagsProperties.isProviderSubmissionEnabled()) {
@@ -47,7 +53,7 @@ public class GenerationSubmissionService {
         providerSubmissionValidator.validateForSubmission(job);
 
         SunoGenerateRequest request = new SunoGenerateRequest(
-                normalize(job.getPromptFinal()),
+                transformLyricsForProvider(job.getPromptFinal()),
                 job.getCustomMode(),
                 job.getInstrumental(),
                 providerSubmissionValidator.toProviderModel(job.getModel()),
@@ -62,6 +68,7 @@ public class GenerationSubmissionService {
         try {
             SunoGenerateResponse response = sunoClient.submitGeneration(request);
             String taskId = extractTaskId(response);
+            consumeCreditIfOwned(job);
 
             job.setProviderTaskId(taskId);
             job.setInternalStatus(InternalJobStatus.SUBMITTED);
@@ -141,6 +148,24 @@ public class GenerationSubmissionService {
 
     private String buildCallbackUrl() {
         String base = providerProperties.getCallbackBaseUrl();
-        return base.endsWith("/") ? base + "api/v1/provider/callbacks/suno" : base + "/api/v1/provider/callbacks/suno";
+        return base.endsWith("/") ? base + "api/v1/integrations/suno/callback" : base + "/api/v1/integrations/suno/callback";
+    }
+
+    private String transformLyricsForProvider(String value) {
+        String normalized = normalize(value);
+        if (normalized == null) {
+            return null;
+        }
+        return westernArmenianLyricsTransformer.transform(normalized);
+    }
+
+    private void consumeCreditIfOwned(GenerationJob job) {
+        if (job.getOwnerUserId() == null || job.getOwnerUserId().isBlank()) {
+            return;
+        }
+
+        UserAccount owner = userAccountRepository.findById(job.getOwnerUserId())
+                .orElseThrow(() -> new NotFoundException("Owner user not found for generation job: " + job.getOwnerUserId()));
+        accountCreditsService.consumeGenerationCredit(owner);
     }
 }

@@ -36,12 +36,15 @@ export interface SongDetail {
   lyrics?: string
   lyricsId?: string
   lyricsTitle?: string
+  audioUrl?: string
+  streamAudioUrl?: string
 }
 
 interface SongDetailPageProps {
   song: SongDetail
   onBack: () => void
   onDelete: (songId: string) => void
+  onDownload?: (song: SongDetail) => void
   onNavigateToLyrics?: (lyricsId: string) => void
   onPlaySong?: (song: SongDetail) => void
 }
@@ -50,6 +53,7 @@ export function SongDetailPage({
   song,
   onBack,
   onDelete,
+  onDownload,
   onNavigateToLyrics,
   onPlaySong,
 }: SongDetailPageProps) {
@@ -201,6 +205,7 @@ export function SongDetailPage({
             <Button
               variant="outline"
               className="flex-1 gap-2 border-border text-foreground"
+              onClick={() => onDownload?.(song)}
             >
               <Download className="h-4 w-4" />
               Download
