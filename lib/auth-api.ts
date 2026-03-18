@@ -68,6 +68,13 @@ export interface ChangePasswordPayload {
   confirmPassword: string
 }
 
+export interface ForgotPasswordResetPayload {
+  email: string
+  resetToken: string
+  newPassword: string
+  confirmPassword: string
+}
+
 async function authRequest<T>(
   path: string,
   init?: RequestInit,
@@ -122,8 +129,8 @@ export function clearStoredSessionToken() {
   window.localStorage.removeItem(sessionStorageKey)
 }
 
-export async function register(payload: RegisterPayload): Promise<OtpChallenge> {
-  return authRequest<OtpChallenge>("/api/v1/auth/register", {
+export async function register(payload: RegisterPayload): Promise<void> {
+  await authRequest<string>("/api/v1/auth/register", {
     method: "POST",
     body: JSON.stringify(payload),
   })
@@ -208,6 +215,37 @@ export async function changePassword(
   )
 }
 
+export async function requestForgotPasswordCode(email: string): Promise<void> {
+  await authRequest<string>("/api/v1/auth/password/forgot/request", {
+    method: "POST",
+    body: JSON.stringify({
+      email: email.trim(),
+    }),
+  })
+}
+
+export async function verifyForgotPasswordCode(email: string, otpCode: string): Promise<string> {
+  return authRequest<string>("/api/v1/auth/password/forgot/verify", {
+    method: "POST",
+    body: JSON.stringify({
+      email: email.trim(),
+      otpCode: otpCode.trim(),
+    }),
+  })
+}
+
+export async function resetForgotPassword(payload: ForgotPasswordResetPayload): Promise<void> {
+  await authRequest<string>("/api/v1/auth/password/forgot/reset", {
+    method: "POST",
+    body: JSON.stringify({
+      email: payload.email.trim(),
+      resetToken: payload.resetToken.trim(),
+      newPassword: payload.newPassword,
+      confirmPassword: payload.confirmPassword,
+    }),
+  })
+}
+
 export async function linkGoogleAccount(
   sessionToken: string,
   idToken: string,
@@ -232,12 +270,26 @@ export async function unlinkGoogleAccount(sessionToken: string): Promise<AuthUse
   )
 }
 
-export async function logout(sessionToken: string): Promise<void> {
-  await authRequest<string>(
-    "/api/v1/auth/logout",
-    {
-      method: "POST",
-    },
-    sessionToken,
-  )
+export async function logout(explicitToken?: string | null): Promise<void> {
+  const storedToken = typeof window !== "undefined" ? getStoredSessionToken() : null
+  const tokenToUse = explicitToken || storedToken
+
+  try {
+    if (tokenToUse) {
+      const headers = new Headers()
+      headers.set("Content-Type", "application/json")
+      headers.set("X-Session-Token", tokenToUse)
+
+      await fetch(`${backendBaseUrl}/api/v1/auth/logout`, {
+        method: "POST",
+        headers,
+        cache: "no-store",
+        keepalive: true,
+      })
+    }
+  } catch {
+    // Ignore backend logout failures; we'll still clear local session
+  } finally {
+    clearStoredSessionToken()
+  }
 }

@@ -15,6 +15,7 @@ import com.balians.musicgen.admin.dto.CallbackEventSummaryResponse;
 import com.balians.musicgen.admin.dto.FreezeUserRequest;
 import com.balians.musicgen.admin.dto.GenerateInviteCodesRequest;
 import com.balians.musicgen.admin.dto.ManualActionResponse;
+import com.balians.musicgen.admin.dto.SendInviteCodeEmailRequest;
 import com.balians.musicgen.admin.dto.SecurityLogResponse;
 import com.balians.musicgen.admin.service.AdminOperationsService;
 import com.balians.musicgen.auth.service.AuthService;
@@ -303,6 +304,25 @@ public class AdminController {
     ) {
         ensureAdminAccess(sessionToken);
         return StandardSuccessResponse.ok(adminOperationsService.deactivateInviteCode(id));
+    }
+
+    @PostMapping("/invite-codes/{id}/remove")
+    public StandardSuccessResponse<ManualActionResponse> removeInviteCode(
+            @RequestHeader(name = SESSION_HEADER, required = false) String sessionToken,
+            @PathVariable String id
+    ) {
+        ensureAdminAccess(sessionToken);
+        return StandardSuccessResponse.ok(adminOperationsService.removeInviteCode(id));
+    }
+
+    @PostMapping("/invite-codes/{id}/send-email")
+    public StandardSuccessResponse<ManualActionResponse> sendInviteCodeEmail(
+            @RequestHeader(name = SESSION_HEADER, required = false) String sessionToken,
+            @PathVariable String id,
+            @Valid @RequestBody SendInviteCodeEmailRequest request
+    ) {
+        ensureAdminAccess(sessionToken);
+        return StandardSuccessResponse.ok(adminOperationsService.sendInviteCodeEmail(id, request.email()));
     }
 
     @PostMapping("/schedules/{id}/run-now")

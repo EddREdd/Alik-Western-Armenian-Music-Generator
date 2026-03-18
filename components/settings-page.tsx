@@ -32,7 +32,7 @@ interface SettingsPageProps {
   sessionToken: string
   user: AuthUser
   onUserChange: (user: AuthUser) => void
-  onLogout: () => void
+  onLogout: () => Promise<void> | void
 }
 
 type Section = "main" | "change-email" | "verify-email" | "change-password"
@@ -67,6 +67,7 @@ export function SettingsPage({
   const [googleLoading, setGoogleLoading] = useState(false)
   const [googleError, setGoogleError] = useState("")
   const [accountMessage, setAccountMessage] = useState("")
+  const [logoutLoading, setLogoutLoading] = useState(false)
 
   const canUnlinkGoogle = user.hasPassword && !!user.email
 
@@ -157,6 +158,16 @@ export function SettingsPage({
       )
     } finally {
       setGoogleLoading(false)
+    }
+  }
+
+  const handleSignOut = async () => {
+    if (logoutLoading) return
+    setLogoutLoading(true)
+    try {
+      await onLogout()
+    } finally {
+      setLogoutLoading(false)
     }
   }
 
@@ -504,13 +515,14 @@ export function SettingsPage({
               {accountMessage}
             </p>
           ) : null}
-          <Button
-            variant="outline"
-            className="w-full border-border"
-            onClick={onLogout}
+          <button
+            type="button"
+            className="inline-flex h-9 w-full cursor-pointer items-center justify-center rounded-md border border-border bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            onClick={() => void handleSignOut()}
+            disabled={logoutLoading}
           >
-            Sign Out
-          </Button>
+            {logoutLoading ? "Signing out..." : "Sign Out"}
+          </button>
         </div>
       </div>
     </div>

@@ -73,6 +73,24 @@ export interface AdminUserSummary {
   unlimitedCredits: boolean
 }
 
+export interface AdminUserDetail {
+  id: string
+  email: string
+  joinDate: string
+  generationCount: number | null
+  creditsRemaining: number | null
+  creditsUsed: number | null
+  songsGenerated: number | null
+  emailVerified: boolean
+  inviteCode: string | null
+  frozen: boolean
+  frozenAt: string | null
+  freezeReason: string | null
+  admin: boolean
+  unlimitedCredits: boolean
+  googleEmail: string | null
+}
+
 export interface SecurityLog {
   id: string
   userId: string
@@ -90,6 +108,8 @@ export interface AdminInviteCode {
   usedByEmail: string | null
   usedAt: string | null
   createdAt: string | null
+  lastSentToEmail: string | null
+  lastSentAt: string | null
 }
 
 export interface AdminLyricSummary {
@@ -118,6 +138,13 @@ export interface AdminSongSummary {
   tags: string[] | null
 }
 
+export interface ManualActionResponse {
+  action: string
+  targetId: string
+  status: string
+  message: string
+}
+
 export async function getAdminDashboard(): Promise<AdminDashboard> {
   return adminRequest("/api/v1/admin/dashboard")
 }
@@ -131,6 +158,10 @@ export async function listAdminUsers(params?: {
   if (params?.frozenOnly) search.set("frozenOnly", "true")
   const query = search.toString()
   return adminRequest(`/api/v1/admin/users${query ? `?${query}` : ""}`)
+}
+
+export async function getAdminUser(id: string): Promise<AdminUserDetail> {
+  return adminRequest(`/api/v1/admin/users/${id}`)
 }
 
 export async function getUserSecurityLogs(userId: string): Promise<SecurityLog[]> {
@@ -179,6 +210,22 @@ export async function activateInviteCode(inviteId: string) {
 export async function deactivateInviteCode(inviteId: string) {
   return adminRequest(`/api/v1/admin/invite-codes/${inviteId}/deactivate`, {
     method: "POST",
+  })
+}
+
+export async function removeInviteCode(inviteId: string): Promise<ManualActionResponse> {
+  return adminRequest(`/api/v1/admin/invite-codes/${inviteId}/remove`, {
+    method: "POST",
+  })
+}
+
+export async function sendInviteCodeEmail(
+  inviteId: string,
+  email: string,
+): Promise<ManualActionResponse> {
+  return adminRequest(`/api/v1/admin/invite-codes/${inviteId}/send-email`, {
+    method: "POST",
+    body: JSON.stringify({ email: email.trim() }),
   })
 }
 

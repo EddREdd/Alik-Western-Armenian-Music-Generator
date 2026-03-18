@@ -4,6 +4,9 @@ import com.balians.musicgen.auth.dto.AuthSessionResponse;
 import com.balians.musicgen.auth.dto.AuthUserResponse;
 import com.balians.musicgen.auth.dto.ChangeEmailRequest;
 import com.balians.musicgen.auth.dto.ChangePasswordRequest;
+import com.balians.musicgen.auth.dto.ForgotPasswordRequest;
+import com.balians.musicgen.auth.dto.ForgotPasswordResetRequest;
+import com.balians.musicgen.auth.dto.ForgotPasswordVerifyRequest;
 import com.balians.musicgen.auth.dto.GoogleAuthRequest;
 import com.balians.musicgen.auth.dto.LoginRequest;
 import com.balians.musicgen.auth.dto.OtpChallengeResponse;
@@ -31,7 +34,7 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
-    public StandardSuccessResponse<OtpChallengeResponse> register(@Valid @RequestBody RegisterRequest request) {
+    public StandardSuccessResponse<String> register(@Valid @RequestBody RegisterRequest request) {
         return StandardSuccessResponse.ok(authService.register(request));
     }
 
@@ -81,6 +84,29 @@ public class AuthController {
             @Valid @RequestBody ChangePasswordRequest request
     ) {
         return StandardSuccessResponse.ok(authService.changePassword(sessionToken, request));
+    }
+
+    @PostMapping("/password/forgot/request")
+    public StandardSuccessResponse<String> requestPasswordReset(
+            @Valid @RequestBody ForgotPasswordRequest request
+    ) {
+        authService.requestPasswordReset(request);
+        return StandardSuccessResponse.ok("code-sent");
+    }
+
+    @PostMapping("/password/forgot/verify")
+    public StandardSuccessResponse<String> verifyPasswordResetCode(
+            @Valid @RequestBody ForgotPasswordVerifyRequest request
+    ) {
+        return StandardSuccessResponse.ok(authService.verifyPasswordResetCode(request));
+    }
+
+    @PostMapping("/password/forgot/reset")
+    public StandardSuccessResponse<String> resetPasswordWithCode(
+            @Valid @RequestBody ForgotPasswordResetRequest request
+    ) {
+        authService.resetPasswordWithCode(request);
+        return StandardSuccessResponse.ok("password-reset");
     }
 
     @PostMapping("/google/link")

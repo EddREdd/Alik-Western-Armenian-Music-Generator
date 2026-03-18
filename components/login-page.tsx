@@ -12,9 +12,10 @@ import { login, loginWithGoogle, type AuthSession } from "@/lib/auth-api"
 interface LoginPageProps {
   onLogin: (session: AuthSession) => void
   onSwitchToRegister: () => void
+  onForgotPassword?: () => void
 }
 
-export function LoginPage({ onLogin, onSwitchToRegister }: LoginPageProps) {
+export function LoginPage({ onLogin, onSwitchToRegister, onForgotPassword }: LoginPageProps) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -117,12 +118,18 @@ export function LoginPage({ onLogin, onSwitchToRegister }: LoginPageProps) {
 
           {/* Forgot Password */}
           <div className="text-right">
-            <button
-              type="button"
-              className="text-sm text-secondary hover:text-secondary/80 hover:underline"
+            <a
+              href="/?auth=forgot-password"
+              onClick={(e) => {
+                if (onForgotPassword) {
+                  e.preventDefault()
+                  onForgotPassword()
+                }
+              }}
+              className="cursor-pointer text-sm text-secondary hover:text-secondary/80 hover:underline"
             >
               Forgot password?
-            </button>
+            </a>
           </div>
 
           {/* Submit Button */}

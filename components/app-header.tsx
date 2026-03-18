@@ -1,7 +1,7 @@
 "use client"
 
 import Image from "next/image"
-import { Library, FileText, Plus, Settings, LogOut, User, Coins, Shield } from "lucide-react"
+import { Library, FileText, Plus, LogOut, User, Coins, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -15,12 +15,18 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 interface AppHeaderProps {
   activeTab: string
   onTabChange: (tab: string) => void
-  onOpenSettings: () => void
+  onLogout: () => void
   creditsLabel?: string
   showAdmin?: boolean
 }
 
-export function AppHeader({ activeTab, onTabChange, onOpenSettings, creditsLabel = "0", showAdmin = false }: AppHeaderProps) {
+export function AppHeader({
+  activeTab,
+  onTabChange,
+  onLogout,
+  creditsLabel = "0",
+  showAdmin = false,
+}: AppHeaderProps) {
   return (
     <header className="bg-primary text-primary-foreground">
       <div className="flex items-center justify-between px-6 py-3">
@@ -110,12 +116,10 @@ export function AppHeader({ activeTab, onTabChange, onOpenSettings, creditsLabel
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={onOpenSettings}>
-                <Settings className="mr-2 h-4 w-4" />
-                Settings
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive focus:text-destructive">
+              <DropdownMenuItem
+                className="cursor-pointer text-destructive focus:text-destructive"
+                onClick={onLogout}
+              >
                 <LogOut className="mr-2 h-4 w-4" />
                 Log Out
               </DropdownMenuItem>
