@@ -5,11 +5,11 @@ services:
     environment:
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://alik-app-mw9ydy-fcf9d6-95-140-192-45.traefik.me}
       FEATURE_PROVIDER_SUBMISSION_ENABLED: ${FEATURE_PROVIDER_SUBMISSION_ENABLED:-true}
-      PROVIDER_CALLBACK_BASE_URL: ${PROVIDER_CALLBACK_BASE_URL:-http://alik-app-mw9ydy-0d3794-95-140-192-45.traefik.me:8080}
+      PROVIDER_CALLBACK_BASE_URL: ${PROVIDER_CALLBACK_BASE_URL:-http://alik-app-mw9ydy-0d3794-95-140-192-45.traefik.me}
 
   frontend:
     ports:
       - "${FRONTEND_HOST_PORT:-3000}:3000"
     environment:
-      NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL:-http://alik-app-mw9ydy-0d3794-95-140-192-45.traefik.me:8080}
+      NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL:-http://alik-app-mw9ydy-0d3794-95-140-192-45.traefik.me}
       INTERNAL_BACKEND_URL: ${INTERNAL_BACKEND_URL:-http://backend:8080}

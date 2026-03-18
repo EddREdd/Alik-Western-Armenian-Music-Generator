@@ -33,7 +33,7 @@ media:
   storage:
     type: ${MEDIA_STORAGE_TYPE:local}
     root-path: ${MEDIA_STORAGE_ROOT_PATH:storage}
-    public-base-url: ${MEDIA_STORAGE_PUBLIC_BASE_URL:http://alik-app-mw9ydy-0d3794-95-140-192-45.traefik.me:8080}
+    public-base-url: ${MEDIA_STORAGE_PUBLIC_BASE_URL:http://alik-app-mw9ydy-0d3794-95-140-192-45.traefik.me}
     spaces-endpoint: ${DO_SPACES_ENDPOINT:${MEDIA_STORAGE_SPACES_ENDPOINT:}}
     spaces-region: ${DO_SPACES_REGION:${MEDIA_STORAGE_SPACES_REGION:}}
     spaces-bucket: ${DO_SPACES_BUCKET:${MEDIA_STORAGE_SPACES_BUCKET:}}
@@ -47,7 +47,7 @@ cors:
 provider:
   base-url: ${PROVIDER_BASE_URL:https://api.sunoapi.org}
   api-key: ${PROVIDER_API_KEY:}
-  callback-base-url: ${PROVIDER_CALLBACK_BASE_URL:http://alik-app-mw9ydy-0d3794-95-140-192-45.traefik.me:8080}
+  callback-base-url: ${PROVIDER_CALLBACK_BASE_URL:http://alik-app-mw9ydy-0d3794-95-140-192-45.traefik.me}
 
 polling:
   enabled: ${POLLING_ENABLED:true}
