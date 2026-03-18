@@ -3,9 +3,14 @@ FROM maven:3.9.9-eclipse-temurin-17 AS build
 WORKDIR /app
 
 COPY pom.xml .
+
+# Pre-fetch dependencies/plugins so the final package step can run in offline mode.
+RUN mvn -q -DskipTests dependency:go-offline
+
 COPY src ./src
 
-RUN mvn -q -DskipTests package
+# Build using the pre-fetched Maven repository (offline package step).
+RUN mvn -q -DskipTests -o package
 
 FROM eclipse-temurin:17-jre
 
