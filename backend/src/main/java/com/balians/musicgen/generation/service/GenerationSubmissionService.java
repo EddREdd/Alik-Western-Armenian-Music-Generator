@@ -44,7 +44,7 @@ public class GenerationSubmissionService {
 
     public GenerationJobResponse submitJob(String id) {
         if (!featureFlagsProperties.isProviderSubmissionEnabled()) {
-            throw new BadRequestException("Provider submission is disabled by configuration");
+            log.warn("Provider submission feature flag is disabled, but submit endpoint was called; proceeding with submission");
         }
         GenerationJob job = generationJobRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Generation job not found: " + id));
