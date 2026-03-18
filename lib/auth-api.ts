@@ -1,5 +1,7 @@
 "use client"
 
+import type { GenerationJob } from "@/lib/musicgen-api"
+
 const configuredBackendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL?.trim()
 const backendBaseUrl = configuredBackendBaseUrl
   ? configuredBackendBaseUrl.replace(/\/+$/, "")
@@ -42,6 +44,7 @@ export interface AuthSession {
   user: AuthUser
   sessionToken: string
   sessionExpiresAt: string
+  songs?: GenerationJob[]
 }
 
 export interface OtpChallenge {

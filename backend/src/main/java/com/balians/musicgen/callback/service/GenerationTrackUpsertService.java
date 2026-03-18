@@ -160,11 +160,16 @@ public class GenerationTrackUpsertService {
         if (isBlank(value)) {
             return null;
         }
+        String normalized = value.trim();
         try {
-            return OffsetDateTime.parse(value.trim()).toInstant();
+            return OffsetDateTime.parse(normalized).toInstant();
         } catch (DateTimeParseException ignored) {
-            log.warn("Unable to parse provider track createTime='{}'", value);
-            return null;
+            try {
+                return Instant.ofEpochMilli(Long.parseLong(normalized));
+            } catch (NumberFormatException secondIgnored) {
+                log.warn("Unable to parse provider track createTime='{}'", value);
+                return null;
+            }
         }
     }
 

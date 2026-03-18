@@ -201,6 +201,12 @@ export async function getGenerationJob(jobId: string): Promise<GenerationJob> {
   return apiRequest<GenerationJob>(`/api/v1/generation-jobs/${jobId}`)
 }
 
+export async function reconcileGenerationJob(jobId: string): Promise<GenerationJob> {
+  return apiRequest<GenerationJob>(`/api/v1/generation-jobs/${jobId}/reconcile-now`, {
+    method: "POST",
+  })
+}
+
 export async function deleteGenerationJob(jobId: string): Promise<void> {
   await apiRequest<string>(`/api/v1/generation-jobs/${jobId}`, {
     method: "DELETE",

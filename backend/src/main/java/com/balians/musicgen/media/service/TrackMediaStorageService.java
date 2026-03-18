@@ -27,8 +27,9 @@ public class TrackMediaStorageService {
     private final RestClient.Builder restClientBuilder;
 
     public void storeTrackAssets(GenerationTrack track) {
-        if (hasText(track.getAudioUrl())) {
-            storeAsset(track, track.getAudioUrl(), "audio", ".mp3");
+        String audioSourceUrl = hasText(track.getAudioUrl()) ? track.getAudioUrl() : track.getStreamAudioUrl();
+        if (hasText(audioSourceUrl)) {
+            storeAsset(track, audioSourceUrl, "audio", ".mp3");
         }
         if (hasText(track.getImageUrl())) {
             storeAsset(track, track.getImageUrl(), "images", ".jpeg");
@@ -50,8 +51,9 @@ public class TrackMediaStorageService {
     private void downloadToPath(String remoteUrl, Path targetPath) throws IOException {
         Files.createDirectories(targetPath.getParent());
         RestClient restClient = restClientBuilder.build();
+        String sourceUrl = remoteUrl == null ? "" : remoteUrl;
         byte[] bytes = restClient.get()
-                .uri(remoteUrl)
+                .uri(sourceUrl)
                 .retrieve()
                 .body(byte[].class);
         if (bytes == null || bytes.length == 0) {
@@ -62,8 +64,9 @@ public class TrackMediaStorageService {
 
     private byte[] downloadToBytes(String remoteUrl) throws IOException {
         RestClient restClient = restClientBuilder.build();
+        String sourceUrl = remoteUrl == null ? "" : remoteUrl;
         byte[] bytes = restClient.get()
-                .uri(remoteUrl)
+                .uri(sourceUrl)
                 .retrieve()
                 .body(byte[].class);
         if (bytes == null || bytes.length == 0) {
