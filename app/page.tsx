@@ -42,8 +42,12 @@ function mapJobToSong(job: GenerationJob): Song {
     ? new Date(job.createdAt).toLocaleString()
     : "Just now"
 
+  const hasPlayableTrack = (job.tracks ?? []).some(
+    (track) => Boolean(track.localAudioUrl || track.streamAudioUrl || track.audioUrl),
+  )
+
   let status: Song["status"] = "generating"
-  if (job.internalStatus === "COMPLETED") {
+  if (job.internalStatus === "COMPLETED" || hasPlayableTrack) {
     status = "completed"
   } else if (job.internalStatus === "FAILED" || job.internalStatus === "EXPIRED") {
     status = "failed"
