@@ -9,8 +9,8 @@ RUN mvn -q -DskipTests dependency:go-offline
 
 COPY src ./src
 
-# Build using the pre-fetched Maven repository (offline package step).
-RUN mvn -q -DskipTests -o package
+# Try offline packaging first; if any dependency is missing, fallback to online.
+RUN mvn -q -DskipTests -o package || mvn -q -DskipTests package
 
 FROM eclipse-temurin:17-jre
 
