@@ -27,6 +27,7 @@ import {
   deleteGenerationJob,
   getGenerationJob,
   listGenerationJobs,
+  reconcileGenerationJob,
   submitGenerationJob,
   type GenerationJob,
   type GenerationModel,
@@ -88,9 +89,7 @@ export default function Home() {
   // Mobile player state
   const [currentSong, setCurrentSong] = useState<PlayingSong | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const playableSongsRef = useRef<Song[]>([])
-  const playSongRef = useRef<((song: Song) => void) | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   const playableSongs = generatedSongs.filter((song) => song.status === "completed")
 
@@ -119,7 +118,17 @@ export default function Home() {
     }
 
     try {
-      const refreshedJobs = await Promise.all(activeJobIds.map((jobId) => getGenerationJob(jobId)))
+      const refreshedJobs = await Promise.all(
+        activeJobIds.map(async (jobId) => {
+          try {
+            // Force a provider reconciliation pass so completed Suno jobs become visible quickly.
+            return await reconcileGenerationJob(jobId)
+          } catch {
+            // Fallback to plain fetch to keep UI responsive even if reconcile endpoint fails.
+            return await getGenerationJob(jobId)
+          }
+        }),
+      )
       setBackendJobs((prev) =>
         prev.map((job) => refreshedJobs.find((candidate) => candidate.id === job.id) || job),
       )
@@ -137,8 +146,10 @@ export default function Home() {
   }, [refreshAllJobs])
 
   useEffect(() => {
-    playableSongsRef.current = playableSongs
-  }, [playableSongs])
+    if (authView === "app" && sessionToken) {
+      void refreshAllJobs()
+    }
+  }, [authView, sessionToken, refreshAllJobs])
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -175,10 +186,12 @@ export default function Home() {
       })
   }, [])
 
-  // Cleanup interval on unmount
   useEffect(() => {
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
+      const audio = audioRef.current
+      if (audio) {
+        audio.pause()
+      }
     }
   }, [])
 
@@ -199,6 +212,10 @@ export default function Home() {
   }, [backendJobs, refreshTrackedJobs])
 
   const loadSongWithoutPlaying = useCallback((song: Song) => {
+    const audioUrl = song.streamAudioUrl || song.audioUrl
+    if (!audioUrl) {
+      return
+    }
     setCurrentSong({
       id: song.id,
       title: song.title,
@@ -207,6 +224,13 @@ export default function Home() {
       progress: 0,
     })
     setIsPlaying(false)
+    const audio = audioRef.current
+    if (audio) {
+      audio.pause()
+      audio.src = audioUrl
+      audio.currentTime = 0
+      audio.load()
+    }
   }, [])
 
   useEffect(() => {
@@ -217,8 +241,11 @@ export default function Home() {
   }, [currentSong, playableSongs, loadSongWithoutPlaying])
 
   const playSong = useCallback((song: Song) => {
-    if (intervalRef.current) clearInterval(intervalRef.current)
-    
+    const audioUrl = song.streamAudioUrl || song.audioUrl
+    if (!audioUrl) {
+      return
+    }
+
     setCurrentSong({
       id: song.id,
       title: song.title,
@@ -226,59 +253,41 @@ export default function Home() {
       duration: song.duration,
       progress: 0,
     })
-    setIsPlaying(true)
-    
-    intervalRef.current = setInterval(() => {
-      setCurrentSong((prev) => {
-        if (!prev) return null
-        if (prev.progress >= 100) {
-          if (intervalRef.current) clearInterval(intervalRef.current)
-          const queue = playableSongsRef.current
-          const currentIndex = queue.findIndex((candidate) => candidate.id === prev.id)
-          const nextSong =
-            currentIndex === -1 || queue.length === 0
-              ? null
-              : queue[currentIndex < queue.length - 1 ? currentIndex + 1 : 0]
 
-          if (nextSong && nextSong.id !== prev.id) {
-            setTimeout(() => playSongRef.current?.(nextSong), 0)
-          } else {
-            setIsPlaying(false)
-          }
-
-          return { ...prev, progress: 100 }
-        }
-        return { ...prev, progress: prev.progress + 0.5 }
-      })
-    }, 100)
+    const audio = audioRef.current
+    if (!audio) {
+      return
+    }
+    audio.pause()
+    audio.src = audioUrl
+    audio.currentTime = 0
+    audio.load()
+    void audio.play()
+      .then(() => setIsPlaying(true))
+      .catch(() => setIsPlaying(false))
   }, [])
 
-  useEffect(() => {
-    playSongRef.current = playSong
-  }, [playSong])
-
   const togglePlayPause = useCallback(() => {
+    const audio = audioRef.current
+    if (!audio || !currentSong) {
+      return
+    }
     if (isPlaying) {
-      if (intervalRef.current) clearInterval(intervalRef.current)
+      audio.pause()
       setIsPlaying(false)
     } else {
-      setIsPlaying(true)
-      intervalRef.current = setInterval(() => {
-        setCurrentSong((prev) => {
-          if (!prev) return null
-          if (prev.progress >= 100) {
-            setIsPlaying(false)
-            if (intervalRef.current) clearInterval(intervalRef.current)
-            return { ...prev, progress: 0 }
-          }
-          return { ...prev, progress: prev.progress + 0.5 }
-        })
-      }, 100)
+      void audio.play()
+        .then(() => setIsPlaying(true))
+        .catch(() => setIsPlaying(false))
     }
-  }, [isPlaying])
+  }, [isPlaying, currentSong])
 
   const closePlayer = useCallback(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current)
+    const audio = audioRef.current
+    if (audio) {
+      audio.pause()
+      audio.currentTime = 0
+    }
     setCurrentSong(null)
     setIsPlaying(false)
   }, [])
@@ -300,6 +309,37 @@ export default function Home() {
       playSong(newSong)
     }
   }, [currentSong, playableSongs, playSong])
+
+  const handleAudioTimeUpdate = useCallback(() => {
+    const audio = audioRef.current
+    if (!audio || !Number.isFinite(audio.duration) || audio.duration <= 0) {
+      return
+    }
+    const nextProgress = Math.min(100, (audio.currentTime / audio.duration) * 100)
+    setCurrentSong((prev) => (prev ? { ...prev, progress: nextProgress } : prev))
+  }, [])
+
+  const handleAudioEnded = useCallback(() => {
+    setIsPlaying(false)
+    if (!currentSong) {
+      return
+    }
+    const currentIndex = playableSongs.findIndex((song) => song.id === currentSong.id)
+    if (currentIndex === -1 || playableSongs.length === 0) {
+      return
+    }
+    const nextSong =
+      playableSongs[currentIndex < playableSongs.length - 1 ? currentIndex + 1 : 0]
+    if (nextSong && nextSong.id !== currentSong.id) {
+      playSong(nextSong)
+    } else {
+      setCurrentSong((prev) => (prev ? { ...prev, progress: 100 } : prev))
+    }
+  }, [currentSong, playableSongs, playSong])
+
+  const handleAudioError = useCallback(() => {
+    setIsPlaying(false)
+  }, [])
 
   const handleDownloadSong = useCallback((song: Song) => {
     const url = song.streamAudioUrl || song.audioUrl
@@ -396,12 +436,24 @@ export default function Home() {
     storeSessionToken(session.sessionToken)
     setSessionToken(session.sessionToken)
     setCurrentUser(session.user)
-    const mostRecent = generatedSongs.find(
+    const loginSongs = (session.songs ?? []).map(mapJobToSong)
+    if (session.songs && session.songs.length > 0) {
+      setBackendJobs(
+        [...session.songs].sort((left, right) => {
+          const leftTime = left.createdAt ? new Date(left.createdAt).getTime() : 0
+          const rightTime = right.createdAt ? new Date(right.createdAt).getTime() : 0
+          return rightTime - leftTime
+        }),
+      )
+    } else {
+      setBackendJobs([])
+    }
+    const mostRecent = loginSongs.find(
       (s) => s.status === "completed"
     )
     if (mostRecent) loadSongWithoutPlaying(mostRecent)
     setAuthView("app")
-  }, [generatedSongs, loadSongWithoutPlaying])
+  }, [loadSongWithoutPlaying])
 
   const handleLogout = useCallback(() => {
     // Make sign-out instant on the client; backend invalidation runs in background.
@@ -533,6 +585,16 @@ export default function Home() {
         onPlayPause={togglePlayPause}
         onSkipBack={() => skipToSong("back")}
         onSkipForward={() => skipToSong("forward")}
+      />
+      <audio
+        ref={audioRef}
+        className="hidden"
+        preload="metadata"
+        onTimeUpdate={handleAudioTimeUpdate}
+        onEnded={handleAudioEnded}
+        onPause={() => setIsPlaying(false)}
+        onPlay={() => setIsPlaying(true)}
+        onError={handleAudioError}
       />
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} showAdmin={Boolean(currentUser?.admin)} />
     </div>

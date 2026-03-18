@@ -28,10 +28,17 @@ import com.balians.musicgen.common.exception.BadRequestException;
 import com.balians.musicgen.common.exception.ConflictException;
 import com.balians.musicgen.common.exception.NotFoundException;
 import com.balians.musicgen.email.SendGridEmailService;
+import com.balians.musicgen.generation.dto.GenerationJobResponse;
+import com.balians.musicgen.generation.mapper.GenerationJobMapper;
+import com.balians.musicgen.generation.model.GenerationJob;
+import com.balians.musicgen.generation.model.GenerationTrack;
+import com.balians.musicgen.generation.repository.GenerationJobRepository;
+import com.balians.musicgen.generation.repository.GenerationTrackRepository;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -54,6 +61,9 @@ public class AuthService {
     private final GoogleIdentityService googleIdentityService;
     private final SecurityLogService securityLogService;
     private final SendGridEmailService sendGridEmailService;
+    private final GenerationJobRepository generationJobRepository;
+    private final GenerationTrackRepository generationTrackRepository;
+    private final GenerationJobMapper generationJobMapper;
 
     public String register(RegisterRequest request) {
         String email = normalizeEmail(request.email());
@@ -361,12 +371,31 @@ public class AuthService {
                 .lastUsedAt(now)
                 .expiresAt(now.plusSeconds(authProperties.getSessionTtlHours() * 3600))
                 .build());
+        List<GenerationJobResponse> songs = getSongsForUser(user.getId());
 
         return new AuthSessionResponse(
                 toUserResponse(user),
                 session.getToken(),
-                session.getExpiresAt()
+                session.getExpiresAt(),
+                songs
         );
+    }
+
+    private List<GenerationJobResponse> getSongsForUser(String userId) {
+        if (userId == null || userId.isBlank()) {
+            return List.of();
+        }
+
+        List<GenerationJob> jobs = generationJobRepository
+                .findByOwnerUserIdAndHiddenFromLibraryFalseOrderByCreatedAtDesc(userId);
+
+        return jobs.stream()
+                .map(job -> {
+                    List<GenerationTrack> tracks = generationTrackRepository
+                            .findByGenerationJobIdOrderByTrackIndexAsc(job.getId());
+                    return generationJobMapper.toResponse(job, tracks);
+                })
+                .toList();
     }
 
     private OtpCode issueOtp(String userId, String email, OtpPurpose purpose) {
