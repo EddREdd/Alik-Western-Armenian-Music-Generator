@@ -14,4 +14,9 @@ public interface GenerationTrackRepository extends MongoRepository<GenerationTra
     Optional<GenerationTrack> findByProviderMusicId(String providerMusicId);
 
     Optional<GenerationTrack> findByGenerationJobIdAndProviderMusicId(String generationJobId, String providerMusicId);
+
+    List<GenerationTrack> findByGenerationJobIdAndProviderMusicIdOrderByCreatedAtDesc(
+            String generationJobId,
+            String providerMusicId
+    );
 }

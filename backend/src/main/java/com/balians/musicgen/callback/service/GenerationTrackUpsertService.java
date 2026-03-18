@@ -12,6 +12,7 @@ import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -38,17 +39,7 @@ public class GenerationTrackUpsertService {
                 continue;
             }
 
-            GenerationTrack track = generationTrackRepository
-                    .findByGenerationJobIdAndProviderMusicId(job.getId(), trackDto.id().trim())
-                    .orElseGet(() -> GenerationTrack.builder()
-                            .ownerUserId(job.getOwnerUserId())
-                            .generationJobId(job.getId())
-                            .projectId(job.getProjectId())
-                            .lyricId(job.getLyricId())
-                            .lyricTitle(job.getLyricTitle())
-                            .lyricText(job.getPromptFinal())
-                            .providerMusicId(trackDto.id().trim())
-                            .build());
+            GenerationTrack track = Objects.requireNonNull(resolveTrackForUpsert(job, trackDto.id().trim()));
 
             applyTrackFields(
                     track,
@@ -86,17 +77,7 @@ public class GenerationTrackUpsertService {
                 continue;
             }
 
-            GenerationTrack track = generationTrackRepository
-                    .findByGenerationJobIdAndProviderMusicId(job.getId(), trackDto.id().trim())
-                    .orElseGet(() -> GenerationTrack.builder()
-                            .ownerUserId(job.getOwnerUserId())
-                            .generationJobId(job.getId())
-                            .projectId(job.getProjectId())
-                            .lyricId(job.getLyricId())
-                            .lyricTitle(job.getLyricTitle())
-                            .lyricText(job.getPromptFinal())
-                            .providerMusicId(trackDto.id().trim())
-                            .build());
+            GenerationTrack track = Objects.requireNonNull(resolveTrackForUpsert(job, trackDto.id().trim()));
 
             applyTrackFields(
                     track,
@@ -182,5 +163,43 @@ public class GenerationTrackUpsertService {
             return null;
         }
         return value.trim();
+    }
+
+    private GenerationTrack resolveTrackForUpsert(GenerationJob job, String providerMusicId) {
+        List<GenerationTrack> existingTracks = generationTrackRepository
+                .findByGenerationJobIdAndProviderMusicIdOrderByCreatedAtDesc(job.getId(), providerMusicId);
+
+        if (existingTracks.isEmpty()) {
+            return GenerationTrack.builder()
+                    .ownerUserId(job.getOwnerUserId())
+                    .generationJobId(job.getId())
+                    .projectId(job.getProjectId())
+                    .lyricId(job.getLyricId())
+                    .lyricTitle(job.getLyricTitle())
+                    .lyricText(job.getPromptFinal())
+                    .providerMusicId(providerMusicId)
+                    .build();
+        }
+
+        if (existingTracks.size() > 1) {
+            List<String> duplicateIds = existingTracks.stream()
+                    .skip(1)
+                    .map(GenerationTrack::getId)
+                    .filter(Objects::nonNull)
+                    .filter(id -> !id.isBlank())
+                    .toList();
+            if (!duplicateIds.isEmpty()) {
+                generationTrackRepository.deleteAllById(duplicateIds);
+            }
+            log.warn(
+                    "Found {} duplicate generation tracks for jobId={} providerMusicId={}; keeping latest trackId={}",
+                    existingTracks.size(),
+                    job.getId(),
+                    providerMusicId,
+                    existingTracks.get(0).getId()
+            );
+        }
+
+        return existingTracks.get(0);
     }
 }
