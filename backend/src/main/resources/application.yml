@@ -6,7 +6,7 @@ spring:
     name: ${APP_NAME:musicgen-backend}
   data:
     mongodb:
-      uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017}
+      uri: ${SPRING_DATA_MONGODB_URI:}
       database: ${SPRING_DATA_MONGODB_DATABASE:alike_db}
   jackson:
     default-property-inclusion: non_null
@@ -31,15 +31,22 @@ app:
 
 media:
   storage:
+    type: ${MEDIA_STORAGE_TYPE:local}
     root-path: ${MEDIA_STORAGE_ROOT_PATH:storage}
     public-base-url: ${MEDIA_STORAGE_PUBLIC_BASE_URL:http://localhost:${SERVER_PORT:8080}}
+    spaces-endpoint: ${MEDIA_STORAGE_SPACES_ENDPOINT:}
+    spaces-region: ${MEDIA_STORAGE_SPACES_REGION:}
+    spaces-bucket: ${MEDIA_STORAGE_SPACES_BUCKET:}
+    spaces-access-key: ${MEDIA_STORAGE_SPACES_ACCESS_KEY:}
+    spaces-secret-key: ${MEDIA_STORAGE_SPACES_SECRET_KEY:}
+    spaces-public-base-url: ${MEDIA_STORAGE_SPACES_PUBLIC_BASE_URL:}
 
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001}
 
 provider:
   base-url: ${PROVIDER_BASE_URL:https://api.sunoapi.org}
-  api-key: ${PROVIDER_API_KEY:e7aa14b6ae0a72ed03311a9650158f9b}
+  api-key: ${PROVIDER_API_KEY:}
   callback-base-url: ${PROVIDER_CALLBACK_BASE_URL:http://localhost:${SERVER_PORT:8080}}
 
 polling:
@@ -70,6 +77,12 @@ auth:
   max-users: ${AUTH_MAX_USERS:100}
   standard-credits: ${AUTH_STANDARD_CREDITS:50}
   admin-emails: ${AUTH_ADMIN_EMAILS:}
+
+email:
+  sendgrid:
+    api-key: ${SENDGRID_API_KEY:}
+    from-address: ${SENDGRID_FROM_ADDRESS:alikfoundation@gmail.com}
+    from-name: ${SENDGRID_FROM_NAME:Alik Music}
 
 features:
   provider-submission-enabled: ${FEATURE_PROVIDER_SUBMISSION_ENABLED:true}

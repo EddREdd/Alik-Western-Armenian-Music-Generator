@@ -4,6 +4,9 @@ import com.balians.musicgen.auth.dto.AuthSessionResponse;
 import com.balians.musicgen.auth.dto.AuthUserResponse;
 import com.balians.musicgen.auth.dto.ChangeEmailRequest;
 import com.balians.musicgen.auth.dto.ChangePasswordRequest;
+import com.balians.musicgen.auth.dto.ForgotPasswordRequest;
+import com.balians.musicgen.auth.dto.ForgotPasswordResetRequest;
+import com.balians.musicgen.auth.dto.ForgotPasswordVerifyRequest;
 import com.balians.musicgen.auth.dto.GoogleAuthRequest;
 import com.balians.musicgen.auth.dto.LoginRequest;
 import com.balians.musicgen.auth.dto.OtpChallengeResponse;
@@ -13,15 +16,18 @@ import com.balians.musicgen.auth.dto.VerifyRegistrationRequest;
 import com.balians.musicgen.auth.model.InviteCode;
 import com.balians.musicgen.auth.model.OtpCode;
 import com.balians.musicgen.auth.model.OtpPurpose;
+import com.balians.musicgen.auth.model.PasswordResetToken;
 import com.balians.musicgen.auth.model.UserAccount;
 import com.balians.musicgen.auth.model.UserSession;
 import com.balians.musicgen.auth.repository.InviteCodeRepository;
 import com.balians.musicgen.auth.repository.OtpCodeRepository;
+import com.balians.musicgen.auth.repository.PasswordResetTokenRepository;
 import com.balians.musicgen.auth.repository.UserAccountRepository;
 import com.balians.musicgen.auth.repository.UserSessionRepository;
 import com.balians.musicgen.common.exception.BadRequestException;
 import com.balians.musicgen.common.exception.ConflictException;
 import com.balians.musicgen.common.exception.NotFoundException;
+import com.balians.musicgen.email.SendGridEmailService;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Arrays;
@@ -41,44 +47,54 @@ public class AuthService {
     private final UserAccountRepository userAccountRepository;
     private final InviteCodeRepository inviteCodeRepository;
     private final OtpCodeRepository otpCodeRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final UserSessionRepository userSessionRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthProperties authProperties;
     private final GoogleIdentityService googleIdentityService;
     private final SecurityLogService securityLogService;
+    private final SendGridEmailService sendGridEmailService;
 
-    public OtpChallengeResponse register(RegisterRequest request) {
+    public String register(RegisterRequest request) {
         String email = normalizeEmail(request.email());
         enforceUserCap();
         ensureEmailAvailable(email);
 
-        InviteCode inviteCode = inviteCodeRepository.findByCode(request.inviteCode().trim())
-                .orElseThrow(() -> new BadRequestException("Invalid invite code"));
-        if (!Boolean.TRUE.equals(inviteCode.getActive())) {
-            throw new BadRequestException("Invite code is inactive");
+        boolean isAdmin = isAdminEmail(email);
+
+        InviteCode inviteCode = null;
+        if (!isAdmin) {
+            inviteCode = inviteCodeRepository.findByCode(request.inviteCode().trim())
+                    .orElseThrow(() -> new BadRequestException("Invalid invite code"));
+            if (!Boolean.TRUE.equals(inviteCode.getActive())) {
+                throw new BadRequestException("Invite code is inactive");
+            }
+            validateInviteEmailMatch(inviteCode, email);
         }
 
         UserAccount user = userAccountRepository.save(UserAccount.builder()
                 .email(email)
                 .passwordHash(passwordEncoder.encode(request.password()))
-                .emailVerified(false)
-                .admin(isAdminEmail(email))
-                .unlimitedCredits(isAdminEmail(email))
-                .creditsRemaining(isAdminEmail(email) ? null : authProperties.getStandardCredits())
+                .emailVerified(true)
+                .admin(isAdmin)
+                .unlimitedCredits(isAdmin)
+                .creditsRemaining(isAdmin ? null : authProperties.getStandardCredits())
                 .creditsUsed(0)
                 .songsGenerated(0)
                 .frozen(false)
                 .build());
 
-        inviteCode.setActive(false);
-        inviteCode.setUsedByUserId(user.getId());
-        inviteCode.setUsedAt(Instant.now());
-        inviteCodeRepository.save(inviteCode);
+        if (inviteCode != null) {
+            inviteCode.setActive(false);
+            inviteCode.setUsedByUserId(user.getId());
+            inviteCode.setUsedAt(Instant.now());
+            inviteCodeRepository.save(inviteCode);
+        }
 
-        OtpCode otpCode = issueOtp(user.getId(), email, OtpPurpose.REGISTRATION_VERIFICATION);
-        securityLogService.log(user.getId(), user.getEmail(), "REGISTERED", "User registered and verification OTP issued");
+        sendWelcomeEmail(user.getEmail());
+        securityLogService.log(user.getId(), user.getEmail(), "REGISTERED", "User registered and welcome email sent");
         log.info("Registered user id={} email={}", user.getId(), user.getEmail());
-        return toOtpResponse(otpCode);
+        return "registration-complete";
     }
 
     public AuthSessionResponse verifyRegistration(VerifyRegistrationRequest request) {
@@ -93,6 +109,7 @@ public class AuthService {
         user.setEmailVerified(true);
         userAccountRepository.save(user);
         securityLogService.log(user.getId(), user.getEmail(), "EMAIL_VERIFIED", "Registration email verified");
+        sendWelcomeEmail(user.getEmail());
         return createSession(user);
     }
 
@@ -101,14 +118,16 @@ public class AuthService {
         UserAccount user = userAccountRepository.findByEmail(email)
                 .orElseThrow(() -> new NotFoundException("User not found for email: " + email));
 
-        if (!Boolean.TRUE.equals(user.getEmailVerified())) {
-            throw new ConflictException("Email is not verified");
-        }
         if (user.getPasswordHash() == null || user.getPasswordHash().isBlank()) {
             throw new ConflictException("Password login is not available for this account");
         }
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw new BadRequestException("Invalid email or password");
+        }
+        if (!Boolean.TRUE.equals(user.getEmailVerified())) {
+            user.setEmailVerified(true);
+            user = userAccountRepository.save(user);
+            securityLogService.log(user.getId(), user.getEmail(), "EMAIL_VERIFIED", "Email auto-verified on successful login");
         }
         ensureNotFrozen(user);
 
@@ -184,6 +203,64 @@ public class AuthService {
         return toUserResponse(saved);
     }
 
+    public void requestPasswordReset(ForgotPasswordRequest request) {
+        String email = normalizeEmail(request.email());
+        UserAccount user = userAccountRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("No such user, please signup"));
+
+        OtpCode otpCode = issueOtp(user.getId(), email, OtpPurpose.PASSWORD_RESET_VERIFICATION, 5);
+        securityLogService.log(user.getId(), user.getEmail(), "PASSWORD_RESET_REQUESTED", "Password reset code issued");
+        sendPasswordResetEmail(user.getEmail(), otpCode.getCode());
+    }
+
+    public String verifyPasswordResetCode(ForgotPasswordVerifyRequest request) {
+        String email = normalizeEmail(request.email());
+        UserAccount user = userAccountRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("No such user, please signup"));
+
+        OtpCode otpCode = validateOtp(email, OtpPurpose.PASSWORD_RESET_VERIFICATION, request.otpCode());
+        if (!user.getId().equals(otpCode.getUserId())) {
+            throw new BadRequestException("Wrong code, please click resend for a new one");
+        }
+
+        otpCode.setConsumedAt(Instant.now());
+        otpCodeRepository.save(otpCode);
+        // Remove all password-reset OTP codes after successful verification.
+        otpCodeRepository.deleteByEmailAndPurpose(email, OtpPurpose.PASSWORD_RESET_VERIFICATION);
+        return issuePasswordResetToken(user);
+    }
+
+    public void resetPasswordWithCode(ForgotPasswordResetRequest request) {
+        String email = normalizeEmail(request.email());
+        UserAccount user = userAccountRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("No such user, please signup"));
+
+        if (!request.newPassword().equals(request.confirmPassword())) {
+            throw new BadRequestException("Passwords do not match");
+        }
+
+        PasswordResetToken resetToken = passwordResetTokenRepository
+                .findByEmailAndToken(email, request.resetToken().trim())
+                .orElseThrow(() -> new BadRequestException("Reset link/code is invalid, please resend"));
+        if (resetToken.getConsumedAt() != null || resetToken.getExpiresAt().isBefore(Instant.now())) {
+            throw new BadRequestException("Reset link/code expired, please resend");
+        }
+        if (!user.getId().equals(resetToken.getUserId())) {
+            throw new BadRequestException("Reset link/code is invalid, please resend");
+        }
+
+        resetToken.setConsumedAt(Instant.now());
+        passwordResetTokenRepository.save(resetToken);
+        passwordResetTokenRepository.deleteByEmail(email);
+
+        user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+        user.setEmailVerified(true);
+        userAccountRepository.save(user);
+        userSessionRepository.deleteByUserId(user.getId());
+        otpCodeRepository.deleteByEmailAndPurpose(email, OtpPurpose.PASSWORD_RESET_VERIFICATION);
+        securityLogService.log(user.getId(), user.getEmail(), "PASSWORD_RESET_COMPLETED", "Password reset via email code");
+    }
+
     public AuthSessionResponse googleAuth(GoogleAuthRequest request) {
         ensureGoogleEnabled();
         GoogleIdentityService.GoogleIdentity googleIdentity = googleIdentityService.verifyIdToken(request.idToken());
@@ -241,14 +318,17 @@ public class AuthService {
     }
 
     public void logout(String sessionToken) {
-        UserSession session = userSessionRepository.findByToken(sessionToken)
-                .orElseThrow(() -> new NotFoundException("Session not found"));
-        UserAccount user = userAccountRepository.findById(session.getUserId())
-                .orElse(null);
-        userSessionRepository.delete(session);
-        if (user != null) {
-            securityLogService.log(user.getId(), user.getEmail(), "LOGOUT", "Session terminated");
+        if (sessionToken == null || sessionToken.isBlank()) {
+            return;
         }
+
+        userSessionRepository.findByToken(sessionToken).ifPresent(session -> {
+            UserAccount user = userAccountRepository.findById(session.getUserId()).orElse(null);
+            userSessionRepository.delete(session);
+            if (user != null) {
+                securityLogService.log(user.getId(), user.getEmail(), "LOGOUT", "Session terminated");
+            }
+        });
     }
 
     private UserAccount getAuthenticatedUser(String sessionToken) {
@@ -290,6 +370,10 @@ public class AuthService {
     }
 
     private OtpCode issueOtp(String userId, String email, OtpPurpose purpose) {
+        return issueOtp(userId, email, purpose, 6);
+    }
+
+    private OtpCode issueOtp(String userId, String email, OtpPurpose purpose, int digits) {
         otpCodeRepository.findByEmailAndPurposeAndConsumedAtIsNull(email, purpose)
                 .forEach(code -> {
                     code.setConsumedAt(Instant.now());
@@ -297,7 +381,9 @@ public class AuthService {
                 });
 
         Instant expiresAt = Instant.now().plusSeconds(authProperties.getOtpTtlMinutes() * 60);
-        String otpValue = String.format("%06d", new SecureRandom().nextInt(1_000_000));
+        int maxValue = (int) Math.pow(10, Math.max(1, digits));
+        String pattern = "%0" + Math.max(1, digits) + "d";
+        String otpValue = String.format(pattern, new SecureRandom().nextInt(maxValue));
 
         OtpCode otpCode = otpCodeRepository.save(OtpCode.builder()
                 .userId(userId)
@@ -309,6 +395,40 @@ public class AuthService {
 
         log.info("Issued OTP purpose={} email={} code={}", purpose, email, otpValue);
         return otpCode;
+    }
+
+    private void sendPasswordResetEmail(String email, String otpCode) {
+        String subject = "Alik password reset code";
+        String body = "Use this 5-digit code to reset your password: "
+                + otpCode
+                + "\n\nIf you did not request this, you can ignore this email.";
+        boolean sent = sendGridEmailService.sendTextEmail(email, subject, body);
+        if (!sent) {
+            log.warn("Password reset email failed for {}", email);
+        }
+    }
+
+    private void sendWelcomeEmail(String email) {
+        String subject = "welcome form Alik";
+        String body = "you become Alik pilot users thank you.";
+        boolean sent = sendGridEmailService.sendTextEmail(email, subject, body);
+        if (!sent) {
+            log.warn("Welcome email failed for {}", email);
+        }
+    }
+
+    private String issuePasswordResetToken(UserAccount user) {
+        passwordResetTokenRepository.deleteByEmail(user.getEmail());
+        byte[] bytes = new byte[32];
+        new SecureRandom().nextBytes(bytes);
+        String token = HexFormat.of().formatHex(bytes);
+        passwordResetTokenRepository.save(PasswordResetToken.builder()
+                .userId(user.getId())
+                .email(user.getEmail())
+                .token(token)
+                .expiresAt(Instant.now().plusSeconds(15 * 60))
+                .build());
+        return token;
     }
 
     private OtpCode validateOtp(String email, OtpPurpose purpose, String otpCode) {
@@ -334,6 +454,16 @@ public class AuthService {
         }
     }
 
+    private void validateInviteEmailMatch(InviteCode inviteCode, String email) {
+        if (inviteCode == null || email == null || email.isBlank()) {
+            return;
+        }
+        String assignedEmail = inviteCode.getLastSentToEmail();
+        if (assignedEmail != null && !assignedEmail.isBlank() && !assignedEmail.equalsIgnoreCase(email)) {
+            throw new BadRequestException("Invite code and email do not match");
+        }
+    }
+
     private UserAccount resolveGoogleUser(GoogleIdentityService.GoogleIdentity googleIdentity, String inviteCodeValue) {
         return userAccountRepository.findByEmail(googleIdentity.email())
                 .map(existingUser -> {
@@ -351,6 +481,7 @@ public class AuthService {
     ) {
         enforceUserCap();
         InviteCode inviteCode = consumeInviteCode(inviteCodeValue);
+        validateInviteEmailMatch(inviteCode, googleIdentity.email());
         boolean admin = isAdminEmail(googleIdentity.email());
 
         UserAccount user = userAccountRepository.save(UserAccount.builder()

@@ -11,4 +11,6 @@ public interface OtpCodeRepository extends MongoRepository<OtpCode, String> {
     Optional<OtpCode> findFirstByEmailAndPurposeOrderByCreatedAtDesc(String email, OtpPurpose purpose);
 
     List<OtpCode> findByEmailAndPurposeAndConsumedAtIsNull(String email, OtpPurpose purpose);
+
+    void deleteByEmailAndPurpose(String email, OtpPurpose purpose);
 }

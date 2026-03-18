@@ -9,6 +9,8 @@ public record AdminInviteCodeResponse(
         String usedByUserId,
         String usedByEmail,
         Instant usedAt,
-        Instant createdAt
+        Instant createdAt,
+        String lastSentToEmail,
+        Instant lastSentAt
 ) {
 }

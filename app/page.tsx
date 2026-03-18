@@ -10,8 +10,8 @@ import { SongLibraryPanel, type Song } from "@/components/song-library-panel"
 import { LibraryPage } from "@/components/library-page"
 import { LyricsPage } from "@/components/lyrics-page"
 import { LoginPage } from "@/components/login-page"
+import { ForgotPasswordPage } from "@/components/forgot-password-page"
 import { RegisterPage } from "@/components/register-page"
-import { SettingsPage } from "@/components/settings-page"
 import {
   clearStoredSessionToken,
   getCurrentUser,
@@ -74,11 +74,10 @@ function mapJobToSong(job: GenerationJob): Song {
 }
 
 export default function Home() {
-  const [authView, setAuthView] = useState<"login" | "register" | "app">("login")
+  const [authView, setAuthView] = useState<"login" | "register" | "forgot-password" | "app">("login")
   const [authLoading, setAuthLoading] = useState(true)
   const [sessionToken, setSessionToken] = useState<string | null>(null)
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null)
-  const [settingsOpen, setSettingsOpen] = useState(false)
   const [activeTab, setActiveTab] = useState("create")
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedSongs, setGeneratedSongs] = useState<Song[]>([])
@@ -140,6 +139,17 @@ export default function Home() {
   useEffect(() => {
     playableSongsRef.current = playableSongs
   }, [playableSongs])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const authParam = new URLSearchParams(window.location.search).get("auth")
+      if (authParam === "forgot-password") {
+        setAuthView("forgot-password")
+      } else if (authParam === "register") {
+        setAuthView("register")
+      }
+    }
+  }, [])
 
   useEffect(() => {
     const storedToken = getStoredSessionToken()
@@ -393,20 +403,15 @@ export default function Home() {
     setAuthView("app")
   }, [generatedSongs, loadSongWithoutPlaying])
 
-  const handleLogout = useCallback(async () => {
-    const token = sessionToken
-    try {
-      if (token) {
-        await logout(token)
-      }
-    } catch (error) {
-      console.error("Failed to logout cleanly", error)
-    } finally {
-      clearStoredSessionToken()
-      setSessionToken(null)
-      setCurrentUser(null)
-      setSettingsOpen(false)
-      setAuthView("login")
+  const handleLogout = useCallback(() => {
+    // Make sign-out instant on the client; backend invalidation runs in background.
+    clearStoredSessionToken()
+    void logout(sessionToken)
+    setSessionToken(null)
+    setCurrentUser(null)
+    setAuthView("login")
+    if (typeof window !== "undefined") {
+      window.location.replace("/")
     }
   }, [sessionToken])
 
@@ -420,6 +425,12 @@ export default function Home() {
       <LoginPage
         onLogin={handleAuthSuccess}
         onSwitchToRegister={() => setAuthView("register")}
+        onForgotPassword={() => {
+          setAuthView("forgot-password")
+          if (typeof window !== "undefined") {
+            window.history.replaceState(null, "", "/?auth=forgot-password")
+          }
+        }}
       />
     )
   }
@@ -433,12 +444,25 @@ export default function Home() {
     )
   }
 
+  if (authView === "forgot-password") {
+    return (
+      <ForgotPasswordPage
+        onBackToLogin={() => {
+          setAuthView("login")
+          if (typeof window !== "undefined") {
+            window.history.replaceState(null, "", "/")
+          }
+        }}
+      />
+    )
+  }
+
   return (
     <div className="flex h-screen flex-col bg-background">
       <AppHeader
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        onOpenSettings={() => setSettingsOpen(true)}
+        onLogout={handleLogout}
         showAdmin={Boolean(currentUser?.admin)}
         creditsLabel={
           currentUser?.unlimitedCredits
@@ -511,23 +535,6 @@ export default function Home() {
         onSkipForward={() => skipToSong("forward")}
       />
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} showAdmin={Boolean(currentUser?.admin)} />
-
-      {/* Settings overlay */}
-      {settingsOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-end bg-black/40 backdrop-blur-sm lg:items-stretch">
-          <div className="flex h-full w-full max-w-md flex-col overflow-hidden bg-background shadow-2xl animate-in slide-in-from-right duration-300">
-            {currentUser && sessionToken ? (
-              <SettingsPage
-                onBack={() => setSettingsOpen(false)}
-                sessionToken={sessionToken}
-                user={currentUser}
-                onUserChange={setCurrentUser}
-                onLogout={handleLogout}
-              />
-            ) : null}
-          </div>
-        </div>
-      )}
     </div>
   )
 }

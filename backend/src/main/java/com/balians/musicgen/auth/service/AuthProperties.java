@@ -13,6 +13,9 @@ public class AuthProperties {
     private long otpTtlMinutes = 10;
     private boolean exposeOtpInResponse = false;
     private String defaultInviteCode = "";
+    private boolean bootstrapAdminEnabled = false;
+    private String bootstrapAdminEmail = "";
+    private String bootstrapAdminPassword = "";
     private boolean googleOauthEnabled = false;
     private String googleClientId = "";
     private String googleTokenInfoUrl = "https://oauth2.googleapis.com/tokeninfo";

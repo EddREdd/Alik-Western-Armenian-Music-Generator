@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { MailPlus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -15,6 +16,8 @@ import {
   listAdminSongs,
   listAdminUsers,
   listInviteCodes,
+  removeInviteCode,
+  sendInviteCodeEmail,
   unfreezeUser,
   type AdminDashboard,
   type AdminInviteCode,
@@ -22,6 +25,8 @@ import {
   type AdminSongSummary,
   type AdminUserSummary,
 } from "@/lib/admin-api"
+
+const PAGE_SIZE = 25
 
 function MetricCard({
   title,
@@ -45,6 +50,41 @@ function MetricCard({
   )
 }
 
+function PaginationControls({
+  page,
+  totalPages,
+  onPageChange,
+}: {
+  page: number
+  totalPages: number
+  onPageChange: (nextPage: number) => void
+}) {
+  if (totalPages <= 1) return null
+  return (
+    <div className="flex items-center justify-between pt-2">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onPageChange(page - 1)}
+        disabled={page <= 1}
+      >
+        Previous
+      </Button>
+      <span className="text-xs text-muted-foreground">
+        Page {page} of {totalPages}
+      </span>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onPageChange(page + 1)}
+        disabled={page >= totalPages}
+      >
+        Next
+      </Button>
+    </div>
+  )
+}
+
 export function AdminPage() {
   const [dashboard, setDashboard] = useState<AdminDashboard | null>(null)
   const [users, setUsers] = useState<AdminUserSummary[]>([])
@@ -55,8 +95,19 @@ export function AdminPage() {
   const [error, setError] = useState("")
   const [userSearch, setUserSearch] = useState("")
   const [inviteSearch, setInviteSearch] = useState("")
+  const [inviteActiveOnly, setInviteActiveOnly] = useState(false)
+  const [inviteUsedOnly, setInviteUsedOnly] = useState(false)
   const [lyricSearch, setLyricSearch] = useState("")
   const [songSearch, setSongSearch] = useState("")
+  const [usersPage, setUsersPage] = useState(1)
+  const [invitesPage, setInvitesPage] = useState(1)
+  const [lyricsPage, setLyricsPage] = useState(1)
+  const [songsPage, setSongsPage] = useState(1)
+  const [inviteEmailDraftById, setInviteEmailDraftById] = useState<Record<string, string>>({})
+  const [inviteSendStateById, setInviteSendStateById] = useState<Record<string, "idle" | "sent">>({})
+  const [sendingInviteId, setSendingInviteId] = useState<string | null>(null)
+  const [removingInviteId, setRemovingInviteId] = useState<string | null>(null)
+  const [inviteComposerOpenById, setInviteComposerOpenById] = useState<Record<string, boolean>>({})
 
   const loadAll = async () => {
     setLoading(true)
@@ -92,11 +143,14 @@ export function AdminPage() {
   const filteredInvites = useMemo(
     () =>
       invites.filter((invite) =>
-        !inviteSearch ||
-        invite.code.toLowerCase().includes(inviteSearch.toLowerCase()) ||
-        (invite.usedByEmail ?? "").toLowerCase().includes(inviteSearch.toLowerCase()),
+        (!inviteSearch ||
+          invite.code.toLowerCase().includes(inviteSearch.toLowerCase()) ||
+          (invite.usedByEmail ?? "").toLowerCase().includes(inviteSearch.toLowerCase()) ||
+          (invite.lastSentToEmail ?? "").toLowerCase().includes(inviteSearch.toLowerCase())) &&
+        (!inviteActiveOnly || invite.active) &&
+        (!inviteUsedOnly || Boolean(invite.usedByUserId))
       ),
-    [invites, inviteSearch],
+    [invites, inviteSearch, inviteActiveOnly, inviteUsedOnly],
   )
   const filteredLyrics = useMemo(
     () =>
@@ -117,6 +171,44 @@ export function AdminPage() {
       ),
     [songs, songSearch],
   )
+
+  useEffect(() => {
+    setUsersPage(1)
+  }, [userSearch, users])
+
+  useEffect(() => {
+    setInvitesPage(1)
+  }, [inviteSearch, inviteActiveOnly, inviteUsedOnly, invites])
+
+  useEffect(() => {
+    setLyricsPage(1)
+  }, [lyricSearch, lyrics])
+
+  useEffect(() => {
+    setSongsPage(1)
+  }, [songSearch, songs])
+
+  const pagedUsers = useMemo(
+    () => filteredUsers.slice((usersPage - 1) * PAGE_SIZE, usersPage * PAGE_SIZE),
+    [filteredUsers, usersPage],
+  )
+  const pagedInvites = useMemo(
+    () => filteredInvites.slice((invitesPage - 1) * PAGE_SIZE, invitesPage * PAGE_SIZE),
+    [filteredInvites, invitesPage],
+  )
+  const pagedLyrics = useMemo(
+    () => filteredLyrics.slice((lyricsPage - 1) * PAGE_SIZE, lyricsPage * PAGE_SIZE),
+    [filteredLyrics, lyricsPage],
+  )
+  const pagedSongs = useMemo(
+    () => filteredSongs.slice((songsPage - 1) * PAGE_SIZE, songsPage * PAGE_SIZE),
+    [filteredSongs, songsPage],
+  )
+
+  const usersTotalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE))
+  const invitesTotalPages = Math.max(1, Math.ceil(filteredInvites.length / PAGE_SIZE))
+  const lyricsTotalPages = Math.max(1, Math.ceil(filteredLyrics.length / PAGE_SIZE))
+  const songsTotalPages = Math.max(1, Math.ceil(filteredSongs.length / PAGE_SIZE))
 
   const handleFreezeToggle = async (user: AdminUserSummary) => {
     try {
@@ -158,6 +250,51 @@ export function AdminPage() {
       setDashboard(await getAdminDashboard())
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : "Failed to update invite code")
+    }
+  }
+
+  const handleSendInviteEmail = async (invite: AdminInviteCode) => {
+    const email = (inviteEmailDraftById[invite.id] ?? "").trim()
+    if (!email) {
+      setError("Please enter an email first")
+      return
+    }
+    setError("")
+    setSendingInviteId(invite.id)
+    try {
+      await sendInviteCodeEmail(invite.id, email)
+      setInviteSendStateById((prev) => ({ ...prev, [invite.id]: "sent" }))
+      setInviteComposerOpenById((prev) => ({ ...prev, [invite.id]: false }))
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : "Failed to send invite email")
+    } finally {
+      setSendingInviteId(null)
+    }
+  }
+
+  const handleRemoveInvite = async (invite: AdminInviteCode) => {
+    const usedEmail = invite.usedByEmail ? ` and user ${invite.usedByEmail}` : ""
+    const confirmed = window.confirm(
+      `Remove invite code ${invite.code}${usedEmail}? This deletes the invite data permanently.`,
+    )
+    if (!confirmed) return
+
+    setError("")
+    setRemovingInviteId(invite.id)
+    try {
+      await removeInviteCode(invite.id)
+      const [inviteData, userData, dashboardData] = await Promise.all([
+        listInviteCodes(),
+        listAdminUsers(),
+        getAdminDashboard(),
+      ])
+      setInvites(inviteData)
+      setUsers(userData)
+      setDashboard(dashboardData)
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : "Failed to remove invite code")
+    } finally {
+      setRemovingInviteId(null)
     }
   }
 
@@ -212,7 +349,7 @@ export function AdminPage() {
               <CardContent className="space-y-4">
                 <Input value={userSearch} onChange={(event) => setUserSearch(event.target.value)} placeholder="Search users by email" />
                 <div className="space-y-3">
-                  {filteredUsers.map((user) => (
+                  {pagedUsers.map((user) => (
                     <div key={user.id} className="flex flex-col gap-3 rounded-xl border p-4 lg:flex-row lg:items-center lg:justify-between">
                       <div>
                         <div className="font-medium">{user.email}</div>
@@ -230,6 +367,7 @@ export function AdminPage() {
                     </div>
                   ))}
                 </div>
+                <PaginationControls page={usersPage} totalPages={usersTotalPages} onPageChange={setUsersPage} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -244,22 +382,147 @@ export function AdminPage() {
                 <Button onClick={() => void handleGenerateInvites()}>Generate Codes</Button>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Input value={inviteSearch} onChange={(event) => setInviteSearch(event.target.value)} placeholder="Search by code or used email" />
+                <Input
+                  value={inviteSearch}
+                  onChange={(event) => setInviteSearch(event.target.value)}
+                  placeholder="Search by code, used email, or sent email"
+                  autoComplete="off"
+                />
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={inviteActiveOnly ? "default" : "outline"}
+                    onClick={() => setInviteActiveOnly((prev) => !prev)}
+                  >
+                    Active only
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={inviteUsedOnly ? "default" : "outline"}
+                    onClick={() => setInviteUsedOnly((prev) => !prev)}
+                  >
+                    Used only
+                  </Button>
+                </div>
                 <div className="space-y-3">
-                  {filteredInvites.map((invite) => (
-                    <div key={invite.id} className="flex flex-col gap-3 rounded-xl border p-4 lg:flex-row lg:items-center lg:justify-between">
-                      <div>
-                        <div className="font-mono text-sm font-semibold">{invite.code}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {invite.usedByEmail ? `Used by ${invite.usedByEmail}` : "Unused"} • {invite.active ? "Active" : "Inactive"}
+                  {pagedInvites.length === 0 ? (
+                    <div className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
+                      No invite codes match the current search/filter.
+                      <Button
+                        type="button"
+                        variant="link"
+                        className="ml-2 h-auto p-0"
+                        onClick={() => {
+                          setInviteSearch("")
+                          setInviteActiveOnly(false)
+                          setInviteUsedOnly(false)
+                        }}
+                      >
+                        Clear filters
+                      </Button>
+                    </div>
+                  ) : null}
+                  {pagedInvites.map((invite) => (
+                    <div key={invite.id} className="rounded-xl border p-4">
+                      {(() => {
+                        const isInviteSent =
+                          inviteSendStateById[invite.id] === "sent" || Boolean(invite.lastSentAt)
+                        return (
+                      <>
+                      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="flex-1">
+                          <div className="font-mono text-sm font-semibold">{invite.code}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {invite.usedByEmail ? `Used by ${invite.usedByEmail}` : "Unused"} • {invite.active ? "Active" : "Inactive"}
+                          </div>
+                        {invite.lastSentToEmail ? (
+                          <div className="text-xs text-muted-foreground">
+                            Last sent to {invite.lastSentToEmail}
+                          </div>
+                        ) : null}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5"
+                            disabled={Boolean(invite.usedByUserId) || isInviteSent}
+                            onClick={() =>
+                              setInviteComposerOpenById((prev) => ({
+                                ...prev,
+                                [invite.id]: !prev[invite.id],
+                              }))
+                            }
+                            title="Send invite code by email"
+                          >
+                            <MailPlus className="h-3.5 w-3.5" />
+                            Email
+                          </Button>
+                          {isInviteSent ? (
+                            <Button type="button" variant="secondary" size="sm" disabled>
+                              Sent Invitation
+                            </Button>
+                          ) : null}
+                          <Button variant="outline" size="sm" onClick={() => void handleInviteToggle(invite)} disabled={Boolean(invite.usedByUserId)}>
+                            {invite.active ? "Deactivate" : "Activate"}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            className="gap-1.5"
+                            disabled={sendingInviteId === invite.id || removingInviteId === invite.id}
+                            onClick={() => void handleRemoveInvite(invite)}
+                            title="Remove invite code and linked user account"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            {removingInviteId === invite.id ? "Removing..." : "Remove"}
+                          </Button>
                         </div>
                       </div>
-                      <Button variant="outline" size="sm" onClick={() => void handleInviteToggle(invite)} disabled={Boolean(invite.usedByUserId)}>
-                        {invite.active ? "Deactivate" : "Activate"}
-                      </Button>
+
+                      {inviteComposerOpenById[invite.id] && !isInviteSent ? (
+                        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                          <Input
+                            value={inviteEmailDraftById[invite.id] ?? ""}
+                            onChange={(event) =>
+                              setInviteEmailDraftById((prev) => ({ ...prev, [invite.id]: event.target.value }))
+                            }
+                            placeholder="Enter email to send invite code"
+                            className="sm:max-w-sm"
+                            disabled={Boolean(invite.usedByUserId) || sendingInviteId === invite.id}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="gap-1.5"
+                            disabled={Boolean(invite.usedByUserId) || sendingInviteId === invite.id}
+                            onClick={() => void handleSendInviteEmail(invite)}
+                          >
+                            <MailPlus className="h-3.5 w-3.5" />
+                            {sendingInviteId === invite.id ? "Sending..." : "Send Email"}
+                          </Button>
+                        </div>
+                      ) : null}
+
+                      {isInviteSent ? (
+                        <div className="mt-3">
+                          <span className="inline-flex items-center rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
+                            Code sent
+                          </span>
+                        </div>
+                      ) : null}
+                      </>
+                        )
+                      })()}
                     </div>
                   ))}
                 </div>
+                <PaginationControls page={invitesPage} totalPages={invitesTotalPages} onPageChange={setInvitesPage} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -273,7 +536,7 @@ export function AdminPage() {
               <CardContent className="space-y-4">
                 <Input value={lyricSearch} onChange={(event) => setLyricSearch(event.target.value)} placeholder="Search title or lyric text" />
                 <div className="space-y-3">
-                  {filteredLyrics.map((lyric) => (
+                  {pagedLyrics.map((lyric) => (
                     <div key={lyric.id} className="rounded-xl border p-4">
                       <div className="flex items-center justify-between gap-3">
                         <div className="font-medium">{lyric.title}</div>
@@ -284,6 +547,7 @@ export function AdminPage() {
                     </div>
                   ))}
                 </div>
+                <PaginationControls page={lyricsPage} totalPages={lyricsTotalPages} onPageChange={setLyricsPage} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -297,7 +561,7 @@ export function AdminPage() {
               <CardContent className="space-y-4">
                 <Input value={songSearch} onChange={(event) => setSongSearch(event.target.value)} placeholder="Search title, lyric title, or tags" />
                 <div className="space-y-4">
-                  {filteredSongs.map((song) => (
+                  {pagedSongs.map((song) => (
                     <div key={song.id} className="rounded-xl border p-4">
                       <div className="flex flex-col gap-1 lg:flex-row lg:items-center lg:justify-between">
                         <div>
@@ -325,6 +589,7 @@ export function AdminPage() {
                     </div>
                   ))}
                 </div>
+                <PaginationControls page={songsPage} totalPages={songsTotalPages} onPageChange={setSongsPage} />
               </CardContent>
             </Card>
           </TabsContent>

@@ -7,4 +7,6 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 public interface SecurityLogRepository extends MongoRepository<SecurityLog, String> {
 
     List<SecurityLog> findByUserIdOrderByOccurredAtDesc(String userId);
+
+    void deleteByUserId(String userId);
 }

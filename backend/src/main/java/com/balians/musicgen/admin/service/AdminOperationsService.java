@@ -15,6 +15,8 @@ import com.balians.musicgen.admin.dto.AdminUserSummaryResponse;
 import com.balians.musicgen.admin.dto.CallbackEventSummaryResponse;
 import com.balians.musicgen.admin.dto.ManualActionResponse;
 import com.balians.musicgen.admin.dto.SecurityLogResponse;
+import com.balians.musicgen.admin.model.InviteCodeEmailSendEvent;
+import com.balians.musicgen.admin.repository.InviteCodeEmailSendEventRepository;
 import com.balians.musicgen.auth.model.InviteCode;
 import com.balians.musicgen.auth.model.SecurityLog;
 import com.balians.musicgen.auth.model.UserAccount;
@@ -49,6 +51,7 @@ import com.balians.musicgen.schedule.dto.ScheduleRunResponse;
 import com.balians.musicgen.schedule.repository.ScheduleDefinitionRepository;
 import com.balians.musicgen.schedule.repository.ScheduleRunRepository;
 import com.balians.musicgen.schedule.service.ScheduleService;
+import com.balians.musicgen.email.SendGridEmailService;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
@@ -57,6 +60,7 @@ import java.time.ZoneOffset;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -78,6 +82,7 @@ public class AdminOperationsService {
     private final UserAccountRepository userAccountRepository;
     private final UserSessionRepository userSessionRepository;
     private final InviteCodeRepository inviteCodeRepository;
+    private final InviteCodeEmailSendEventRepository inviteCodeEmailSendEventRepository;
     private final SecurityLogRepository securityLogRepository;
     private final SecurityLogService securityLogService;
     private final LyricEntryRepository lyricEntryRepository;
@@ -89,6 +94,7 @@ public class AdminOperationsService {
     private final GenerationSubmissionService generationSubmissionService;
     private final PollingReconciliationService pollingReconciliationService;
     private final ScheduleService scheduleService;
+    private final SendGridEmailService sendGridEmailService;
     private final OpsProperties opsProperties;
 
     public Page<AdminGenerationJobSummaryResponse> listGenerationJobs(AdminGenerationJobFilter filter) {
@@ -287,6 +293,58 @@ public class AdminOperationsService {
         inviteCode.setActive(false);
         inviteCodeRepository.save(inviteCode);
         return new ManualActionResponse("deactivate-invite", id, "OK", "Invite code deactivated");
+    }
+
+    public ManualActionResponse removeInviteCode(String id) {
+        InviteCode inviteCode = getInviteCode(id);
+        String usedByUserId = inviteCode.getUsedByUserId();
+
+        inviteCodeEmailSendEventRepository.deleteByInviteCodeId(inviteCode.getId());
+        inviteCodeRepository.delete(inviteCode);
+
+        if (hasText(usedByUserId)) {
+            String linkedUserId = Objects.requireNonNull(usedByUserId);
+            userSessionRepository.deleteByUserId(linkedUserId);
+            securityLogRepository.deleteByUserId(linkedUserId);
+            userAccountRepository.deleteById(linkedUserId);
+            log.info("Removed invite id={} and deleted linked user account id={}", id, linkedUserId);
+            return new ManualActionResponse("remove-invite", id, "OK", "Invite code and linked user removed");
+        }
+
+        log.info("Removed invite id={} without linked user", id);
+        return new ManualActionResponse("remove-invite", id, "OK", "Invite code removed");
+    }
+
+    public ManualActionResponse sendInviteCodeEmail(String inviteId, String email) {
+        InviteCode inviteCode = getInviteCode(inviteId);
+        if (hasText(inviteCode.getUsedByUserId())) {
+            throw new ConflictException("Used invite codes cannot be sent");
+        }
+
+        String normalizedEmail = email == null ? null : email.trim().toLowerCase();
+        if (!hasText(normalizedEmail)) {
+            throw new BadRequestException("email is required");
+        }
+
+        String subject = "invitation for piloting Alik";
+        String body = "dear friend you are been choosen to become Alik pilot period user, "
+                + "please use this code[" + inviteCode.getCode() + "] when registering to our platform. thank you";
+        boolean sent = sendGridEmailService.sendTextEmail(normalizedEmail, subject, body);
+        if (!sent) {
+            log.warn("Invite code email failed inviteId={} code={} to={}", inviteId, inviteCode.getCode(), normalizedEmail);
+            throw new BadRequestException("Invite email was not sent. Please check backend logs.");
+        }
+        inviteCode.setLastSentToEmail(normalizedEmail);
+        inviteCode.setLastSentAt(Instant.now());
+        inviteCodeRepository.save(inviteCode);
+        inviteCodeEmailSendEventRepository.save(InviteCodeEmailSendEvent.builder()
+                .inviteCodeId(inviteCode.getId())
+                .code(inviteCode.getCode())
+                .email(normalizedEmail)
+                .sentAt(inviteCode.getLastSentAt())
+                .build());
+        log.info("Sent invite code id={} to email={}", inviteId, normalizedEmail);
+        return new ManualActionResponse("send-invite-email", inviteId, "CODE_SENT", "Code sent");
     }
 
     public AdminDashboardResponse getDashboard() {
@@ -702,7 +760,9 @@ public class AdminOperationsService {
                 inviteCode.getUsedByUserId(),
                 usedBy == null ? null : usedBy.getEmail(),
                 inviteCode.getUsedAt(),
-                inviteCode.getCreatedAt()
+                inviteCode.getCreatedAt(),
+                inviteCode.getLastSentToEmail(),
+                inviteCode.getLastSentAt()
         );
     }
 

@@ -28,4 +28,6 @@ public class InviteCode extends AuditableDocument {
     private Boolean active;
     private String usedByUserId;
     private Instant usedAt;
+    private String lastSentToEmail;
+    private Instant lastSentAt;
 }
