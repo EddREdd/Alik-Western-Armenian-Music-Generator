@@ -128,6 +128,7 @@ export interface AdminSongSummary {
   id: string
   generationJobId: string
   userId: string | null
+  userEmail: string | null
   projectId: string | null
   title: string | null
   audioUrl: string | null

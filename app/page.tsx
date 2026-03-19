@@ -37,7 +37,10 @@ const defaultProjectId =
   process.env.NEXT_PUBLIC_DEFAULT_PROJECT_ID?.trim() || "project-1"
 
 function mapJobToSong(job: GenerationJob): Song {
-  const firstTrack = job.tracks?.[0]
+  const firstPlayableTrack = (job.tracks ?? []).find(
+    (track) => Boolean(track.localAudioUrl || track.streamAudioUrl || track.audioUrl),
+  )
+  const firstTrack = firstPlayableTrack ?? job.tracks?.[0]
   const createdAt = job.createdAt
     ? new Date(job.createdAt).toLocaleString()
     : "Just now"

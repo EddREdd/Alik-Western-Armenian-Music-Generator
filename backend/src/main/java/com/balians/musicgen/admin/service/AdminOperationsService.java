@@ -233,11 +233,13 @@ public class AdminOperationsService {
     }
 
     public List<AdminSongSummaryResponse> getSongs(String keyword) {
+        Map<String, UserAccount> usersById = userAccountRepository.findAll().stream()
+                .collect(Collectors.toMap(UserAccount::getId, user -> user, (left, right) -> left));
         return generationTrackRepository.findAll()
                 .stream()
                 .filter(track -> matchesSong(track, keyword))
                 .sorted(Comparator.comparing(GenerationTrack::getCreatedAt, Comparator.nullsLast(Comparator.naturalOrder())).reversed())
-                .map(this::mapSongSummary)
+                .map(track -> mapSongSummary(track, usersById.get(track.getOwnerUserId())))
                 .toList();
     }
 
@@ -714,11 +716,12 @@ public class AdminOperationsService {
         );
     }
 
-    private AdminSongSummaryResponse mapSongSummary(GenerationTrack track) {
+    private AdminSongSummaryResponse mapSongSummary(GenerationTrack track, UserAccount owner) {
         return new AdminSongSummaryResponse(
                 track.getId(),
                 track.getGenerationJobId(),
                 track.getOwnerUserId(),
+                owner == null ? null : owner.getEmail(),
                 track.getProjectId(),
                 track.getTitle(),
                 track.getAudioUrl(),

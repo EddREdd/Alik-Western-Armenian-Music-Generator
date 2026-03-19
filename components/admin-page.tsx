@@ -572,6 +572,9 @@ export function AdminPage() {
                           <div className="text-xs text-muted-foreground">
                             Project: {song.projectId ?? "N/A"}
                           </div>
+                          <div className="text-xs text-muted-foreground">
+                            User: {song.userEmail ?? song.userId ?? "N/A"}
+                          </div>
                         </div>
                         <Button
                           variant="outline"

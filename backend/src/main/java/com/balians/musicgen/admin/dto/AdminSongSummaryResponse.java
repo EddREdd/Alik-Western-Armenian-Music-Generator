@@ -7,6 +7,7 @@ public record AdminSongSummaryResponse(
         String id,
         String generationJobId,
         String userId,
+        String userEmail,
         String projectId,
         String title,
         String audioUrl,
