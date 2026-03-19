@@ -1,5 +1,7 @@
 package com.balians.musicgen.media.config;
 
+import java.util.ArrayList;
+import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -31,4 +33,12 @@ public class MediaStorageProperties {
      * https://your-space.nyc3.cdn.digitaloceanspaces.com
      */
     private String spacesPublicBaseUrl;
+
+    /**
+     * Hosts allowed for backend media proxying.
+     */
+    private List<String> proxyAllowedHosts = new ArrayList<>(List.of(
+            "musicfile.removeai.ai",
+            "tempfile.aiquickdraw.com"
+    ));
 }

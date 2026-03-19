@@ -35,50 +35,105 @@ import {
 
 const defaultProjectId =
   process.env.NEXT_PUBLIC_DEFAULT_PROJECT_ID?.trim() || "project-1"
+const configuredBackendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL?.trim() || ""
+const backendBaseUrl = configuredBackendBaseUrl.replace(/\/+$/, "")
 
-function mapJobToSong(job: GenerationJob): Song {
-  const firstPlayableTrack = (job.tracks ?? []).find(
-    (track) => Boolean(track.localAudioUrl || track.streamAudioUrl || track.audioUrl),
-  )
-  const firstTrack = firstPlayableTrack ?? job.tracks?.[0]
+function toPlayableAudioUrl(url?: string | null): string | undefined {
+  if (!url) {
+    return undefined
+  }
+  const trimmedUrl = url.trim()
+  if (!trimmedUrl) {
+    return undefined
+  }
+
+  if (!/^https?:\/\//i.test(trimmedUrl)) {
+    return trimmedUrl
+  }
+  if (trimmedUrl.includes("/api/v1/media/proxy?url=")) {
+    return trimmedUrl
+  }
+
+  const proxyBase = backendBaseUrl || ""
+  return `${proxyBase}/api/v1/media/proxy?url=${encodeURIComponent(trimmedUrl)}`
+}
+
+function mapJobToSongs(job: GenerationJob): Song[] {
+  const tracks = [...(job.tracks ?? [])].sort((left, right) => {
+    const leftIndex = left.trackIndex ?? 0
+    const rightIndex = right.trackIndex ?? 0
+    return leftIndex - rightIndex
+  })
   const createdAt = job.createdAt
     ? new Date(job.createdAt).toLocaleString()
     : "Just now"
 
-  const hasPlayableTrack = (job.tracks ?? []).some(
-    (track) => Boolean(track.localAudioUrl || track.streamAudioUrl || track.audioUrl),
-  )
-
-  let status: Song["status"] = "generating"
-  if (job.internalStatus === "COMPLETED" || hasPlayableTrack) {
-    status = "completed"
-  } else if (job.internalStatus === "FAILED" || job.internalStatus === "EXPIRED") {
-    status = "failed"
+  if (tracks.length === 0) {
+    let fallbackStatus: Song["status"] = "generating"
+    if (job.internalStatus === "FAILED" || job.internalStatus === "EXPIRED") {
+      fallbackStatus = "failed"
+    } else if (job.internalStatus === "COMPLETED") {
+      fallbackStatus = "completed"
+    }
+    return [
+      {
+        id: job.id,
+        generationJobId: job.id,
+        title: job.titleFinal || "Untitled Song",
+        genre: job.styleFinal?.split(",")[0]?.trim() || job.model || "Generated",
+        duration: "--:--",
+        createdAt,
+        status: fallbackStatus,
+        prompt: job.styleFinal || job.promptFinal || "",
+        lyrics: job.promptFinal || undefined,
+        lyricsId: job.lyricId || undefined,
+        lyricsTitle: job.lyricTitle || undefined,
+        audioUrl: undefined,
+        streamAudioUrl: undefined,
+      },
+    ]
   }
 
-  const minutes = firstTrack?.durationSeconds
-    ? Math.floor(firstTrack.durationSeconds / 60)
-    : 0
-  const seconds = firstTrack?.durationSeconds
-    ? firstTrack.durationSeconds % 60
-    : 0
+  return tracks.map((track, index) => {
+    const resolvedAudioUrl = toPlayableAudioUrl(track.localAudioUrl || track.audioUrl)
+    const resolvedStreamAudioUrl = toPlayableAudioUrl(
+      track.localAudioUrl || track.streamAudioUrl || track.audioUrl,
+    )
+    const hasPlayableAudio = Boolean(resolvedAudioUrl || resolvedStreamAudioUrl)
 
-  return {
-    id: job.id,
-    title: job.titleFinal || "Untitled Song",
-    genre: job.styleFinal?.split(",")[0]?.trim() || job.model || "Generated",
-    duration: firstTrack?.durationSeconds
-      ? `${minutes}:${String(seconds).padStart(2, "0")}`
-      : "--:--",
-    createdAt,
-    status,
-    prompt: job.styleFinal || job.promptFinal || "",
-    lyrics: job.promptFinal || undefined,
-    lyricsId: job.lyricId || undefined,
-    lyricsTitle: job.lyricTitle || undefined,
-    audioUrl: firstTrack?.localAudioUrl || firstTrack?.audioUrl || undefined,
-    streamAudioUrl: firstTrack?.localAudioUrl || firstTrack?.streamAudioUrl || firstTrack?.audioUrl || undefined,
-  }
+    let status: Song["status"] = "generating"
+    if (job.internalStatus === "FAILED" || job.internalStatus === "EXPIRED") {
+      status = "failed"
+    } else if (job.internalStatus === "COMPLETED" || hasPlayableAudio) {
+      status = "completed"
+    }
+
+    const minutes = track.durationSeconds
+      ? Math.floor(track.durationSeconds / 60)
+      : 0
+    const seconds = track.durationSeconds
+      ? track.durationSeconds % 60
+      : 0
+    const versionIndex = track.trackIndex ?? index + 1
+
+    return {
+      id: `${job.id}:${track.id ?? track.providerMusicId ?? versionIndex}`,
+      generationJobId: job.id,
+      title: (track.title || job.titleFinal || "Untitled Song") + ` (V${versionIndex})`,
+      genre: job.styleFinal?.split(",")[0]?.trim() || job.model || "Generated",
+      duration: track.durationSeconds
+        ? `${minutes}:${String(seconds).padStart(2, "0")}`
+        : "--:--",
+      createdAt,
+      status,
+      prompt: job.styleFinal || job.promptFinal || "",
+      lyrics: track.lyricsOrPrompt || job.promptFinal || undefined,
+      lyricsId: job.lyricId || undefined,
+      lyricsTitle: job.lyricTitle || undefined,
+      audioUrl: resolvedAudioUrl,
+      streamAudioUrl: resolvedStreamAudioUrl,
+    }
+  })
 }
 
 export default function Home() {
@@ -145,7 +200,7 @@ export default function Home() {
   }, [backendJobs])
 
   useEffect(() => {
-    setGeneratedSongs(backendJobs.map(mapJobToSong))
+    setGeneratedSongs(backendJobs.flatMap(mapJobToSongs))
   }, [backendJobs])
 
   useEffect(() => {
@@ -363,12 +418,13 @@ export default function Home() {
     document.body.removeChild(link)
   }, [])
 
-  const handleDeleteSong = useCallback(async (songId: string) => {
-    await deleteGenerationJob(songId)
-    setBackendJobs((prev) => prev.filter((job) => job.id !== songId))
-    setSelectedSongId((prev) => (prev === songId ? null : prev))
-    setCurrentSong((prev) => (prev?.id === songId ? null : prev))
-    if (currentSong?.id === songId) {
+  const handleDeleteSong = useCallback(async (song: Song) => {
+    const targetJobId = song.generationJobId ?? song.id
+    await deleteGenerationJob(targetJobId)
+    setBackendJobs((prev) => prev.filter((job) => job.id !== targetJobId))
+    setSelectedSongId((prev) => (prev === song.id ? null : prev))
+    setCurrentSong((prev) => (prev?.id === song.id ? null : prev))
+    if (currentSong?.id === song.id) {
       setIsPlaying(false)
     }
   }, [currentSong?.id])
@@ -443,7 +499,7 @@ export default function Home() {
     storeSessionToken(session.sessionToken)
     setSessionToken(session.sessionToken)
     setCurrentUser(session.user)
-    const loginSongs = (session.songs ?? []).map(mapJobToSong)
+    const loginSongs = (session.songs ?? []).flatMap(mapJobToSongs)
     if (session.songs && session.songs.length > 0) {
       setBackendJobs(
         [...session.songs].sort((left, right) => {
@@ -553,7 +609,7 @@ export default function Home() {
                 }}
                 onPlaySong={playSong}
                 onDownloadSong={handleDownloadSong}
-                onDeleteSong={(song) => void handleDeleteSong(song.id)}
+                onDeleteSong={(song) => void handleDeleteSong(song)}
                 currentPlayingId={currentSong?.id}
               />
             </div>
@@ -566,7 +622,7 @@ export default function Home() {
             currentPlayingId={currentSong?.id}
             onPlaySong={playSong}
             onDownloadSong={handleDownloadSong}
-            onDeleteSong={handleDeleteSong}
+            onDeleteSong={(song) => handleDeleteSong(song)}
             onNavigateToLyrics={(lyricsId) => {
               setActiveTab("lyrics")
               // Could also pass lyricsId to LyricsPage to highlight the lyrics

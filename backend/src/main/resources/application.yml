@@ -40,6 +40,7 @@ media:
     spaces-access-key: ${DO_SPACES_ACCESS_KEY:${MEDIA_STORAGE_SPACES_ACCESS_KEY:}}
     spaces-secret-key: ${DO_SPACES_SECRET_KEY:${MEDIA_STORAGE_SPACES_SECRET_KEY:}}
     spaces-public-base-url: ${DO_SPACES_PUBLIC_BASE_URL:${MEDIA_STORAGE_SPACES_PUBLIC_BASE_URL:}}
+    proxy-allowed-hosts: ${MEDIA_PROXY_ALLOWED_HOSTS:musicfile.removeai.ai,tempfile.aiquickdraw.com}
 
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://alik-app-mw9ydy-fcf9d6-95-140-192-45.traefik.me,http://localhost:3000}

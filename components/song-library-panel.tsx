@@ -22,6 +22,7 @@ import {
 
 export interface Song {
   id: string
+  generationJobId?: string
   title: string
   genre: string
   duration: string

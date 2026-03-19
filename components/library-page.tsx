@@ -40,7 +40,7 @@ interface LibraryPageProps {
   currentPlayingId?: string | null
   onPlaySong?: (song: LibrarySong) => void
   onDownloadSong?: (song: LibrarySong) => void
-  onDeleteSong?: (songId: string) => Promise<void> | void
+  onDeleteSong?: (song: LibrarySong) => Promise<void> | void
   onNavigateToLyrics?: (lyricsId: string) => void
   initialSelectedSongId?: string | null
   onClearInitialSong?: () => void
@@ -85,7 +85,10 @@ export function LibraryPage({
 
   const confirmDelete = async () => {
     if (songToDelete) {
-      await onDeleteSong?.(songToDelete)
+      const song = songs.find((candidate) => candidate.id === songToDelete)
+      if (song) {
+        await onDeleteSong?.(song)
+      }
       if (selectedSongId === songToDelete) {
         setSelectedSongId(null)
       }
