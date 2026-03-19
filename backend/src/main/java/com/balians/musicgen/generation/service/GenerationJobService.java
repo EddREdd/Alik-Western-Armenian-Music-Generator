@@ -1,6 +1,7 @@
 package com.balians.musicgen.generation.service;
 
 import com.balians.musicgen.auth.model.UserAccount;
+import com.balians.musicgen.common.enums.GenerationModel;
 import com.balians.musicgen.common.enums.InternalJobStatus;
 import com.balians.musicgen.common.enums.ProviderJobStatus;
 import com.balians.musicgen.common.exception.BadRequestException;
@@ -201,6 +202,9 @@ public class GenerationJobService {
     }
 
     private void validateGenerationRequest(CreateGenerationJobRequest request) {
+        if (request.model() != GenerationModel.V5) {
+            throw new BadRequestException("Only V5 model is supported");
+        }
         if (Boolean.TRUE.equals(request.customMode()) && !Boolean.TRUE.equals(request.instrumental()) && !hasText(request.promptFinal())) {
             throw new BadRequestException("promptFinal is required when customMode is true and instrumental is false");
         }

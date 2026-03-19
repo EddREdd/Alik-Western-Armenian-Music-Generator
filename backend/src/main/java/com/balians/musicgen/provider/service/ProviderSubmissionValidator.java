@@ -40,11 +40,7 @@ public class ProviderSubmissionValidator {
     }
 
     private boolean isSupportedModel(GenerationModel model) {
-        return model == GenerationModel.V3_5
-                || model == GenerationModel.V4
-                || model == GenerationModel.V4_5
-                || model == GenerationModel.V4_5PLUS
-                || model == GenerationModel.V5;
+        return model == GenerationModel.V5;
     }
 
     private void validatePromptLength(String prompt, GenerationModel model) {

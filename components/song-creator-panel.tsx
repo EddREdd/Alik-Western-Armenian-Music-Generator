@@ -37,7 +37,7 @@ export function SongCreatorPanel({
   const [stylePrompt, setStylePrompt] = useState("")
   const [title, setTitle] = useState("")
   const [instrumental, setInstrumental] = useState(false)
-  const [model, setModel] = useState<GenerationModel>("V4")
+  const model: GenerationModel = "V5"
   const [importOpen, setImportOpen] = useState(false)
   const [selectedLyricId, setSelectedLyricId] = useState<string | null>(null)
   const [selectedLyricLocked, setSelectedLyricLocked] = useState(false)
@@ -110,17 +110,13 @@ export function SongCreatorPanel({
               <Label htmlFor="model" className="text-sm font-semibold text-foreground">
                 Model
               </Label>
-              <select
+              <Input
                 id="model"
                 value={model}
-                onChange={(e) => setModel(e.target.value as GenerationModel)}
-                className="h-10 rounded-md border border-border bg-card px-3 text-sm text-foreground"
-              >
-                <option value="V4">V4</option>
-                <option value="V4_5">V4_5</option>
-                <option value="V4_5PLUS">V4_5PLUS</option>
-                <option value="V5">V5</option>
-              </select>
+                readOnly
+                disabled
+                className="border-border bg-muted text-foreground"
+              />
             </div>
 
             <div className="flex items-end">
