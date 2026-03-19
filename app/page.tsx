@@ -37,6 +37,38 @@ const defaultProjectId =
   process.env.NEXT_PUBLIC_DEFAULT_PROJECT_ID?.trim() || "project-1"
 const configuredBackendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL?.trim() || ""
 const backendBaseUrl = configuredBackendBaseUrl.replace(/\/+$/, "")
+const proxyPreferredHosts = new Set([
+  "musicfile.removeai.ai",
+  "tempfile.aiquickdraw.com",
+])
+
+function isProxyPreferred(url: URL): boolean {
+  const host = url.hostname.toLowerCase()
+  for (const allowed of proxyPreferredHosts) {
+    if (host === allowed || host.endsWith(`.${allowed}`)) {
+      return true
+    }
+  }
+  return false
+}
+
+function toProxyUrl(rawUrl: string): string {
+  const proxyBase = backendBaseUrl || ""
+  return `${proxyBase}/api/v1/media/proxy?url=${encodeURIComponent(rawUrl)}`
+}
+
+function unwrapProxyUrl(url: string): string | undefined {
+  try {
+    const parsed = new URL(url, typeof window !== "undefined" ? window.location.origin : "http://localhost")
+    if (!parsed.pathname.endsWith("/api/v1/media/proxy")) {
+      return undefined
+    }
+    const nested = parsed.searchParams.get("url")
+    return nested?.trim() || undefined
+  } catch {
+    return undefined
+  }
+}
 
 function toPlayableAudioUrl(url?: string | null): string | undefined {
   if (!url) {
@@ -54,8 +86,41 @@ function toPlayableAudioUrl(url?: string | null): string | undefined {
     return trimmedUrl
   }
 
-  const proxyBase = backendBaseUrl || ""
-  return `${proxyBase}/api/v1/media/proxy?url=${encodeURIComponent(trimmedUrl)}`
+  try {
+    const parsed = new URL(trimmedUrl)
+    if (isProxyPreferred(parsed)) {
+      return toProxyUrl(trimmedUrl)
+    }
+    return trimmedUrl
+  } catch {
+    return trimmedUrl
+  }
+}
+
+function buildPlaybackCandidates(song: Song): string[] {
+  const candidates = [song.streamAudioUrl, song.audioUrl].filter(
+    (value): value is string => Boolean(value?.trim()),
+  )
+  const expanded: string[] = []
+  for (const candidate of candidates) {
+    expanded.push(candidate)
+    const unwrapped = unwrapProxyUrl(candidate)
+    if (unwrapped) {
+      expanded.push(unwrapped)
+      continue
+    }
+    if (/^https?:\/\//i.test(candidate)) {
+      try {
+        const parsed = new URL(candidate)
+        if (isProxyPreferred(parsed)) {
+          expanded.push(toProxyUrl(candidate))
+        }
+      } catch {
+        // Keep only original candidate when URL parsing fails.
+      }
+    }
+  }
+  return [...new Set(expanded)]
 }
 
 function mapJobToSongs(job: GenerationJob): Song[] {
@@ -303,8 +368,8 @@ export default function Home() {
   }, [currentSong, playableSongs, loadSongWithoutPlaying])
 
   const playSong = useCallback((song: Song) => {
-    const audioUrl = song.streamAudioUrl || song.audioUrl
-    if (!audioUrl) {
+    const playbackCandidates = buildPlaybackCandidates(song)
+    if (playbackCandidates.length === 0) {
       return
     }
 
@@ -321,12 +386,24 @@ export default function Home() {
       return
     }
     audio.pause()
-    audio.src = audioUrl
     audio.currentTime = 0
-    audio.load()
-    void audio.play()
-      .then(() => setIsPlaying(true))
-      .catch(() => setIsPlaying(false))
+
+    const tryCandidate = (index: number) => {
+      if (index >= playbackCandidates.length) {
+        setIsPlaying(false)
+        return
+      }
+      const candidate = playbackCandidates[index]
+      audio.src = candidate
+      audio.load()
+      void audio.play()
+        .then(() => setIsPlaying(true))
+        .catch(() => {
+          tryCandidate(index + 1)
+        })
+    }
+
+    tryCandidate(0)
   }, [])
 
   const togglePlayPause = useCallback(() => {
