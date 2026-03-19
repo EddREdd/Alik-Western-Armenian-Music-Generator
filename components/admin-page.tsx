@@ -27,6 +27,89 @@ import {
 } from "@/lib/admin-api"
 
 const PAGE_SIZE = 25
+const configuredBackendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL?.trim() || ""
+const backendBaseUrl = configuredBackendBaseUrl.replace(/\/+$/, "")
+const proxyPreferredHosts = new Set([
+  "musicfile.removeai.ai",
+  "tempfile.aiquickdraw.com",
+])
+
+function normalizeHost(host: string): string {
+  return host.trim().toLowerCase()
+}
+
+function isProxyPreferred(host: string): boolean {
+  const normalizedHost = normalizeHost(host)
+  for (const allowedHost of proxyPreferredHosts) {
+    if (
+      normalizedHost === normalizeHost(allowedHost) ||
+      normalizedHost.endsWith(`.${normalizeHost(allowedHost)}`)
+    ) {
+      return true
+    }
+  }
+  return false
+}
+
+function toAbsoluteAudioUrl(url: string): string {
+  const trimmed = url.trim()
+  if (!trimmed) return trimmed
+  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  if (!backendBaseUrl) return trimmed
+  return `${backendBaseUrl}${trimmed.startsWith("/") ? "" : "/"}${trimmed}`
+}
+
+function toProxyUrl(url: string): string {
+  return `${backendBaseUrl}/api/v1/media/proxy?url=${encodeURIComponent(url)}`
+}
+
+function unwrapProxyUrl(url: string): string | undefined {
+  try {
+    const parsed = new URL(
+      url,
+      typeof window !== "undefined" ? window.location.origin : "http://localhost",
+    )
+    if (!parsed.pathname.endsWith("/api/v1/media/proxy")) {
+      return undefined
+    }
+    const nestedUrl = parsed.searchParams.get("url")
+    return nestedUrl?.trim() || undefined
+  } catch {
+    return undefined
+  }
+}
+
+function buildAdminSongAudioCandidates(song: AdminSongSummary): string[] {
+  const rawCandidates = [song.streamAudioUrl, song.audioUrl].filter(
+    (value): value is string => Boolean(value?.trim()),
+  )
+  const expanded: string[] = []
+
+  for (const rawCandidate of rawCandidates) {
+    const absoluteCandidate = toAbsoluteAudioUrl(rawCandidate)
+    if (!absoluteCandidate) continue
+    expanded.push(absoluteCandidate)
+
+    const unwrapped = unwrapProxyUrl(absoluteCandidate)
+    if (unwrapped) {
+      expanded.push(unwrapped)
+      continue
+    }
+
+    if (/^https?:\/\//i.test(absoluteCandidate) && backendBaseUrl) {
+      try {
+        const parsed = new URL(absoluteCandidate)
+        if (isProxyPreferred(parsed.hostname)) {
+          expanded.push(toProxyUrl(absoluteCandidate))
+        }
+      } catch {
+        // Keep current candidate only if URL parsing fails.
+      }
+    }
+  }
+
+  return [...new Set(expanded)]
+}
 
 function MetricCard({
   title,
@@ -563,6 +646,11 @@ export function AdminPage() {
                 <div className="space-y-4">
                   {pagedSongs.map((song) => (
                     <div key={song.id} className="rounded-xl border p-4">
+                      {(() => {
+                        const audioCandidates = buildAdminSongAudioCandidates(song)
+                        const downloadUrl = audioCandidates[0]
+                        return (
+                          <>
                       <div className="flex flex-col gap-1 lg:flex-row lg:items-center lg:justify-between">
                         <div>
                           <div className="font-medium">{song.title ?? "Untitled Song"}</div>
@@ -580,18 +668,29 @@ export function AdminPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => {
-                            const url = song.streamAudioUrl || song.audioUrl
-                            if (url) window.open(url, "_blank", "noopener,noreferrer")
+                            if (downloadUrl) window.open(downloadUrl, "_blank", "noopener,noreferrer")
                           }}
+                          disabled={!downloadUrl}
                         >
                           Download
                         </Button>
                       </div>
-                      {song.streamAudioUrl || song.audioUrl ? (
-                        <audio className="mt-3 w-full" controls src={song.streamAudioUrl || song.audioUrl || undefined} />
+                      {audioCandidates.length > 0 ? (
+                        <audio className="mt-3 w-full" controls preload="metadata">
+                          {audioCandidates.map((candidate, index) => (
+                            <source
+                              key={`${song.id}-source-${index}`}
+                              src={candidate}
+                            />
+                          ))}
+                          Your browser does not support the audio element.
+                        </audio>
                       ) : (
                         <div className="mt-3 text-sm text-muted-foreground">No playable URL available.</div>
                       )}
+                          </>
+                        )
+                      })()}
                     </div>
                   ))}
                 </div>
