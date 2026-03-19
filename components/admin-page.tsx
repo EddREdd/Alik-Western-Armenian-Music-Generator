@@ -569,6 +569,9 @@ export function AdminPage() {
                           <div className="text-sm text-muted-foreground">
                             {song.lyricTitle ?? "No linked lyric"} • {(song.tags ?? []).join(", ") || "No tags"}
                           </div>
+                          <div className="text-xs text-muted-foreground">
+                            Project: {song.projectId ?? "N/A"}
+                          </div>
                         </div>
                         <Button
                           variant="outline"

@@ -50,41 +50,66 @@ public class GenerationJobController {
     }
 
     @GetMapping("/{id}")
-    public StandardSuccessResponse<GenerationJobResponse> getJobById(@PathVariable String id) {
-        return StandardSuccessResponse.ok(generationJobService.getJobById(id));
+    public StandardSuccessResponse<GenerationJobResponse> getJobById(
+            @RequestHeader(name = SESSION_HEADER, required = false) String sessionToken,
+            @PathVariable String id
+    ) {
+        return StandardSuccessResponse.ok(
+                generationJobService.getJobById(id, authService.requireAuthenticatedUser(sessionToken).getId())
+        );
     }
 
     @PostMapping("/{id}/submit")
-    public StandardSuccessResponse<GenerationJobResponse> submitJob(@PathVariable String id) {
-        return StandardSuccessResponse.ok(generationSubmissionService.submitJob(id));
+    public StandardSuccessResponse<GenerationJobResponse> submitJob(
+            @RequestHeader(name = SESSION_HEADER, required = false) String sessionToken,
+            @PathVariable String id
+    ) {
+        return StandardSuccessResponse.ok(
+                generationSubmissionService.submitJob(id, authService.requireAuthenticatedUser(sessionToken).getId())
+        );
     }
 
     @DeleteMapping("/{id}")
-    public StandardSuccessResponse<String> deleteJob(@PathVariable String id) {
-        generationJobService.deleteJob(id);
+    public StandardSuccessResponse<String> deleteJob(
+            @RequestHeader(name = SESSION_HEADER, required = false) String sessionToken,
+            @PathVariable String id
+    ) {
+        generationJobService.deleteJob(id, authService.requireAuthenticatedUser(sessionToken).getId());
         return StandardSuccessResponse.ok("deleted");
     }
 
     @PostMapping("/{id}/reconcile-now")
-    public StandardSuccessResponse<GenerationJobResponse> reconcileNow(@PathVariable String id) {
-        return StandardSuccessResponse.ok(pollingReconciliationService.reconcileNow(id));
+    public StandardSuccessResponse<GenerationJobResponse> reconcileNow(
+            @RequestHeader(name = SESSION_HEADER, required = false) String sessionToken,
+            @PathVariable String id
+    ) {
+        return StandardSuccessResponse.ok(
+                pollingReconciliationService.reconcileNow(id, authService.requireAuthenticatedUser(sessionToken).getId())
+        );
     }
 
     @GetMapping("/{id}/poll-attempts")
-    public StandardSuccessResponse<List<PollAttemptResponse>> getPollAttempts(@PathVariable String id) {
-        return StandardSuccessResponse.ok(pollingReconciliationService.getPollAttempts(id));
+    public StandardSuccessResponse<List<PollAttemptResponse>> getPollAttempts(
+            @RequestHeader(name = SESSION_HEADER, required = false) String sessionToken,
+            @PathVariable String id
+    ) {
+        return StandardSuccessResponse.ok(
+                pollingReconciliationService.getPollAttempts(id, authService.requireAuthenticatedUser(sessionToken).getId())
+        );
     }
 
     @GetMapping
     public StandardSuccessResponse<Page<GenerationJobSummaryResponse>> listJobs(
+            @RequestHeader(name = SESSION_HEADER, required = false) String sessionToken,
             @RequestParam(required = false) String projectId,
             @RequestParam(required = false) InternalJobStatus internalStatus,
             @RequestParam(required = false) ProviderJobStatus providerStatus,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size
     ) {
+        String ownerUserId = authService.requireAuthenticatedUser(sessionToken).getId();
         return StandardSuccessResponse.ok(
-                generationJobService.listJobs(projectId, internalStatus, providerStatus, page, size)
+                generationJobService.listJobs(ownerUserId, projectId, internalStatus, providerStatus, page, size)
         );
     }
 }

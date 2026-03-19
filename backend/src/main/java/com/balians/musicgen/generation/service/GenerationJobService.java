@@ -92,6 +92,14 @@ public class GenerationJobService {
         return mapJob(job, tracks);
     }
 
+    public GenerationJobResponse getJobById(String id, String ownerUserId) {
+        GenerationJob job = generationJobRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Generation job not found: " + id));
+        assertJobOwnership(job, ownerUserId);
+        List<GenerationTrack> tracks = generationTrackRepository.findByGenerationJobIdOrderByTrackIndexAsc(id);
+        return mapJob(job, tracks);
+    }
+
     public Page<GenerationJobSummaryResponse> listJobs(
             String projectId,
             InternalJobStatus internalStatus,
@@ -117,6 +125,56 @@ public class GenerationJobService {
         return jobs.map(this::mapSummary);
     }
 
+    public Page<GenerationJobSummaryResponse> listJobs(
+            String ownerUserId,
+            String projectId,
+            InternalJobStatus internalStatus,
+            ProviderJobStatus providerStatus,
+            Integer page,
+            Integer size
+    ) {
+        Pageable pageable = buildPageable(page, size);
+        Page<GenerationJob> jobs;
+
+        if (hasText(projectId) && internalStatus != null) {
+            jobs = generationJobRepository.findByOwnerUserIdAndProjectIdAndInternalStatusAndHiddenFromLibraryFalse(
+                    ownerUserId,
+                    projectId.trim(),
+                    internalStatus,
+                    pageable
+            );
+        } else if (hasText(projectId) && providerStatus != null) {
+            jobs = generationJobRepository.findByOwnerUserIdAndProjectIdAndProviderStatusAndHiddenFromLibraryFalse(
+                    ownerUserId,
+                    projectId.trim(),
+                    providerStatus,
+                    pageable
+            );
+        } else if (hasText(projectId)) {
+            jobs = generationJobRepository.findByOwnerUserIdAndProjectIdAndHiddenFromLibraryFalse(
+                    ownerUserId,
+                    projectId.trim(),
+                    pageable
+            );
+        } else if (internalStatus != null) {
+            jobs = generationJobRepository.findByOwnerUserIdAndInternalStatusAndHiddenFromLibraryFalse(
+                    ownerUserId,
+                    internalStatus,
+                    pageable
+            );
+        } else if (providerStatus != null) {
+            jobs = generationJobRepository.findByOwnerUserIdAndProviderStatusAndHiddenFromLibraryFalse(
+                    ownerUserId,
+                    providerStatus,
+                    pageable
+            );
+        } else {
+            jobs = generationJobRepository.findByOwnerUserIdAndHiddenFromLibraryFalse(ownerUserId, pageable);
+        }
+
+        return jobs.map(this::mapSummary);
+    }
+
     public void deleteJob(String id) {
         GenerationJob job = generationJobRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Generation job not found: " + id));
@@ -127,6 +185,19 @@ public class GenerationJobService {
             lyricsService.unlinkFromSong(job.getLyricId(), id);
         }
         log.info("Soft deleted generation job id={}", id);
+    }
+
+    public void deleteJob(String id, String ownerUserId) {
+        GenerationJob job = generationJobRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Generation job not found: " + id));
+        assertJobOwnership(job, ownerUserId);
+        job.setHiddenFromLibrary(true);
+        job.setUserDeletedAt(Instant.now());
+        generationJobRepository.save(job);
+        if (hasText(job.getLyricId())) {
+            lyricsService.unlinkFromSong(job.getLyricId(), id);
+        }
+        log.info("Soft deleted generation job id={} ownerUserId={}", id, ownerUserId);
     }
 
     private void validateGenerationRequest(CreateGenerationJobRequest request) {
@@ -158,5 +229,14 @@ public class GenerationJobService {
             return null;
         }
         return value.trim();
+    }
+
+    private void assertJobOwnership(GenerationJob job, String ownerUserId) {
+        if (ownerUserId == null || ownerUserId.isBlank()) {
+            throw new NotFoundException("Generation job not found: " + job.getId());
+        }
+        if (job.getOwnerUserId() == null || !job.getOwnerUserId().equals(ownerUserId)) {
+            throw new NotFoundException("Generation job not found: " + job.getId());
+        }
     }
 }

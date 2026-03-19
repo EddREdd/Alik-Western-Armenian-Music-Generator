@@ -35,6 +35,40 @@ public interface GenerationJobRepository extends MongoRepository<GenerationJob, 
             Pageable pageable
     );
 
+    Page<GenerationJob> findByOwnerUserIdAndHiddenFromLibraryFalse(String ownerUserId, Pageable pageable);
+
+    Page<GenerationJob> findByOwnerUserIdAndProjectIdAndHiddenFromLibraryFalse(
+            String ownerUserId,
+            String projectId,
+            Pageable pageable
+    );
+
+    Page<GenerationJob> findByOwnerUserIdAndInternalStatusAndHiddenFromLibraryFalse(
+            String ownerUserId,
+            InternalJobStatus internalJobStatus,
+            Pageable pageable
+    );
+
+    Page<GenerationJob> findByOwnerUserIdAndProviderStatusAndHiddenFromLibraryFalse(
+            String ownerUserId,
+            ProviderJobStatus providerJobStatus,
+            Pageable pageable
+    );
+
+    Page<GenerationJob> findByOwnerUserIdAndProjectIdAndInternalStatusAndHiddenFromLibraryFalse(
+            String ownerUserId,
+            String projectId,
+            InternalJobStatus internalJobStatus,
+            Pageable pageable
+    );
+
+    Page<GenerationJob> findByOwnerUserIdAndProjectIdAndProviderStatusAndHiddenFromLibraryFalse(
+            String ownerUserId,
+            String projectId,
+            ProviderJobStatus providerJobStatus,
+            Pageable pageable
+    );
+
     List<GenerationJob> findByOwnerUserIdAndHiddenFromLibraryFalseOrderByCreatedAtDesc(String ownerUserId);
 
     List<GenerationJob> findByInternalStatusInAndProviderTaskIdIsNotNullOrderByNextPollAtAscCreatedAtAsc(

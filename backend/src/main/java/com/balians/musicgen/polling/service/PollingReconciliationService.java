@@ -79,6 +79,22 @@ public class PollingReconciliationService {
         );
     }
 
+    public GenerationJobResponse reconcileNow(String jobId, String ownerUserId) {
+        GenerationJob job = generationJobRepository.findById(jobId)
+                .orElseThrow(() -> new NotFoundException("Generation job not found: " + jobId));
+        assertJobOwnership(job, ownerUserId);
+        if (job.getProviderTaskId() == null || job.getProviderTaskId().isBlank()) {
+            throw new BadRequestException("Generation job does not have a providerTaskId");
+        }
+        pollJob(job);
+        GenerationJob refreshedJob = generationJobRepository.findById(jobId)
+                .orElseThrow(() -> new NotFoundException("Generation job not found after reconciliation: " + jobId));
+        return generationJobMapper.toResponse(
+                refreshedJob,
+                generationTrackRepository.findByGenerationJobIdOrderByTrackIndexAsc(jobId)
+        );
+    }
+
     public List<PollAttemptResponse> getPollAttempts(String jobId) {
         return pollAttemptRepository.findByGenerationJobIdOrderByRequestedAtDesc(jobId)
                 .stream()
@@ -95,6 +111,13 @@ public class PollingReconciliationService {
                         attempt.getErrorMessage()
                 ))
                 .toList();
+    }
+
+    public List<PollAttemptResponse> getPollAttempts(String jobId, String ownerUserId) {
+        GenerationJob job = generationJobRepository.findById(jobId)
+                .orElseThrow(() -> new NotFoundException("Generation job not found: " + jobId));
+        assertJobOwnership(job, ownerUserId);
+        return getPollAttempts(jobId);
     }
 
     private void pollJob(GenerationJob job) {
@@ -303,5 +326,14 @@ public class PollingReconciliationService {
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private void assertJobOwnership(GenerationJob job, String ownerUserId) {
+        if (ownerUserId == null || ownerUserId.isBlank()) {
+            throw new NotFoundException("Generation job not found: " + job.getId());
+        }
+        if (job.getOwnerUserId() == null || !job.getOwnerUserId().equals(ownerUserId)) {
+            throw new NotFoundException("Generation job not found: " + job.getId());
+        }
     }
 }

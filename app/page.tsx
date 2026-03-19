@@ -99,7 +99,7 @@ export default function Home() {
 
   const refreshAllJobs = useCallback(async () => {
     try {
-      const jobs = await listGenerationJobs(defaultProjectId)
+      const jobs = await listGenerationJobs()
       setBackendJobs(
         jobs.sort((left, right) => {
           const leftTime = left.createdAt ? new Date(left.createdAt).getTime() : 0

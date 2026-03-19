@@ -97,6 +97,16 @@ public class GenerationSubmissionService {
         }
     }
 
+    public GenerationJobResponse submitJob(String id, String ownerUserId) {
+        GenerationJob job = generationJobRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Generation job not found: " + id));
+        if (ownerUserId == null || ownerUserId.isBlank() || job.getOwnerUserId() == null
+                || !job.getOwnerUserId().equals(ownerUserId)) {
+            throw new NotFoundException("Generation job not found: " + id);
+        }
+        return submitJob(id);
+    }
+
     private void validateSubmissionAllowed(GenerationJob job) {
         if (job.getInternalStatus() != InternalJobStatus.VALIDATED && job.getInternalStatus() != InternalJobStatus.RETRY_PENDING) {
             throw new BadRequestException("Only VALIDATED or RETRY_PENDING jobs can be submitted");

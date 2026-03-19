@@ -213,16 +213,14 @@ export async function deleteGenerationJob(jobId: string): Promise<void> {
   })
 }
 
-export async function listGenerationJobSummaries(
-  projectId: string,
-): Promise<GenerationJobListItem[]> {
+export async function listGenerationJobSummaries(): Promise<GenerationJobListItem[]> {
   const page = await apiRequest<PageResponse<GenerationJobListItem>>(
-    `/api/v1/generation-jobs?projectId=${encodeURIComponent(projectId)}&page=0&size=50`,
+    `/api/v1/generation-jobs?page=0&size=50`,
   )
   return page.content ?? []
 }
 
-export async function listGenerationJobs(projectId: string): Promise<GenerationJob[]> {
-  const summaries = await listGenerationJobSummaries(projectId)
+export async function listGenerationJobs(): Promise<GenerationJob[]> {
+  const summaries = await listGenerationJobSummaries()
   return Promise.all(summaries.map((summary) => getGenerationJob(summary.id)))
 }
