@@ -185,6 +185,7 @@ public class TrackMediaStorageService {
         return S3Client.builder()
                 .region(Region.of(mediaStorageProperties.getSpacesRegion()))
                 .endpointOverride(URI.create(mediaStorageProperties.getSpacesEndpoint()))
+                .forcePathStyle(true)
                 .credentialsProvider(StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(
                                 mediaStorageProperties.getSpacesAccessKey(),
