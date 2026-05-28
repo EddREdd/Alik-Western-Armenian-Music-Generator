@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { LyricsImportDialog } from "@/components/lyrics-import-dialog"
 import type { Lyric } from "@/lib/lyrics-api"
-import { type LyricContentLanguage, t, useUiLanguage } from "@/lib/i18n"
+import { t, useUiLanguage } from "@/lib/i18n"
 
 interface SongCreatorPanelProps {
   onGenerate: (data: {
@@ -16,7 +16,6 @@ interface SongCreatorPanelProps {
     title: string
     lyrics: string
     stylePrompt: string
-    lyricsLanguage: LyricContentLanguage
   }) => void
   isGenerating: boolean
   errorMessage?: string
@@ -31,7 +30,6 @@ export function SongCreatorPanel({
   const [lyrics, setLyrics] = useState("")
   const [stylePrompt, setStylePrompt] = useState("")
   const [title, setTitle] = useState("")
-  const [lyricsLanguage, setLyricsLanguage] = useState<LyricContentLanguage>("WESTERN_ARMENIAN")
   const [importMyOpen, setImportMyOpen] = useState(false)
   const [importPublicOpen, setImportPublicOpen] = useState(false)
   const [selectedLyricId, setSelectedLyricId] = useState<string | null>(null)
@@ -46,11 +44,6 @@ export function SongCreatorPanel({
       setSelectedLyricLocked(false)
     }
     setLyrics(lyric.body)
-    if (lyric.language) {
-      setLyricsLanguage(lyric.language as LyricContentLanguage)
-    } else {
-      setLyricsLanguage("WESTERN_ARMENIAN")
-    }
     if (!title) setTitle(lyric.title)
   }
 
@@ -65,7 +58,6 @@ export function SongCreatorPanel({
       title: normalizedTitle,
       lyrics,
       stylePrompt,
-      lyricsLanguage,
     })
   }
 
@@ -126,18 +118,6 @@ export function SongCreatorPanel({
                   {t("importFromPublicLyrics")}
                 </Button>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <select
-                id="lyrics-language"
-                value={lyricsLanguage}
-                onChange={(e) => setLyricsLanguage(e.target.value as LyricContentLanguage)}
-                className="h-9 flex-1 rounded-md border border-border bg-card px-2 text-sm text-foreground"
-                aria-label={t("lyricsLanguage")}
-              >
-                <option value="ENGLISH">{t("english")}</option>
-                <option value="WESTERN_ARMENIAN">{t("westernArmenian")}</option>
-              </select>
             </div>
             <Textarea
               id="lyrics"
@@ -230,7 +210,7 @@ export function SongCreatorPanel({
         onOpenChange={setImportPublicOpen}
         onSelect={handleImportLyrics}
         source="public"
-        defaultPublicLanguage={lyricsLanguage}
+        defaultPublicLanguage="WESTERN_ARMENIAN"
       />
     </div>
   )

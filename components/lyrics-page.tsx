@@ -44,7 +44,7 @@ import {
   type Lyric,
   type LyricSummary,
 } from "@/lib/lyrics-api"
-import { type LyricContentLanguage, t, useUiLanguage } from "@/lib/i18n"
+import { t, useUiLanguage } from "@/lib/i18n"
 
 interface LyricsPageProps {
   onNavigateToSong?: (songId: string) => void
@@ -71,7 +71,6 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
   const [editOpen, setEditOpen] = useState(false)
   const [newTitle, setNewTitle] = useState("")
   const [newContent, setNewContent] = useState("")
-  const [newLyricLanguage, setNewLyricLanguage] = useState<LyricContentLanguage>("WESTERN_ARMENIAN")
   const [editTitle, setEditTitle] = useState("")
   const [editContent, setEditContent] = useState("")
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -114,7 +113,7 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
         projectId: defaultProjectId,
         title: newTitle,
         body: newContent,
-        language: newLyricLanguage,
+        language: "WESTERN_ARMENIAN",
       })
       await loadLyrics()
       setSelectedLyric(created)
@@ -248,18 +247,6 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
                 onChange={(e) => setNewContent(e.target.value)}
                 className="min-h-[300px] resize-none"
               />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="mobile-lyric-language">{t("lyricsLanguage")}</Label>
-              <select
-                id="mobile-lyric-language"
-                value={newLyricLanguage}
-                onChange={(e) => setNewLyricLanguage(e.target.value as LyricContentLanguage)}
-                className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground"
-              >
-                <option value="ENGLISH">{t("english")}</option>
-                <option value="WESTERN_ARMENIAN">{t("westernArmenian")}</option>
-              </select>
             </div>
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
             <Button onClick={handleCreate} disabled={!newTitle.trim() || !newContent.trim()}>
@@ -646,18 +633,6 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
                 onChange={(e) => setNewContent(e.target.value)}
                 className="min-h-[200px] resize-none"
               />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="lyric-language">{t("lyricsLanguage")}</Label>
-              <select
-                id="lyric-language"
-                value={newLyricLanguage}
-                onChange={(e) => setNewLyricLanguage(e.target.value as LyricContentLanguage)}
-                className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground"
-              >
-                <option value="ENGLISH">{t("english")}</option>
-                <option value="WESTERN_ARMENIAN">{t("westernArmenian")}</option>
-              </select>
             </div>
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
             <Button onClick={handleCreate} disabled={!newTitle.trim() || !newContent.trim()}>
