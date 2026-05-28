@@ -61,6 +61,35 @@ public class StartupValidationService {
                 "media.storage.spaces-secret-key is required when media.storage.type=spaces");
         requireText(mediaStorageProperties.getSpacesPublicBaseUrl(),
                 "media.storage.spaces-public-base-url is required when media.storage.type=spaces");
+
+        rejectMinioConsolePort(mediaStorageProperties.getSpacesEndpoint(),
+                "media.storage.spaces-endpoint must use MinIO S3 API port :9000, not console port :9001");
+        rejectMinioConsolePort(mediaStorageProperties.getSpacesPublicBaseUrl(),
+                "media.storage.spaces-public-base-url must not use MinIO console port :9001");
+
+        log.info(
+                "Media storage config: type={}, endpoint={}, region={}, bucket={}, publicBaseUrl={}, accessKeyPrefix={}",
+                mediaStorageProperties.getType(),
+                mediaStorageProperties.getSpacesEndpoint(),
+                mediaStorageProperties.getSpacesRegion(),
+                mediaStorageProperties.getSpacesBucket(),
+                mediaStorageProperties.getSpacesPublicBaseUrl(),
+                accessKeyPrefix(mediaStorageProperties.getSpacesAccessKey()));
+    }
+
+    private void rejectMinioConsolePort(String value, String message) {
+        if (value != null && value.contains(":9001")) {
+            throw new IllegalStateException(message);
+        }
+    }
+
+    private String accessKeyPrefix(String accessKey) {
+        if (accessKey == null || accessKey.isBlank()) {
+            return "(empty)";
+        }
+        String trimmed = accessKey.trim();
+        int prefixLength = Math.min(3, trimmed.length());
+        return trimmed.substring(0, prefixLength) + "...";
     }
 
     private void rejectLocalMongoUri(String uri) {
