@@ -41,6 +41,20 @@ public class LyricEntry extends AuditableDocument {
     private Boolean locked;
 
     @Builder.Default
+    private String language = "WESTERN_ARMENIAN";
+
+    /**
+     * When true, lyric is part of the public Ready Library and excluded from private user listings.
+     */
+    @Builder.Default
+    private Boolean publicReadyLibrary = false;
+
+    @Indexed(name = "idx_lyrics_created_by_admin_user_id", sparse = true)
+    private String createdByAdminUserId;
+
+    private String sourceLyricId;
+
+    @Builder.Default
     private List<String> linkedSongIds = new ArrayList<>();
 
     @Builder.Default

@@ -7,7 +7,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record CreateGenerationJobRequest(
-        @NotBlank(message = "projectId is required")
         @Size(max = 100, message = "projectId must be at most 100 characters")
         String projectId,
 
@@ -33,10 +32,8 @@ public record CreateGenerationJobRequest(
         @NotNull(message = "customMode is required")
         Boolean customMode,
 
-        @NotNull(message = "instrumental is required")
         Boolean instrumental,
 
-        @NotNull(message = "model is required")
         GenerationModel model
 ) {
 }

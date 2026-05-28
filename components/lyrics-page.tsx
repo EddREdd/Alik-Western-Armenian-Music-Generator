@@ -39,10 +39,12 @@ import {
   deleteLyric,
   getLyric,
   listLyrics,
+  restoreLyricVersion,
   updateLyric,
   type Lyric,
   type LyricSummary,
 } from "@/lib/lyrics-api"
+import { type LyricContentLanguage, t, useUiLanguage } from "@/lib/i18n"
 
 interface LyricsPageProps {
   onNavigateToSong?: (songId: string) => void
@@ -61,6 +63,7 @@ function formatDate(value: string | null) {
 }
 
 export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
+  useUiLanguage()
   const [search, setSearch] = useState("")
   const [lyrics, setLyrics] = useState<LyricSummary[]>([])
   const [selectedLyric, setSelectedLyric] = useState<Lyric | null>(null)
@@ -68,10 +71,14 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
   const [editOpen, setEditOpen] = useState(false)
   const [newTitle, setNewTitle] = useState("")
   const [newContent, setNewContent] = useState("")
+  const [newLyricLanguage, setNewLyricLanguage] = useState<LyricContentLanguage>("WESTERN_ARMENIAN")
   const [editTitle, setEditTitle] = useState("")
   const [editContent, setEditContent] = useState("")
   const [editingId, setEditingId] = useState<string | null>(null)
   const [mobileView, setMobileView] = useState<MobileView>("list")
+  const [selectedVersion, setSelectedVersion] = useState<Lyric["versions"][number] | null>(null)
+  const [versionDialogOpen, setVersionDialogOpen] = useState(false)
+  const [restoringVersion, setRestoringVersion] = useState(false)
   const [error, setError] = useState("")
   const isDesktop = useIsDesktop()
 
@@ -107,6 +114,7 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
         projectId: defaultProjectId,
         title: newTitle,
         body: newContent,
+        language: newLyricLanguage,
       })
       await loadLyrics()
       setSelectedLyric(created)
@@ -192,6 +200,31 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
     setSelectedLyric(null)
   }
 
+  const openVersionDialog = (version: Lyric["versions"][number]) => {
+    setSelectedVersion(version)
+    setVersionDialogOpen(true)
+  }
+
+  const handleRestoreVersion = async () => {
+    if (!selectedLyric || !selectedVersion) {
+      return
+    }
+    setRestoringVersion(true)
+    try {
+      const restored = await restoreLyricVersion(selectedLyric.id, selectedVersion.versionNumber)
+      await loadLyrics()
+      setSelectedLyric(restored)
+      setVersionDialogOpen(false)
+      setSelectedVersion(null)
+      setMobileView("preview")
+      setError("")
+    } catch (restoreError) {
+      setError(restoreError instanceof Error ? restoreError.message : "Unable to restore lyric version")
+    } finally {
+      setRestoringVersion(false)
+    }
+  }
+
   if (!isDesktop && mobileView === "create") {
     return (
       <main className="flex flex-1 flex-col overflow-hidden">
@@ -216,9 +249,21 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
                 className="min-h-[300px] resize-none"
               />
             </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="mobile-lyric-language">{t("lyricsLanguage")}</Label>
+              <select
+                id="mobile-lyric-language"
+                value={newLyricLanguage}
+                onChange={(e) => setNewLyricLanguage(e.target.value as LyricContentLanguage)}
+                className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground"
+              >
+                <option value="ENGLISH">{t("english")}</option>
+                <option value="WESTERN_ARMENIAN">{t("westernArmenian")}</option>
+              </select>
+            </div>
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
             <Button onClick={handleCreate} disabled={!newTitle.trim() || !newContent.trim()}>
-              Save to Library
+              {t("save")}
             </Button>
           </div>
         </ScrollArea>
@@ -241,7 +286,9 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-lg font-bold tracking-wide text-foreground">Edit Lyrics</h1>
+          <h1 className="text-lg font-bold tracking-wide text-foreground">
+            {t("edit")} {t("lyrics")}
+          </h1>
         </div>
         <ScrollArea className="flex-1">
           <div className="flex flex-col gap-4 p-4">
@@ -260,7 +307,7 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
             </div>
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
             <Button onClick={handleSaveEdit} disabled={!editTitle.trim() || !editContent.trim()}>
-              Save Changes
+              {t("save")}
             </Button>
           </div>
         </ScrollArea>
@@ -327,11 +374,16 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
                   .slice()
                   .reverse()
                   .map((version) => (
-                    <div key={`${version.versionNumber}-${version.editedAt}`} className="rounded-lg bg-muted/50 p-3">
+                    <button
+                      key={`${version.versionNumber}-${version.editedAt}`}
+                      type="button"
+                      onClick={() => openVersionDialog(version)}
+                      className="w-full rounded-lg bg-muted/50 p-3 text-left hover:bg-muted"
+                    >
                       <p className="text-xs font-medium text-foreground">
                         v{version.versionNumber} • {formatDate(version.editedAt)}
                       </p>
-                    </div>
+                    </button>
                   ))}
               </div>
             </div>
@@ -417,7 +469,7 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
                         }}
                       >
                         <Edit3 className="mr-2 h-4 w-4" />
-                        Edit
+                        {t("edit")}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-destructive"
@@ -427,7 +479,7 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
                         }}
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
+                        {t("delete")}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -456,7 +508,7 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
               {!selectedLyric.locked ? (
                 <Button variant="outline" size="sm" onClick={() => handleStartEdit(selectedLyric)}>
                   <Edit3 className="mr-1 h-3.5 w-3.5" />
-                  Edit
+                  {t("edit")}
                 </Button>
               ) : (
                 <Badge variant="outline" className="border-secondary/30 text-secondary">
@@ -500,12 +552,17 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
                       .slice()
                       .reverse()
                       .map((version) => (
-                        <div key={`${version.versionNumber}-${version.editedAt}`} className="rounded-lg border border-border p-4">
+                        <button
+                          key={`${version.versionNumber}-${version.editedAt}`}
+                          type="button"
+                          onClick={() => openVersionDialog(version)}
+                          className="w-full rounded-lg border border-border p-4 text-left hover:bg-muted/30"
+                        >
                           <p className="text-sm font-medium text-foreground">
                             Version {version.versionNumber}
                           </p>
                           <p className="mt-1 text-xs text-muted-foreground">{formatDate(version.editedAt)}</p>
-                        </div>
+                        </button>
                       ))}
                   </div>
                 </div>
@@ -521,6 +578,54 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
           </div>
         )}
       </div>
+
+      <Dialog
+        open={versionDialogOpen}
+        onOpenChange={(open) => {
+          setVersionDialogOpen(open)
+          if (!open) {
+            setSelectedVersion(null)
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedVersion ? `Version ${selectedVersion.versionNumber}` : "Version Preview"}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedVersion ? formatDate(selectedVersion.editedAt) : "Select a version to preview and restore."}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedVersion ? (
+            <div className="space-y-4">
+              <div>
+                <Label className="text-xs text-muted-foreground">Title</Label>
+                <p className="mt-1 text-sm font-medium text-foreground">{selectedVersion.title}</p>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Lyrics</Label>
+                <div className="mt-1 max-h-[340px] overflow-y-auto rounded-md border border-border bg-muted/30 p-3">
+                  <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground">
+                    {selectedVersion.body}
+                  </pre>
+                </div>
+              </div>
+              <Button
+                onClick={() => void handleRestoreVersion()}
+                disabled={restoringVersion || !selectedLyric}
+                className="w-full"
+              >
+                {restoringVersion
+                  ? "Restoring..."
+                  : selectedLyric?.locked
+                    ? t("restoreAsNewCopy")
+                    : t("restore")}
+              </Button>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="sm:max-w-lg">
@@ -542,9 +647,21 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
                 className="min-h-[200px] resize-none"
               />
             </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="lyric-language">{t("lyricsLanguage")}</Label>
+              <select
+                id="lyric-language"
+                value={newLyricLanguage}
+                onChange={(e) => setNewLyricLanguage(e.target.value as LyricContentLanguage)}
+                className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground"
+              >
+                <option value="ENGLISH">{t("english")}</option>
+                <option value="WESTERN_ARMENIAN">{t("westernArmenian")}</option>
+              </select>
+            </div>
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
             <Button onClick={handleCreate} disabled={!newTitle.trim() || !newContent.trim()}>
-              Save to Library
+              {t("save")}
             </Button>
           </div>
         </DialogContent>
@@ -553,7 +670,9 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Edit Lyrics</DialogTitle>
+            <DialogTitle>
+              {t("edit")} {t("lyrics")}
+            </DialogTitle>
             <DialogDescription>Locked lyrics cannot be edited.</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-4">
@@ -572,7 +691,7 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
             </div>
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
             <Button onClick={handleSaveEdit} disabled={!editTitle.trim() || !editContent.trim()}>
-              Save Changes
+              {t("save")}
             </Button>
           </div>
         </DialogContent>

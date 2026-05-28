@@ -31,35 +31,77 @@ public class LyricsController {
     private final LyricsService lyricsService;
     private final AuthService authService;
 
+    @GetMapping("/ready-library")
+    public StandardSuccessResponse<List<LyricSummaryResponse>> listReadyLibrary(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String language
+    ) {
+        return StandardSuccessResponse.ok(lyricsService.listReadyLibrary(keyword, language));
+    }
+
+    @GetMapping("/ready-library/{id}")
+    public StandardSuccessResponse<LyricResponse> getReadyLibraryById(@PathVariable String id) {
+        return StandardSuccessResponse.ok(lyricsService.getReadyLibraryById(id));
+    }
+
     @PostMapping
     public StandardSuccessResponse<LyricResponse> create(
             @RequestHeader(name = SESSION_HEADER, required = false) String sessionToken,
             @Valid @RequestBody CreateLyricRequest request
     ) {
-        return StandardSuccessResponse.ok(lyricsService.create(request, authService.requireAuthenticatedUser(sessionToken)));
+        return StandardSuccessResponse.ok(
+                lyricsService.create(request, authService.requireAuthenticatedUser(sessionToken))
+        );
     }
 
     @GetMapping
-    public StandardSuccessResponse<List<LyricSummaryResponse>> listByProject(@RequestParam String projectId) {
-        return StandardSuccessResponse.ok(lyricsService.listByProject(projectId));
+    public StandardSuccessResponse<List<LyricSummaryResponse>> list(
+            @RequestHeader(name = SESSION_HEADER, required = false) String sessionToken,
+            @RequestParam(required = false) String projectId
+    ) {
+        return StandardSuccessResponse.ok(
+                lyricsService.listForUser(authService.requireAuthenticatedUser(sessionToken), projectId)
+        );
     }
 
     @GetMapping("/{id}")
-    public StandardSuccessResponse<LyricResponse> getById(@PathVariable String id) {
-        return StandardSuccessResponse.ok(lyricsService.getById(id));
+    public StandardSuccessResponse<LyricResponse> getById(
+            @RequestHeader(name = SESSION_HEADER, required = false) String sessionToken,
+            @PathVariable String id
+    ) {
+        return StandardSuccessResponse.ok(
+                lyricsService.getById(id, authService.requireAuthenticatedUser(sessionToken))
+        );
     }
 
     @PutMapping("/{id}")
     public StandardSuccessResponse<LyricResponse> update(
+            @RequestHeader(name = SESSION_HEADER, required = false) String sessionToken,
             @PathVariable String id,
             @Valid @RequestBody UpdateLyricRequest request
     ) {
-        return StandardSuccessResponse.ok(lyricsService.update(id, request));
+        return StandardSuccessResponse.ok(
+                lyricsService.update(id, request, authService.requireAuthenticatedUser(sessionToken))
+        );
+    }
+
+    @PostMapping("/{id}/versions/{versionNumber}/restore")
+    public StandardSuccessResponse<LyricResponse> restoreVersion(
+            @RequestHeader(name = SESSION_HEADER, required = false) String sessionToken,
+            @PathVariable String id,
+            @PathVariable Integer versionNumber
+    ) {
+        return StandardSuccessResponse.ok(
+                lyricsService.restoreVersion(id, versionNumber, authService.requireAuthenticatedUser(sessionToken))
+        );
     }
 
     @DeleteMapping("/{id}")
-    public StandardSuccessResponse<String> delete(@PathVariable String id) {
-        lyricsService.delete(id);
+    public StandardSuccessResponse<String> delete(
+            @RequestHeader(name = SESSION_HEADER, required = false) String sessionToken,
+            @PathVariable String id
+    ) {
+        lyricsService.delete(id, authService.requireAuthenticatedUser(sessionToken));
         return StandardSuccessResponse.ok("deleted");
     }
 }

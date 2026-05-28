@@ -22,6 +22,7 @@ import {
   type AuthUser,
 } from "@/lib/auth-api"
 import { createLyric } from "@/lib/lyrics-api"
+import type { LyricContentLanguage } from "@/lib/i18n"
 import {
   createGenerationJob,
   deleteGenerationJob,
@@ -30,11 +31,8 @@ import {
   reconcileGenerationJob,
   submitGenerationJob,
   type GenerationJob,
-  type GenerationModel,
 } from "@/lib/musicgen-api"
 
-const defaultProjectId =
-  process.env.NEXT_PUBLIC_DEFAULT_PROJECT_ID?.trim() || "project-1"
 const configuredBackendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL?.trim() || ""
 const backendBaseUrl = configuredBackendBaseUrl.replace(/\/+$/, "")
 const proxyPreferredHosts = new Set([
@@ -133,6 +131,8 @@ function mapJobToSongs(job: GenerationJob): Song[] {
     ? new Date(job.createdAt).toLocaleString()
     : "Just now"
 
+  const baseTitle = job.titleFinal?.trim() || "Untitled Song"
+
   if (tracks.length === 0) {
     let fallbackStatus: Song["status"] = "generating"
     if (job.internalStatus === "FAILED" || job.internalStatus === "EXPIRED") {
@@ -144,7 +144,7 @@ function mapJobToSongs(job: GenerationJob): Song[] {
       {
         id: job.id,
         generationJobId: job.id,
-        title: job.titleFinal || "Untitled Song",
+        title: baseTitle,
         genre: job.styleFinal?.split(",")[0]?.trim() || job.model || "Generated",
         duration: "--:--",
         createdAt,
@@ -180,11 +180,12 @@ function mapJobToSongs(job: GenerationJob): Song[] {
       ? track.durationSeconds % 60
       : 0
     const versionIndex = track.trackIndex ?? index + 1
+    const variantBaseTitle = job.titleFinal?.trim() || "Untitled Song"
 
     return {
       id: `${job.id}:${track.id ?? track.providerMusicId ?? versionIndex}`,
       generationJobId: job.id,
-      title: (track.title || job.titleFinal || "Untitled Song") + ` (V${versionIndex})`,
+      title: `${variantBaseTitle} (V${versionIndex})`,
       genre: job.styleFinal?.split(",")[0]?.trim() || job.model || "Generated",
       duration: track.durationSeconds
         ? `${minutes}:${String(seconds).padStart(2, "0")}`
@@ -216,7 +217,11 @@ export default function Home() {
   // Mobile player state
   const [currentSong, setCurrentSong] = useState<PlayingSong | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
+  const [isTrackLoading, setIsTrackLoading] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const trackCandidatesLengthRef = useRef(0)
+  const trackCandidateIndexRef = useRef(0)
+  const activePlayAttemptIdRef = useRef(0)
 
   const playableSongs = generatedSongs.filter((song) => song.status === "completed")
 
@@ -351,6 +356,7 @@ export default function Home() {
       progress: 0,
     })
     setIsPlaying(false)
+    setIsTrackLoading(false)
     const audio = audioRef.current
     if (audio) {
       audio.pause()
@@ -373,6 +379,13 @@ export default function Home() {
       return
     }
 
+    // Mark the chosen track as loading while we try candidates.
+    activePlayAttemptIdRef.current += 1
+    const attemptId = activePlayAttemptIdRef.current
+    trackCandidatesLengthRef.current = playbackCandidates.length
+    trackCandidateIndexRef.current = 0
+    setIsTrackLoading(true)
+
     setCurrentSong({
       id: song.id,
       title: song.title,
@@ -383,6 +396,7 @@ export default function Home() {
 
     const audio = audioRef.current
     if (!audio) {
+      setIsTrackLoading(false)
       return
     }
     audio.pause()
@@ -391,14 +405,22 @@ export default function Home() {
     const tryCandidate = (index: number) => {
       if (index >= playbackCandidates.length) {
         setIsPlaying(false)
+        setIsTrackLoading(false)
         return
       }
       const candidate = playbackCandidates[index]
+      trackCandidateIndexRef.current = index
+      setIsTrackLoading(true)
       audio.src = candidate
       audio.load()
       void audio.play()
-        .then(() => setIsPlaying(true))
+        .then(() => {
+          if (activePlayAttemptIdRef.current !== attemptId) return
+          setIsPlaying(true)
+          setIsTrackLoading(false)
+        })
         .catch(() => {
+          if (activePlayAttemptIdRef.current !== attemptId) return
           tryCandidate(index + 1)
         })
     }
@@ -414,10 +436,17 @@ export default function Home() {
     if (isPlaying) {
       audio.pause()
       setIsPlaying(false)
+      setIsTrackLoading(false)
     } else {
       void audio.play()
-        .then(() => setIsPlaying(true))
-        .catch(() => setIsPlaying(false))
+        .then(() => {
+          setIsPlaying(true)
+          setIsTrackLoading(false)
+        })
+        .catch(() => {
+          setIsPlaying(false)
+          setIsTrackLoading(false)
+        })
     }
   }, [isPlaying, currentSong])
 
@@ -429,6 +458,7 @@ export default function Home() {
     }
     setCurrentSong(null)
     setIsPlaying(false)
+    setIsTrackLoading(false)
   }, [])
 
   const skipToSong = useCallback((direction: "back" | "forward") => {
@@ -460,6 +490,7 @@ export default function Home() {
 
   const handleAudioEnded = useCallback(() => {
     setIsPlaying(false)
+    setIsTrackLoading(false)
     if (!currentSong) {
       return
     }
@@ -478,6 +509,12 @@ export default function Home() {
 
   const handleAudioError = useCallback(() => {
     setIsPlaying(false)
+    // Stop showing the loader only when we've exhausted all candidates.
+    if (
+      trackCandidateIndexRef.current >= Math.max(0, trackCandidatesLengthRef.current - 1)
+    ) {
+      setIsTrackLoading(false)
+    }
   }, [])
 
   const handleDownloadSong = useCallback((song: Song) => {
@@ -508,36 +545,33 @@ export default function Home() {
 
   const handleGenerate = useCallback(
     async (data: {
-      projectId: string
       lyricId?: string | null
       title: string
       lyrics: string
       stylePrompt: string
-      instrumental: boolean
-      model: GenerationModel
+      lyricsLanguage: LyricContentLanguage
     }) => {
       setGenerationError("")
       setIsGenerating(true)
 
       try {
         let lyricId = data.lyricId ?? null
-        if (!data.instrumental && data.lyrics.trim() && !lyricId) {
+        if (data.lyrics.trim() && !lyricId) {
           const createdLyric = await createLyric({
-            projectId: data.projectId,
             title: data.title,
             body: data.lyrics,
+            language: data.lyricsLanguage,
           })
           lyricId = createdLyric.id
         }
 
         const createdJob = await createGenerationJob({
-          projectId: data.projectId,
           lyricId,
-          title: data.title,
-          lyrics: data.lyrics,
-          stylePrompt: data.stylePrompt,
-          instrumental: data.instrumental,
-          model: data.model,
+          titleFinal: data.title.trim(),
+          promptFinal: data.lyrics.trim(),
+          styleFinal: data.stylePrompt.trim(),
+          sourceType: "MANUAL",
+          customMode: true,
         })
 
         setBackendJobs((prev) => [createdJob, ...prev])
@@ -672,7 +706,6 @@ export default function Home() {
                 onGenerate={handleGenerate}
                 isGenerating={isGenerating}
                 errorMessage={generationError}
-                defaultProjectId={defaultProjectId}
               />
             </div>
 
@@ -722,6 +755,7 @@ export default function Home() {
       <MobilePlayer
         song={currentSong}
         isPlaying={isPlaying}
+        isLoading={isTrackLoading}
         onPlayPause={togglePlayPause}
         onSkipBack={() => skipToSong("back")}
         onSkipForward={() => skipToSong("forward")}
@@ -730,6 +764,10 @@ export default function Home() {
         ref={audioRef}
         className="hidden"
         preload="metadata"
+        onLoadStart={() => setIsTrackLoading(true)}
+        onCanPlay={() => setIsTrackLoading(false)}
+        onLoadedMetadata={() => setIsTrackLoading(false)}
+        onPlaying={() => setIsTrackLoading(false)}
         onTimeUpdate={handleAudioTimeUpdate}
         onEnded={handleAudioEnded}
         onPause={() => setIsPlaying(false)}

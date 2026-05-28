@@ -13,6 +13,8 @@ public record LyricSummaryResponse(
         boolean locked,
         List<String> linkedSongIds,
         Integer currentVersion,
+        String language,
+        boolean publicReadyLibrary,
         Instant createdAt,
         Instant updatedAt
 ) {

@@ -1,6 +1,6 @@
 "use client"
 
-import { Play, Pause, SkipBack, SkipForward, Music } from "lucide-react"
+import { Play, Pause, SkipBack, SkipForward, Music, Loader2 } from "lucide-react"
 
 export interface PlayingSong {
   id: string
@@ -13,6 +13,7 @@ export interface PlayingSong {
 interface MobilePlayerProps {
   song: PlayingSong | null
   isPlaying: boolean
+  isLoading?: boolean
   onPlayPause: () => void
   onSkipBack?: () => void
   onSkipForward?: () => void
@@ -21,10 +22,13 @@ interface MobilePlayerProps {
 export function MobilePlayer({
   song,
   isPlaying,
+  isLoading,
   onPlayPause,
   onSkipBack,
   onSkipForward,
 }: MobilePlayerProps) {
+  const loading = Boolean(isLoading)
+
   return (
     <div className="fixed bottom-[3.75rem] lg:bottom-0 left-0 right-0 z-40 border-t border-primary/20 bg-card shadow-lg">
       {/* Progress bar at top */}
@@ -59,9 +63,24 @@ export function MobilePlayer({
           <p className="truncate text-sm font-semibold text-foreground">
             {song?.title || "No song playing"}
           </p>
-          <p className="truncate text-xs text-muted-foreground">
-            {song?.genre || "Select a song to play"}
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="truncate text-xs text-muted-foreground">
+              {song?.genre || "Select a song to play"}
+            </p>
+            {loading ? (
+              <div className="hidden items-center gap-2 text-xs text-secondary lg:flex">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span>Loading track...</span>
+              </div>
+            ) : null}
+          </div>
+
+          {loading ? (
+            <div className="mt-0.5 flex items-center gap-2 text-xs text-secondary lg:hidden">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <span>Loading track...</span>
+            </div>
+          ) : null}
         </div>
 
         {/* Controls */}

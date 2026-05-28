@@ -7,69 +7,77 @@ import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { LyricsImportDialog } from "@/components/lyrics-import-dialog"
-import { Switch } from "@/components/ui/switch"
-import type { GenerationModel } from "@/lib/musicgen-api"
 import type { Lyric } from "@/lib/lyrics-api"
+import { type LyricContentLanguage, t, useUiLanguage } from "@/lib/i18n"
 
 interface SongCreatorPanelProps {
   onGenerate: (data: {
-    projectId: string
     lyricId?: string | null
     title: string
     lyrics: string
     stylePrompt: string
-    instrumental: boolean
-    model: GenerationModel
+    lyricsLanguage: LyricContentLanguage
   }) => void
   isGenerating: boolean
   errorMessage?: string
-  defaultProjectId: string
 }
 
 export function SongCreatorPanel({
   onGenerate,
   isGenerating,
   errorMessage,
-  defaultProjectId,
 }: SongCreatorPanelProps) {
-  const [projectId, setProjectId] = useState(defaultProjectId)
+  useUiLanguage()
   const [lyrics, setLyrics] = useState("")
   const [stylePrompt, setStylePrompt] = useState("")
   const [title, setTitle] = useState("")
-  const [instrumental, setInstrumental] = useState(false)
-  const model: GenerationModel = "V5"
-  const [importOpen, setImportOpen] = useState(false)
+  const [lyricsLanguage, setLyricsLanguage] = useState<LyricContentLanguage>("WESTERN_ARMENIAN")
+  const [importMyOpen, setImportMyOpen] = useState(false)
+  const [importPublicOpen, setImportPublicOpen] = useState(false)
   const [selectedLyricId, setSelectedLyricId] = useState<string | null>(null)
   const [selectedLyricLocked, setSelectedLyricLocked] = useState(false)
 
-  const handleImportLyrics = (lyric: Lyric) => {
-    setSelectedLyricId(lyric.id)
-    setSelectedLyricLocked(lyric.locked)
+  const handleImportLyrics = (lyric: Lyric, source: "my" | "public") => {
+    if (source === "my") {
+      setSelectedLyricId(lyric.id)
+      setSelectedLyricLocked(Boolean(lyric.locked))
+    } else {
+      setSelectedLyricId(null)
+      setSelectedLyricLocked(false)
+    }
     setLyrics(lyric.body)
+    if (lyric.language) {
+      setLyricsLanguage(lyric.language as LyricContentLanguage)
+    } else {
+      setLyricsLanguage("WESTERN_ARMENIAN")
+    }
     if (!title) setTitle(lyric.title)
   }
 
   const handleGenerate = () => {
     const normalizedTitle = title.trim() || "Untitled Song"
-    if (!projectId.trim() || !stylePrompt.trim()) return
-    if (!instrumental && !lyrics.trim()) return
+    const trimmedLyrics = lyrics.trim()
+    if (!stylePrompt.trim()) return
+    if (trimmedLyrics.length < 50) return
 
     onGenerate({
-      projectId,
       lyricId: selectedLyricId,
       title: normalizedTitle,
       lyrics,
       stylePrompt,
-      instrumental,
-      model,
+      lyricsLanguage,
     })
   }
+
+  const trimmedLyrics = lyrics.trim()
+  const lyricCharCount = trimmedLyrics.length
+  const lyricIsValid = lyricCharCount >= 50
 
   return (
     <div className="flex h-full flex-col">
       <div className="border-b border-border px-6 py-4">
         <h2 className="text-lg font-bold tracking-wide text-foreground">
-          Create New Song
+          {t("createNewSong")}
         </h2>
         <p className="mt-0.5 text-sm text-muted-foreground">
           Add your lyrics and describe the style you want
@@ -78,23 +86,10 @@ export function SongCreatorPanel({
 
       <div className="flex-1 overflow-y-auto px-6 py-5">
         <div className="flex flex-col gap-6">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="projectId" className="text-sm font-semibold text-foreground">
-              Project ID
-            </Label>
-            <Input
-              id="projectId"
-              placeholder="project-1"
-              value={projectId}
-              onChange={(e) => setProjectId(e.target.value)}
-              className="border-border bg-card text-foreground placeholder:text-muted-foreground"
-            />
-          </div>
-
           {/* Song Title */}
           <div className="flex flex-col gap-2">
             <Label htmlFor="title" className="text-sm font-semibold text-foreground">
-              Song Title
+              {t("songTitle")}
             </Label>
             <Input
               id="title"
@@ -105,55 +100,49 @@ export function SongCreatorPanel({
             />
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="model" className="text-sm font-semibold text-foreground">
-                Model
-              </Label>
-              <Input
-                id="model"
-                value={model}
-                readOnly
-                disabled
-                className="border-border bg-muted text-foreground"
-              />
-            </div>
-
-            <div className="flex items-end">
-              <div className="flex w-full items-center justify-between rounded-md border border-border bg-card px-3 py-2.5">
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Instrumental</p>
-                  <p className="text-xs text-muted-foreground">
-                    Skip lyrics and generate instrumental music
-                  </p>
-                </div>
-                <Switch checked={instrumental} onCheckedChange={setInstrumental} />
-              </div>
-            </div>
-          </div>
-
           {/* Lyrics Field */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="lyrics" className="text-sm font-semibold text-foreground">
-                Lyrics
+                {t("lyrics")}
               </Label>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setImportOpen(true)}
-                className="gap-1.5 border-secondary/40 text-secondary hover:bg-secondary/10 hover:text-secondary"
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setImportMyOpen(true)}
+                  className="gap-1.5 border-secondary/40 text-secondary hover:bg-secondary/10 hover:text-secondary"
+                >
+                  <Import className="h-3.5 w-3.5" />
+                  {t("importFromMyLyrics")}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setImportPublicOpen(true)}
+                  className="gap-1.5 border-secondary/40 text-secondary hover:bg-secondary/10 hover:text-secondary"
+                >
+                  <Import className="h-3.5 w-3.5" />
+                  {t("importFromPublicLyrics")}
+                </Button>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                id="lyrics-language"
+                value={lyricsLanguage}
+                onChange={(e) => setLyricsLanguage(e.target.value as LyricContentLanguage)}
+                className="h-9 flex-1 rounded-md border border-border bg-card px-2 text-sm text-foreground"
+                aria-label={t("lyricsLanguage")}
               >
-                <Import className="h-3.5 w-3.5" />
-                Import from Library
-              </Button>
+                <option value="ENGLISH">{t("english")}</option>
+                <option value="WESTERN_ARMENIAN">{t("westernArmenian")}</option>
+              </select>
             </div>
             <Textarea
               id="lyrics"
               placeholder={
-                instrumental
-                  ? "Instrumental mode is on. Lyrics are optional."
-                  : `[Verse 1]\nWrite your first verse...\n\n[Chorus]\nWrite your chorus...`
+                `[Verse 1]\nWrite your first verse...\n\n[Chorus]\nWrite your chorus...`
               }
               value={lyrics}
               onChange={(e) => {
@@ -165,11 +154,14 @@ export function SongCreatorPanel({
               }}
               className="min-h-[220px] resize-none border-border bg-card font-mono text-sm text-foreground placeholder:text-muted-foreground"
             />
-            <p className="text-xs text-muted-foreground">
-              {lyrics.length > 0
-                ? `${lyrics.split(/\s+/).filter(Boolean).length} words`
-                : "Paste lyrics or import from your library"}
-            </p>
+            <div className="flex items-center justify-between gap-3 text-xs">
+              <p className="text-muted-foreground">
+                {lyricCharCount}/50 characters minimum
+              </p>
+              {!lyricIsValid && lyricCharCount > 0 ? (
+                <p className="text-destructive">{t("lyricsMinChars")}</p>
+              ) : null}
+            </div>
             {selectedLyricId ? (
               <p className="text-xs text-secondary">
                 Using saved lyric {selectedLyricLocked ? "(locked)" : ""}. Editing the text will create a new lyric entry.
@@ -180,7 +172,7 @@ export function SongCreatorPanel({
           {/* Generation Prompt */}
           <div className="flex flex-col gap-2">
             <Label htmlFor="prompt" className="text-sm font-semibold text-foreground">
-              Style Prompt
+              {t("stylePrompt")}
             </Label>
             <Textarea
               id="prompt"
@@ -205,10 +197,9 @@ export function SongCreatorPanel({
           onClick={handleGenerate}
           disabled={
             isGenerating ||
-            !projectId.trim() ||
             !title.trim() ||
             !stylePrompt.trim() ||
-            (!instrumental && !lyrics.trim())
+            !lyricIsValid
           }
           className="w-full gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold tracking-wide"
           size="lg"
@@ -221,17 +212,25 @@ export function SongCreatorPanel({
           ) : (
             <>
               <Sparkles className="h-4 w-4" />
-              Generate Song
+              {t("generateSong")}
             </>
           )}
         </Button>
       </div>
 
       <LyricsImportDialog
-        open={importOpen}
-        onOpenChange={setImportOpen}
+        open={importMyOpen}
+        onOpenChange={setImportMyOpen}
         onSelect={handleImportLyrics}
-        projectId={projectId}
+        source="my"
+      />
+
+      <LyricsImportDialog
+        open={importPublicOpen}
+        onOpenChange={setImportPublicOpen}
+        onSelect={handleImportLyrics}
+        source="public"
+        defaultPublicLanguage={lyricsLanguage}
       />
     </div>
   )

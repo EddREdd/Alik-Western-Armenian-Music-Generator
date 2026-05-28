@@ -5,5 +5,6 @@ public enum GenerationModel {
     V4,
     V4_5,
     V4_5PLUS,
-    V5
+    V5,
+    V5_5
 }

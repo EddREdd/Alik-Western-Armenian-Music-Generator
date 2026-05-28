@@ -7,6 +7,10 @@ import com.balians.musicgen.admin.dto.AdminHealthSummaryResponse;
 import com.balians.musicgen.admin.dto.AdminInviteCodeResponse;
 import com.balians.musicgen.admin.dto.AdminLyricDetailResponse;
 import com.balians.musicgen.admin.dto.AdminLyricSummaryResponse;
+import com.balians.musicgen.admin.dto.AdminReadyLibraryLyricDetailResponse;
+import com.balians.musicgen.admin.dto.AdminReadyLibraryLyricSummaryResponse;
+import com.balians.musicgen.admin.dto.CreateReadyLibraryLyricRequest;
+import com.balians.musicgen.admin.dto.UpdateReadyLibraryLyricRequest;
 import com.balians.musicgen.admin.dto.AdminSongDetailResponse;
 import com.balians.musicgen.admin.dto.AdminSongSummaryResponse;
 import com.balians.musicgen.admin.dto.AdminUserDetailResponse;
@@ -27,6 +31,7 @@ import com.balians.musicgen.common.response.StandardSuccessResponse;
 import com.balians.musicgen.config.FeatureFlagsProperties;
 import com.balians.musicgen.generation.dto.GenerationJobResponse;
 import com.balians.musicgen.generation.dto.GenerationTrackResponse;
+import com.balians.musicgen.lyrics.service.ReadyLibraryService;
 import com.balians.musicgen.polling.dto.PollAttemptResponse;
 import com.balians.musicgen.schedule.dto.ScheduleDefinitionResponse;
 import com.balians.musicgen.schedule.dto.ScheduleRunResponse;
@@ -37,9 +42,11 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -54,6 +61,7 @@ public class AdminController {
     private static final String SESSION_HEADER = "X-Session-Token";
 
     private final AdminOperationsService adminOperationsService;
+    private final ReadyLibraryService readyLibraryService;
     private final ScheduleService scheduleService;
     private final FeatureFlagsProperties featureFlagsProperties;
     private final AuthService authService;
@@ -248,6 +256,54 @@ public class AdminController {
     ) {
         ensureAdminAccess(sessionToken);
         return StandardSuccessResponse.ok(adminOperationsService.getLyric(id));
+    }
+
+    @GetMapping("/ready-library")
+    public StandardSuccessResponse<List<AdminReadyLibraryLyricSummaryResponse>> readyLibrary(
+            @RequestHeader(name = SESSION_HEADER, required = false) String sessionToken,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String language
+    ) {
+        ensureAdminAccess(sessionToken);
+        return StandardSuccessResponse.ok(readyLibraryService.listForAdmin(keyword, language));
+    }
+
+    @GetMapping("/ready-library/{id}")
+    public StandardSuccessResponse<AdminReadyLibraryLyricDetailResponse> readyLibraryLyric(
+            @RequestHeader(name = SESSION_HEADER, required = false) String sessionToken,
+            @PathVariable String id
+    ) {
+        ensureAdminAccess(sessionToken);
+        return StandardSuccessResponse.ok(readyLibraryService.getForAdmin(id));
+    }
+
+    @PostMapping("/ready-library")
+    public StandardSuccessResponse<AdminReadyLibraryLyricDetailResponse> createReadyLibraryLyric(
+            @RequestHeader(name = SESSION_HEADER, required = false) String sessionToken,
+            @Valid @RequestBody CreateReadyLibraryLyricRequest request
+    ) {
+        String adminUserId = ensureAdminAccess(sessionToken);
+        return StandardSuccessResponse.ok(readyLibraryService.create(adminUserId, request));
+    }
+
+    @PutMapping("/ready-library/{id}")
+    public StandardSuccessResponse<AdminReadyLibraryLyricDetailResponse> updateReadyLibraryLyric(
+            @RequestHeader(name = SESSION_HEADER, required = false) String sessionToken,
+            @PathVariable String id,
+            @Valid @RequestBody UpdateReadyLibraryLyricRequest request
+    ) {
+        ensureAdminAccess(sessionToken);
+        return StandardSuccessResponse.ok(readyLibraryService.update(id, request));
+    }
+
+    @DeleteMapping("/ready-library/{id}")
+    public StandardSuccessResponse<String> deleteReadyLibraryLyric(
+            @RequestHeader(name = SESSION_HEADER, required = false) String sessionToken,
+            @PathVariable String id
+    ) {
+        ensureAdminAccess(sessionToken);
+        readyLibraryService.delete(id);
+        return StandardSuccessResponse.ok("deleted");
     }
 
     @GetMapping("/songs")

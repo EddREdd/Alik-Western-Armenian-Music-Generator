@@ -1,21 +1,19 @@
-package com.balians.musicgen.lyrics.dto;
+package com.balians.musicgen.admin.dto;
 
+import com.balians.musicgen.lyrics.dto.LyricVersionResponse;
 import java.time.Instant;
 import java.util.List;
 
-public record LyricResponse(
+public record AdminReadyLibraryLyricDetailResponse(
         String id,
-        String userId,
         String projectId,
         String title,
         String body,
-        Integer currentVersion,
-        boolean locked,
-        Integer wordCount,
-        List<String> linkedSongIds,
-        List<LyricVersionResponse> versions,
         String language,
-        boolean publicReadyLibrary,
+        Integer currentVersion,
+        String createdByAdminUserId,
+        String sourceLyricId,
+        List<LyricVersionResponse> versions,
         Instant createdAt,
         Instant updatedAt
 ) {
