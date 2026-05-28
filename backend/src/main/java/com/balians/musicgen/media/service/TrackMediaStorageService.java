@@ -16,6 +16,7 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
@@ -211,7 +212,9 @@ public class TrackMediaStorageService {
         return S3Client.builder()
                 .region(Region.of(mediaStorageProperties.getSpacesRegion()))
                 .endpointOverride(URI.create(endpoint))
-                .forcePathStyle(true)
+                .serviceConfiguration(S3Configuration.builder()
+                        .pathStyleAccessEnabled(true)
+                        .build())
                 .credentialsProvider(StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(
                                 mediaStorageProperties.getSpacesAccessKey(),
