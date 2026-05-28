@@ -24,6 +24,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { t, useUiLanguage } from "@/lib/i18n"
 
 export interface SongDetail {
   id: string
@@ -57,6 +58,7 @@ export function SongDetailPage({
   onNavigateToLyrics,
   onPlaySong,
 }: SongDetailPageProps) {
+  useUiLanguage()
   const [isPlaying, setIsPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -103,7 +105,7 @@ export function SongDetailPage({
           className="h-8 w-8 p-0 text-foreground"
         >
           <ArrowLeft className="h-5 w-5" />
-          <span className="sr-only">Back to library</span>
+          <span className="sr-only">{t("backToLibrary")}</span>
         </Button>
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-lg font-bold tracking-wide text-foreground lg:text-xl">
@@ -136,7 +138,7 @@ export function SongDetailPage({
               <button
                 onClick={togglePlay}
                 className="absolute inset-0 flex items-center justify-center transition-transform hover:scale-105"
-                aria-label={isPlaying ? "Pause" : "Play"}
+                aria-label={isPlaying ? t("pause") : t("play")}
               >
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
                   {isPlaying ? (
@@ -169,7 +171,7 @@ export function SongDetailPage({
           {song.lyrics && (
             <div className="mb-8">
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-foreground">Lyrics</h2>
+                <h2 className="text-lg font-semibold text-foreground">{t("lyrics")}</h2>
                 {song.lyricsId && song.lyricsTitle && (
                   <button
                     onClick={() => onNavigateToLyrics?.(song.lyricsId!)}
@@ -192,7 +194,7 @@ export function SongDetailPage({
           {song.prompt && (
             <div className="mb-8">
               <h2 className="mb-3 text-lg font-semibold text-foreground">
-                Generation Prompt
+                {t("generationPrompt")}
               </h2>
               <div className="rounded-xl border border-border bg-card p-4">
                 <p className="text-sm text-muted-foreground">{song.prompt}</p>
@@ -208,7 +210,7 @@ export function SongDetailPage({
               onClick={() => onDownload?.(song)}
             >
               <Download className="h-4 w-4" />
-              Download
+              {t("download")}
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -217,23 +219,23 @@ export function SongDetailPage({
                   className="flex-1 gap-2 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
                 >
                   <Trash2 className="h-4 w-4" />
-                  Delete
+                  {t("delete")}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Delete Song</AlertDialogTitle>
+                  <AlertDialogTitle>{t("deleteSong")}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to delete "{song.title}"? This action cannot be undone.
+                    {t("deleteSongDescription", { title: song.title })}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={handleDelete}
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   >
-                    Delete
+                    {t("delete")}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

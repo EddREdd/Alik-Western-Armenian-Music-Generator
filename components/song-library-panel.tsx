@@ -19,6 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { t, useUiLanguage } from "@/lib/i18n"
 
 export interface Song {
   id: string
@@ -53,6 +54,7 @@ export function SongLibraryPanel({
   onDownloadSong,
   onDeleteSong,
 }: SongLibraryPanelProps) {
+  useUiLanguage()
   const allSongs = songs
 
   return (
@@ -61,10 +63,10 @@ export function SongLibraryPanel({
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-lg font-bold tracking-wide text-foreground">
-              Song Library
+              {t("songLibrary")}
             </h2>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              {allSongs.length} songs generated
+              {allSongs.length} {t("songsGenerated")}
             </p>
           </div>
         </div>
@@ -101,7 +103,7 @@ export function SongLibraryPanel({
                   }}
                   disabled={song.status !== "completed"}
                   className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg"
-                  aria-label={currentPlayingId === song.id ? "Pause" : "Play"}
+                  aria-label={currentPlayingId === song.id ? t("pause") : t("play")}
                 >
                   {/* Background Image */}
                   <img
@@ -134,12 +136,12 @@ export function SongLibraryPanel({
                         variant="outline"
                         className="border-secondary/40 text-secondary text-xs"
                       >
-                        Generating
+                        {t("generating")}
                       </Badge>
                     )}
                     {song.status === "failed" && (
                       <Badge variant="destructive" className="text-xs">
-                        Failed
+                        {t("failed")}
                       </Badge>
                     )}
                   </div>
@@ -162,7 +164,7 @@ export function SongLibraryPanel({
                       onClick={(e) => e.stopPropagation()}
                     >
                       <MoreHorizontal className="h-4 w-4" />
-                      <span className="sr-only">Song options</span>
+                      <span className="sr-only">{t("songOptions")}</span>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
@@ -173,7 +175,7 @@ export function SongLibraryPanel({
                       }}
                     >
                       <Download className="mr-2 h-4 w-4" />
-                      Download
+                      {t("download")}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="text-destructive"
@@ -183,7 +185,7 @@ export function SongLibraryPanel({
                       }}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
+                      {t("delete")}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -202,9 +204,9 @@ export function SongLibraryPanel({
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
                 <Music className="h-8 w-8 text-primary" />
               </div>
-              <p className="mt-4 font-semibold text-foreground">No songs yet</p>
+              <p className="mt-4 font-semibold text-foreground">{t("noSongsYet")}</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Create your first song using the panel on the left
+                {t("createFirstSongHint")}
               </p>
             </div>
           )}

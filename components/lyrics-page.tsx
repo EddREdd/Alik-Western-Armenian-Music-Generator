@@ -57,7 +57,7 @@ const defaultProjectId =
 
 function formatDate(value: string | null) {
   if (!value) {
-    return "Just now"
+    return t("justNow")
   }
   return new Date(value).toLocaleString()
 }
@@ -87,7 +87,7 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
       setLyrics(items)
       setError("")
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Unable to load lyrics")
+      setError(loadError instanceof Error ? loadError.message : t("unableToLoadLyrics"))
     }
   }
 
@@ -123,7 +123,7 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
       setMobileView("preview")
       setError("")
     } catch (createError) {
-      setError(createError instanceof Error ? createError.message : "Unable to create lyric")
+      setError(createError instanceof Error ? createError.message : t("unableToCreateLyric"))
     }
   }
 
@@ -134,7 +134,7 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
       setMobileView("preview")
       setError("")
     } catch (selectError) {
-      setError(selectError instanceof Error ? selectError.message : "Unable to load lyric")
+      setError(selectError instanceof Error ? selectError.message : t("unableToLoadLyric"))
     }
   }
 
@@ -154,7 +154,7 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
       handleStartEdit(lyric)
       setError("")
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Unable to load lyric")
+      setError(loadError instanceof Error ? loadError.message : t("unableToLoadLyric"))
     }
   }
 
@@ -175,7 +175,7 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
       setMobileView("preview")
       setError("")
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : "Unable to update lyric")
+      setError(saveError instanceof Error ? saveError.message : t("unableToUpdateLyric"))
     }
   }
 
@@ -189,7 +189,7 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
       setMobileView("list")
       setError("")
     } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Unable to delete lyric")
+      setError(deleteError instanceof Error ? deleteError.message : t("unableToDeleteLyric"))
     }
   }
 
@@ -218,7 +218,7 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
       setMobileView("preview")
       setError("")
     } catch (restoreError) {
-      setError(restoreError instanceof Error ? restoreError.message : "Unable to restore lyric version")
+      setError(restoreError instanceof Error ? restoreError.message : t("unableToRestoreLyricVersion"))
     } finally {
       setRestoringVersion(false)
     }
@@ -231,16 +231,16 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
           <Button variant="ghost" size="sm" onClick={handleMobileBack} className="h-8 w-8 p-0 text-foreground">
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-lg font-bold tracking-wide text-foreground">New Lyrics</h1>
+          <h1 className="text-lg font-bold tracking-wide text-foreground">{t("newLyrics")}</h1>
         </div>
         <ScrollArea className="flex-1">
           <div className="flex flex-col gap-4 p-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="mobile-lyric-title">Title</Label>
+              <Label htmlFor="mobile-lyric-title">{t("title")}</Label>
               <Input id="mobile-lyric-title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="mobile-lyric-content">Lyrics</Label>
+              <Label htmlFor="mobile-lyric-content">{t("lyrics")}</Label>
               <Textarea
                 id="mobile-lyric-content"
                 value={newContent}
@@ -280,11 +280,11 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
         <ScrollArea className="flex-1">
           <div className="flex flex-col gap-4 p-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="mobile-edit-title">Title</Label>
+              <Label htmlFor="mobile-edit-title">{t("title")}</Label>
               <Input id="mobile-edit-title" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="mobile-edit-content">Lyrics</Label>
+              <Label htmlFor="mobile-edit-content">{t("lyrics")}</Label>
               <Textarea
                 id="mobile-edit-content"
                 value={editContent}
@@ -316,7 +316,7 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
                 <Calendar className="h-3 w-3" />
                 {formatDate(selectedLyric.updatedAt)}
               </span>
-              <span>{selectedLyric.wordCount} words</span>
+              <span>{t("wordsCount", { count: selectedLyric.wordCount })}</span>
             </div>
           </div>
           {!selectedLyric.locked ? (
@@ -331,7 +331,7 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
             {selectedLyric.locked ? (
               <Badge variant="outline" className="border-secondary/30 text-secondary">
                 <Lock className="mr-1 h-3 w-3" />
-                Locked
+                {t("locked")}
               </Badge>
             ) : null}
             {selectedLyric.linkedSongIds.map((songId) => (
@@ -354,7 +354,7 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
             <div className="mt-6 rounded-xl border border-border bg-card p-4">
               <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
                 <History className="h-4 w-4" />
-                Version History
+                {t("versionHistory")}
               </p>
               <div className="space-y-2">
                 {selectedLyric.versions
@@ -368,7 +368,7 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
                       className="w-full rounded-lg bg-muted/50 p-3 text-left hover:bg-muted"
                     >
                       <p className="text-xs font-medium text-foreground">
-                        v{version.versionNumber} • {formatDate(version.editedAt)}
+                        v{version.versionNumber} - {formatDate(version.editedAt)}
                       </p>
                     </button>
                   ))}
@@ -385,20 +385,20 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
       <div className="w-full border-border lg:w-1/3 lg:border-r">
         <div className="flex flex-col gap-3 border-b border-border p-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-lg font-bold tracking-wide text-foreground">Lyrics Library</h1>
+            <h1 className="text-lg font-bold tracking-wide text-foreground">{t("lyricsLibrary")}</h1>
             <Button
               size="sm"
               onClick={() => (isDesktop ? setCreateOpen(true) : setMobileView("create"))}
               className="gap-1.5 bg-secondary text-secondary-foreground hover:bg-secondary/90"
             >
               <Plus className="h-3.5 w-3.5" />
-              New
+              {t("new")}
             </Button>
           </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search lyrics..."
+              placeholder={t("searchLyrics")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
@@ -424,14 +424,14 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
                   <p className="truncate text-sm font-semibold text-foreground">{entry.title}</p>
                   <p className="mt-0.5 truncate text-xs text-muted-foreground">{entry.bodyPreview}</p>
                   <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground/60">
-                    <span>{entry.wordCount} words</span>
+                    <span>{t("wordsCount", { count: entry.wordCount })}</span>
                     <span>{formatDate(entry.updatedAt)}</span>
                     <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
                       v{entry.currentVersion}
                     </Badge>
                     {entry.locked ? (
                       <Badge variant="outline" className="border-secondary/30 px-1.5 py-0 text-[10px] text-secondary">
-                        Locked
+                        {t("locked")}
                       </Badge>
                     ) : null}
                   </div>
@@ -488,7 +488,7 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
                     <Calendar className="h-3.5 w-3.5" />
                     {formatDate(selectedLyric.updatedAt)}
                   </span>
-                  <span>{selectedLyric.wordCount} words</span>
+                  <span>{t("wordsCount", { count: selectedLyric.wordCount })}</span>
                   <Badge variant="outline">v{selectedLyric.currentVersion}</Badge>
                 </div>
               </div>
@@ -500,7 +500,7 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
               ) : (
                 <Badge variant="outline" className="border-secondary/30 text-secondary">
                   <Lock className="mr-1 h-3 w-3" />
-                  Read Only
+                  {t("readOnly")}
                 </Badge>
               )}
             </div>
@@ -508,7 +508,7 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
             <div className="border-b border-border px-8 py-4">
               <div className="flex flex-wrap gap-2">
                 {selectedLyric.linkedSongIds.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No generated songs linked yet.</p>
+                  <p className="text-sm text-muted-foreground">{t("noGeneratedSongsLinkedYet")}</p>
                 ) : (
                   selectedLyric.linkedSongIds.map((songId) => (
                     <button
@@ -532,7 +532,7 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
                 <div className="mt-8 rounded-xl border border-border bg-card p-5">
                   <h3 className="mb-4 flex items-center gap-2 text-base font-semibold text-foreground">
                     <History className="h-4 w-4" />
-                    Edit History
+                    {t("editHistory")}
                   </h3>
                   <div className="space-y-3">
                     {selectedLyric.versions
@@ -546,7 +546,7 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
                           className="w-full rounded-lg border border-border p-4 text-left hover:bg-muted/30"
                         >
                           <p className="text-sm font-medium text-foreground">
-                            Version {version.versionNumber}
+                            {t("version", { number: version.versionNumber })}
                           </p>
                           <p className="mt-1 text-xs text-muted-foreground">{formatDate(version.editedAt)}</p>
                         </button>
@@ -561,7 +561,7 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
               <FileText className="h-8 w-8 text-primary" />
             </div>
-            <p className="mt-4 font-semibold text-foreground">Select lyrics to preview</p>
+            <p className="mt-4 font-semibold text-foreground">{t("selectLyricsToPreview")}</p>
           </div>
         )}
       </div>
@@ -578,20 +578,20 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>
-              {selectedVersion ? `Version ${selectedVersion.versionNumber}` : "Version Preview"}
+              {selectedVersion ? t("version", { number: selectedVersion.versionNumber }) : t("versionPreview")}
             </DialogTitle>
             <DialogDescription>
-              {selectedVersion ? formatDate(selectedVersion.editedAt) : "Select a version to preview and restore."}
+              {selectedVersion ? formatDate(selectedVersion.editedAt) : t("selectVersionPreviewRestore")}
             </DialogDescription>
           </DialogHeader>
           {selectedVersion ? (
             <div className="space-y-4">
               <div>
-                <Label className="text-xs text-muted-foreground">Title</Label>
+                <Label className="text-xs text-muted-foreground">{t("title")}</Label>
                 <p className="mt-1 text-sm font-medium text-foreground">{selectedVersion.title}</p>
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground">Lyrics</Label>
+                <Label className="text-xs text-muted-foreground">{t("lyrics")}</Label>
                 <div className="mt-1 max-h-[340px] overflow-y-auto rounded-md border border-border bg-muted/30 p-3">
                   <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground">
                     {selectedVersion.body}
@@ -604,7 +604,7 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
                 className="w-full"
               >
                 {restoringVersion
-                  ? "Restoring..."
+                  ? t("restoring")
                   : selectedLyric?.locked
                     ? t("restoreAsNewCopy")
                     : t("restore")}
@@ -617,16 +617,16 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>New Lyrics</DialogTitle>
-            <DialogDescription>Write Armenian lyrics to save to your library.</DialogDescription>
+            <DialogTitle>{t("newLyrics")}</DialogTitle>
+            <DialogDescription>{t("writeArmenianLyricsToSave")}</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="lyric-title">Title</Label>
+              <Label htmlFor="lyric-title">{t("title")}</Label>
               <Input id="lyric-title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="lyric-content">Lyrics</Label>
+              <Label htmlFor="lyric-content">{t("lyrics")}</Label>
               <Textarea
                 id="lyric-content"
                 value={newContent}
@@ -648,15 +648,15 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
             <DialogTitle>
               {t("edit")} {t("lyrics")}
             </DialogTitle>
-            <DialogDescription>Locked lyrics cannot be edited.</DialogDescription>
+            <DialogDescription>{t("lockedLyricsCannotBeEdited")}</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="edit-lyric-title">Title</Label>
+              <Label htmlFor="edit-lyric-title">{t("title")}</Label>
               <Input id="edit-lyric-title" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="edit-lyric-content">Lyrics</Label>
+              <Label htmlFor="edit-lyric-content">{t("lyrics")}</Label>
               <Textarea
                 id="edit-lyric-content"
                 value={editContent}

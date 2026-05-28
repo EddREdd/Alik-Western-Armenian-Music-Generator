@@ -57,8 +57,10 @@ public class TrackMediaStorageService {
                     ex.awsErrorDetails() == null ? "unknown" : ex.awsErrorDetails().errorCode(),
                     ex.awsErrorDetails() == null ? ex.getMessage() : ex.awsErrorDetails().errorMessage()
             );
+            throw new IllegalStateException("Unable to mirror " + folder + " asset to configured Spaces/S3 storage", ex);
         } catch (Exception ex) {
             log.warn("Failed to store {} asset for track id={} remoteUrl={}", folder, track.getId(), remoteUrl, ex);
+            throw new IllegalStateException("Unable to mirror " + folder + " asset to configured media storage", ex);
         }
     }
 
@@ -190,8 +192,7 @@ public class TrackMediaStorageService {
                 || !hasText(mediaStorageProperties.getSpacesRegion())
                 || !hasText(mediaStorageProperties.getSpacesBucket())
                 || !hasText(mediaStorageProperties.getSpacesAccessKey())
-                || !hasText(mediaStorageProperties.getSpacesSecretKey())
-                || !hasText(mediaStorageProperties.getSpacesPublicBaseUrl())) {
+                || !hasText(mediaStorageProperties.getSpacesSecretKey())) {
             throw new IllegalStateException("DigitalOcean Spaces storage is enabled but configuration is incomplete");
         }
     }
@@ -225,7 +226,11 @@ public class TrackMediaStorageService {
     }
 
     private String buildSpacesPublicUrl(String key) {
-        String baseUrl = mediaStorageProperties.getSpacesPublicBaseUrl().replaceAll("/+$", "");
+        String configuredBaseUrl = mediaStorageProperties.getSpacesPublicBaseUrl();
+        String baseUrl = hasText(configuredBaseUrl)
+                ? configuredBaseUrl.trim().replaceAll("/+$", "")
+                : normalizeSpacesEndpoint(mediaStorageProperties.getSpacesEndpoint()).replaceAll("/+$", "")
+                    + "/" + mediaStorageProperties.getSpacesBucket();
         return baseUrl + "/" + key;
     }
 }

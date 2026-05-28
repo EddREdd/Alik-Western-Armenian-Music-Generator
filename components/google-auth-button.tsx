@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { t, useUiLanguage } from "@/lib/i18n"
 
 declare global {
   interface Window {
@@ -72,6 +73,7 @@ export function GoogleAuthButton({
   disabled = false,
   text = "continue_with",
 }: GoogleAuthButtonProps) {
+  const uiLanguage = useUiLanguage()
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [error, setError] = useState("")
 
@@ -94,7 +96,7 @@ export function GoogleAuthButton({
           client_id: clientId,
           callback: async (response) => {
             if (!response.credential) {
-              setError("Google sign-in did not return a credential")
+              setError(t("googleSignInCredentialMissing"))
               return
             }
 
@@ -105,7 +107,7 @@ export function GoogleAuthButton({
               setError(
                 credentialError instanceof Error
                   ? credentialError.message
-                  : "Google sign-in failed",
+                  : t("googleSignInFailed"),
               )
             }
           },
@@ -117,18 +119,20 @@ export function GoogleAuthButton({
           width: 360,
           text,
           shape: "pill",
+          locale: uiLanguage === "hyw" ? "hy" : "en",
         })
       })
       .catch((scriptError) => {
         if (!cancelled) {
-          setError(scriptError instanceof Error ? scriptError.message : "Google sign-in failed")
+          console.error(scriptError)
+          setError(t("googleSignInFailed"))
         }
       })
 
     return () => {
       cancelled = true
     }
-  }, [onCredential, text])
+  }, [onCredential, text, uiLanguage])
 
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim()
   if (!clientId) {

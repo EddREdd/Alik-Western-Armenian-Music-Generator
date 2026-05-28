@@ -1,6 +1,7 @@
 "use client"
 
 import { Play, Pause, SkipBack, SkipForward, Music, Loader2 } from "lucide-react"
+import { t, useUiLanguage } from "@/lib/i18n"
 
 export interface PlayingSong {
   id: string
@@ -27,6 +28,7 @@ export function MobilePlayer({
   onSkipBack,
   onSkipForward,
 }: MobilePlayerProps) {
+  useUiLanguage()
   const loading = Boolean(isLoading)
 
   return (
@@ -61,16 +63,16 @@ export function MobilePlayer({
         {/* Song Info */}
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-foreground">
-            {song?.title || "No song playing"}
+            {song?.title || t("noSongPlaying")}
           </p>
           <div className="flex items-center gap-2">
             <p className="truncate text-xs text-muted-foreground">
-              {song?.genre || "Select a song to play"}
+              {song?.genre || t("selectSongToPlay")}
             </p>
             {loading ? (
               <div className="hidden items-center gap-2 text-xs text-secondary lg:flex">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                <span>Loading track...</span>
+                <span>{t("loadingTrack")}</span>
               </div>
             ) : null}
           </div>
@@ -78,7 +80,7 @@ export function MobilePlayer({
           {loading ? (
             <div className="mt-0.5 flex items-center gap-2 text-xs text-secondary lg:hidden">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              <span>Loading track...</span>
+              <span>{t("loadingTrack")}</span>
             </div>
           ) : null}
         </div>
@@ -89,7 +91,7 @@ export function MobilePlayer({
             onClick={onSkipBack}
             disabled={!song}
             className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed"
-            aria-label="Previous"
+            aria-label={t("previous")}
           >
             <SkipBack className="h-4 w-4" />
           </button>
@@ -98,7 +100,7 @@ export function MobilePlayer({
             onClick={onPlayPause}
             disabled={!song}
             className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label={isPlaying ? "Pause" : "Play"}
+            aria-label={isPlaying ? t("pause") : t("play")}
           >
             {isPlaying ? (
               <Pause className="h-5 w-5" />
@@ -111,7 +113,7 @@ export function MobilePlayer({
             onClick={onSkipForward}
             disabled={!song}
             className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed"
-            aria-label="Next"
+            aria-label={t("next")}
           >
             <SkipForward className="h-4 w-4" />
           </button>

@@ -63,7 +63,7 @@ export function LyricsImportDialog({
         setError("")
       })
       .catch((loadError) => {
-        setError(loadError instanceof Error ? loadError.message : "Unable to load lyrics")
+        setError(loadError instanceof Error ? loadError.message : t("unableToLoadLyrics"))
       })
   }, [open, source, search, publicLanguageFilter])
 
@@ -104,8 +104,8 @@ export function LyricsImportDialog({
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
             {source === "my"
-              ? "Select lyrics from your saved collection to use in your song."
-              : `Select lyrics from the public ${t("readyLibrary")} to use in your song.`}
+              ? t("selectLyricsFromSaved")
+              : t("selectLyricsFromPublic")}
           </DialogDescription>
         </DialogHeader>
         {source === "public" ? (
@@ -119,7 +119,7 @@ export function LyricsImportDialog({
               onChange={(e) => setPublicLanguageFilter(e.target.value as "ALL" | "WESTERN_ARMENIAN")}
               className="h-9 flex-1 rounded-md border border-border bg-card px-2 text-sm text-foreground"
             >
-              <option value="ALL">All</option>
+              <option value="ALL">{t("all")}</option>
               <option value="WESTERN_ARMENIAN">{t("westernArmenian")}</option>
             </select>
           </div>
@@ -127,7 +127,7 @@ export function LyricsImportDialog({
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder={source === "my" ? "Search your lyrics..." : "Search public lyrics..."}
+            placeholder={source === "my" ? t("searchYourLyrics") : t("searchPublicLyrics")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -150,7 +150,7 @@ export function LyricsImportDialog({
                     setError(
                       selectError instanceof Error
                         ? selectError.message
-                        : "Unable to load lyric",
+                        : t("unableToLoadLyric"),
                     )
                   }
                 }}
@@ -165,8 +165,8 @@ export function LyricsImportDialog({
                     {item.bodyPreview}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground/60">
-                    {item.wordCount} words
-                    {source === "my" && item.locked ? " • Locked" : ""}
+                    {t("wordsCount", { count: item.wordCount })}
+                    {source === "my" && item.locked ? ` - ${t("locked")}` : ""}
                   </p>
                 </div>
               </button>
@@ -176,7 +176,7 @@ export function LyricsImportDialog({
             ) : null}
             {filtered.length === 0 && (
               <div className="py-8 text-center text-sm text-muted-foreground">
-                No lyrics found matching your search.
+                {t("noLyricsFoundMatchingSearch")}
               </div>
             )}
           </div>

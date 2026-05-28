@@ -8,6 +8,7 @@ import { GoogleAuthButton } from "@/components/google-auth-button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { login, loginWithGoogle, type AuthSession } from "@/lib/auth-api"
+import { t, useUiLanguage } from "@/lib/i18n"
 
 interface LoginPageProps {
   onLogin: (session: AuthSession) => void
@@ -16,6 +17,7 @@ interface LoginPageProps {
 }
 
 export function LoginPage({ onLogin, onSwitchToRegister, onForgotPassword }: LoginPageProps) {
+  useUiLanguage()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -31,7 +33,7 @@ export function LoginPage({ onLogin, onSwitchToRegister, onForgotPassword }: Log
       const session = await login({ email, password })
       onLogin(session)
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Unable to sign in")
+      setError(submitError instanceof Error ? submitError.message : t("unableToSignIn"))
     } finally {
       setIsLoading(false)
     }
@@ -43,7 +45,7 @@ export function LoginPage({ onLogin, onSwitchToRegister, onForgotPassword }: Log
       <div className="mb-8">
         <Image
           src="/images/logo.png"
-          alt="Alik logo"
+          alt={t("alikLogoAlt")}
           width={160}
           height={53}
           className="h-12 w-auto object-contain"
@@ -54,9 +56,9 @@ export function LoginPage({ onLogin, onSwitchToRegister, onForgotPassword }: Log
       {/* Card */}
       <div className="w-full max-w-md rounded-2xl bg-card p-8 shadow-xl">
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold text-foreground">Welcome Back</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t("welcomeBack")}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Sign in to continue creating music
+            {t("signInToContinue")}
           </p>
         </div>
 
@@ -70,14 +72,14 @@ export function LoginPage({ onLogin, onSwitchToRegister, onForgotPassword }: Log
           {/* Email */}
           <div className="space-y-2">
             <Label htmlFor="email" className="text-sm font-medium text-foreground">
-              Email
+              {t("email")}
             </Label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="email"
                 type="email"
-                placeholder="Enter your email"
+                placeholder={t("enterEmail")}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="pl-10"
@@ -89,14 +91,14 @@ export function LoginPage({ onLogin, onSwitchToRegister, onForgotPassword }: Log
           {/* Password */}
           <div className="space-y-2">
             <Label htmlFor="password" className="text-sm font-medium text-foreground">
-              Password
+              {t("password")}
             </Label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
-                placeholder="Enter your password"
+                placeholder={t("password")}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="pl-10 pr-10"
@@ -128,7 +130,7 @@ export function LoginPage({ onLogin, onSwitchToRegister, onForgotPassword }: Log
               }}
               className="cursor-pointer text-sm text-secondary hover:text-secondary/80 hover:underline"
             >
-              Forgot password?
+              {t("forgotPasswordLink")}
             </a>
           </div>
 
@@ -138,14 +140,14 @@ export function LoginPage({ onLogin, onSwitchToRegister, onForgotPassword }: Log
             className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90"
             disabled={isLoading}
           >
-            {isLoading ? "Signing in..." : "Sign In"}
+            {isLoading ? t("signingIn") : t("signIn")}
           </Button>
         </form>
 
         {/* Divider */}
         <div className="my-6 flex items-center gap-4">
           <div className="h-px flex-1 bg-border" />
-          <span className="text-xs text-muted-foreground">or continue with</span>
+          <span className="text-xs text-muted-foreground">{t("orContinueWith")}</span>
           <div className="h-px flex-1 bg-border" />
         </div>
 
@@ -161,7 +163,7 @@ export function LoginPage({ onLogin, onSwitchToRegister, onForgotPassword }: Log
               onLogin(session)
             } catch (googleError) {
               setError(
-                googleError instanceof Error ? googleError.message : "Google sign-in failed",
+                googleError instanceof Error ? googleError.message : t("googleSignInFailed"),
               )
             } finally {
               setIsLoading(false)
@@ -171,20 +173,20 @@ export function LoginPage({ onLogin, onSwitchToRegister, onForgotPassword }: Log
 
         {/* Switch to Register */}
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          {"Don't have an account? "}
+          {t("dontHaveAccount")}{" "}
           <button
             type="button"
             onClick={onSwitchToRegister}
             className="font-medium text-secondary hover:text-secondary/80 hover:underline"
           >
-            Sign up
+            {t("signUp")}
           </button>
         </p>
       </div>
 
       {/* Footer */}
       <p className="mt-8 text-center text-xs text-primary-foreground/60">
-        Western Armenian Music Generator
+        {t("westernArmenianMusicGenerator")}
       </p>
     </div>
   )

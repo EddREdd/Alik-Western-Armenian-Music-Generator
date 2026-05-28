@@ -135,10 +135,10 @@ function MetricCard({
         <CardTitle className="text-base">{title}</CardTitle>
       </CardHeader>
       <CardContent className="grid grid-cols-2 gap-3 text-sm">
-        <div><span className="text-muted-foreground">Daily</span><div className="text-xl font-semibold">{metrics.daily}</div></div>
-        <div><span className="text-muted-foreground">Weekly</span><div className="text-xl font-semibold">{metrics.weekly}</div></div>
-        <div><span className="text-muted-foreground">Monthly</span><div className="text-xl font-semibold">{metrics.monthly}</div></div>
-        <div><span className="text-muted-foreground">Total</span><div className="text-xl font-semibold">{metrics.total}</div></div>
+        <div><span className="text-muted-foreground">{t("daily")}</span><div className="text-xl font-semibold">{metrics.daily}</div></div>
+        <div><span className="text-muted-foreground">{t("weekly")}</span><div className="text-xl font-semibold">{metrics.weekly}</div></div>
+        <div><span className="text-muted-foreground">{t("monthly")}</span><div className="text-xl font-semibold">{metrics.monthly}</div></div>
+        <div><span className="text-muted-foreground">{t("total")}</span><div className="text-xl font-semibold">{metrics.total}</div></div>
       </CardContent>
     </Card>
   )
@@ -162,10 +162,10 @@ function PaginationControls({
         onClick={() => onPageChange(page - 1)}
         disabled={page <= 1}
       >
-        Previous
+        {t("previous")}
       </Button>
       <span className="text-xs text-muted-foreground">
-        Page {page} of {totalPages}
+        {t("pageOf", { page, total: totalPages })}
       </span>
       <Button
         variant="outline"
@@ -173,7 +173,7 @@ function PaginationControls({
         onClick={() => onPageChange(page + 1)}
         disabled={page >= totalPages}
       >
-        Next
+        {t("next")}
       </Button>
     </div>
   )
@@ -233,7 +233,7 @@ export function AdminPage() {
       setLyrics(lyricData)
       setSongs(songData)
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Failed to load admin data")
+      setError(loadError instanceof Error ? loadError.message : t("failedToLoadAdminData"))
     } finally {
       setLoading(false)
     }
@@ -254,7 +254,7 @@ export function AdminPage() {
       setReadyLibrary(items)
     } catch (loadError) {
       setReadyLibraryError(
-        loadError instanceof Error ? loadError.message : "Failed to load Ready Library",
+        loadError instanceof Error ? loadError.message : t("failedToLoadReadyLibrary"),
       )
     } finally {
       setReadyLibraryLoading(false)
@@ -282,7 +282,7 @@ export function AdminPage() {
       setReadyLibraryBody(detail.body ?? "")
       setReadyLibraryDialogOpen(true)
     } catch (loadError) {
-      setReadyLibraryError(loadError instanceof Error ? loadError.message : "Unable to load lyric")
+      setReadyLibraryError(loadError instanceof Error ? loadError.message : t("unableToLoadLyric"))
     }
   }
 
@@ -297,7 +297,7 @@ export function AdminPage() {
       }
 
       if (!payload.title || !payload.body.trim()) {
-        setReadyLibraryError("Title and body are required")
+        setReadyLibraryError(t("titleAndBodyRequired"))
         return
       }
 
@@ -310,7 +310,7 @@ export function AdminPage() {
       setReadyLibraryDialogOpen(false)
       await loadReadyLibrary()
     } catch (saveError) {
-      setReadyLibraryError(saveError instanceof Error ? saveError.message : "Unable to save lyric")
+      setReadyLibraryError(saveError instanceof Error ? saveError.message : t("unableToSaveLyric"))
     } finally {
       setReadyLibrarySaving(false)
     }
@@ -319,7 +319,7 @@ export function AdminPage() {
   const handleDeleteReadyLibrary = async (id: string) => {
     setReadyLibraryError("")
     setReadyLibrarySaving(true)
-    const confirmed = window.confirm("Delete this Ready Library lyric?")
+    const confirmed = window.confirm(t("confirmDeleteReadyLibraryLyric"))
     if (!confirmed) return
     try {
       await deleteAdminReadyLibraryLyric(id)
@@ -329,7 +329,7 @@ export function AdminPage() {
         setReadyLibraryEditingId(null)
       }
     } catch (deleteError) {
-      setReadyLibraryError(deleteError instanceof Error ? deleteError.message : "Unable to delete lyric")
+      setReadyLibraryError(deleteError instanceof Error ? deleteError.message : t("unableToDeleteLyric"))
     } finally {
       setReadyLibrarySaving(false)
     }
@@ -414,19 +414,19 @@ export function AdminPage() {
       if (user.frozen) {
         await unfreezeUser(user.id)
       } else {
-        const reason = window.prompt(`Freeze ${user.email} for what reason?`)
+        const reason = window.prompt(t("freezeUserReason", { email: user.email }))
         if (!reason?.trim()) return
         await freezeUser(user.id, reason.trim())
       }
       setUsers(await listAdminUsers())
       setDashboard(await getAdminDashboard())
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "Failed to update user")
+      setError(actionError instanceof Error ? actionError.message : t("failedToUpdateUser"))
     }
   }
 
   const handleGenerateInvites = async () => {
-    const raw = window.prompt("How many invite codes do you want to generate?", "10")
+    const raw = window.prompt(t("howManyInviteCodes"), "10")
     const count = Number(raw)
     if (!Number.isFinite(count) || count <= 0) return
     try {
@@ -434,7 +434,7 @@ export function AdminPage() {
       setInvites(await listInviteCodes())
       setDashboard(await getAdminDashboard())
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "Failed to generate invite codes")
+      setError(actionError instanceof Error ? actionError.message : t("failedToGenerateInviteCodes"))
     }
   }
 
@@ -448,14 +448,14 @@ export function AdminPage() {
       setInvites(await listInviteCodes())
       setDashboard(await getAdminDashboard())
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "Failed to update invite code")
+      setError(actionError instanceof Error ? actionError.message : t("failedToUpdateInviteCode"))
     }
   }
 
   const handleSendInviteEmail = async (invite: AdminInviteCode) => {
     const email = (inviteEmailDraftById[invite.id] ?? "").trim()
     if (!email) {
-      setError("Please enter an email first")
+      setError(t("pleaseEnterEmailFirst"))
       return
     }
     setError("")
@@ -465,16 +465,18 @@ export function AdminPage() {
       setInviteSendStateById((prev) => ({ ...prev, [invite.id]: "sent" }))
       setInviteComposerOpenById((prev) => ({ ...prev, [invite.id]: false }))
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "Failed to send invite email")
+      setError(actionError instanceof Error ? actionError.message : t("failedToSendInviteEmail"))
     } finally {
       setSendingInviteId(null)
     }
   }
 
   const handleRemoveInvite = async (invite: AdminInviteCode) => {
-    const usedEmail = invite.usedByEmail ? ` and user ${invite.usedByEmail}` : ""
     const confirmed = window.confirm(
-      `Remove invite code ${invite.code}${usedEmail}? This deletes the invite data permanently.`,
+      t("confirmRemoveInviteCode", {
+        code: invite.code,
+        email: invite.usedByEmail ? t("andUser", { email: invite.usedByEmail }) : "",
+      }),
     )
     if (!confirmed) return
 
@@ -491,7 +493,7 @@ export function AdminPage() {
       setUsers(userData)
       setDashboard(dashboardData)
     } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "Failed to remove invite code")
+      setError(actionError instanceof Error ? actionError.message : t("failedToRemoveInviteCode"))
     } finally {
       setRemovingInviteId(null)
     }
@@ -502,13 +504,13 @@ export function AdminPage() {
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-4 lg:p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Admin Panel</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{t("adminPanel")}</h1>
             <p className="text-sm text-muted-foreground">
-              Monitor usage, manage invite codes, freeze accounts, and audit lyrics and songs.
+              {t("adminPanelDescription")}
             </p>
           </div>
           <Button variant="outline" onClick={() => void loadAll()} disabled={loading}>
-            Refresh
+            {t("refresh")}
           </Button>
         </div>
 
@@ -517,51 +519,51 @@ export function AdminPage() {
         {dashboard ? (
           <>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              <MetricCard title="Song Volume" metrics={dashboard.songVolume} />
-              <MetricCard title="Registrations" metrics={dashboard.registrationTrends} />
-              <MetricCard title="Suno Credit Usage" metrics={dashboard.creditConsumption} />
+              <MetricCard title={t("songVolume")} metrics={dashboard.songVolume} />
+              <MetricCard title={t("registrations")} metrics={dashboard.registrationTrends} />
+              <MetricCard title={t("sunoCreditUsage")} metrics={dashboard.creditConsumption} />
             </div>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-              <Card><CardHeader className="pb-2"><CardDescription>Total Users</CardDescription><CardTitle>{dashboard.totalUsers}</CardTitle></CardHeader></Card>
-              <Card><CardHeader className="pb-2"><CardDescription>Frozen Users</CardDescription><CardTitle>{dashboard.frozenUsers}</CardTitle></CardHeader></Card>
-              <Card><CardHeader className="pb-2"><CardDescription>Active Invites</CardDescription><CardTitle>{dashboard.activeInviteCodes}</CardTitle></CardHeader></Card>
-              <Card><CardHeader className="pb-2"><CardDescription>Total Lyrics</CardDescription><CardTitle>{dashboard.totalLyrics}</CardTitle></CardHeader></Card>
-              <Card><CardHeader className="pb-2"><CardDescription>Total Songs</CardDescription><CardTitle>{dashboard.totalSongs}</CardTitle></CardHeader></Card>
+              <Card><CardHeader className="pb-2"><CardDescription>{t("totalUsers")}</CardDescription><CardTitle>{dashboard.totalUsers}</CardTitle></CardHeader></Card>
+              <Card><CardHeader className="pb-2"><CardDescription>{t("frozenUsers")}</CardDescription><CardTitle>{dashboard.frozenUsers}</CardTitle></CardHeader></Card>
+              <Card><CardHeader className="pb-2"><CardDescription>{t("activeInvites")}</CardDescription><CardTitle>{dashboard.activeInviteCodes}</CardTitle></CardHeader></Card>
+              <Card><CardHeader className="pb-2"><CardDescription>{t("totalLyrics")}</CardDescription><CardTitle>{dashboard.totalLyrics}</CardTitle></CardHeader></Card>
+              <Card><CardHeader className="pb-2"><CardDescription>{t("totalSongs")}</CardDescription><CardTitle>{dashboard.totalSongs}</CardTitle></CardHeader></Card>
             </div>
           </>
         ) : null}
 
         <Tabs value={adminTab} onValueChange={(value) => setAdminTab(value as typeof adminTab)} className="w-full">
           <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="users">Users</TabsTrigger>
-            <TabsTrigger value="invites">Invites</TabsTrigger>
-            <TabsTrigger value="lyrics">Lyrics Audit</TabsTrigger>
-            <TabsTrigger value="ready-library">Ready Library</TabsTrigger>
-            <TabsTrigger value="songs">Song Audit</TabsTrigger>
+            <TabsTrigger value="users">{t("users")}</TabsTrigger>
+            <TabsTrigger value="invites">{t("invites")}</TabsTrigger>
+            <TabsTrigger value="lyrics">{t("lyricsAudit")}</TabsTrigger>
+            <TabsTrigger value="ready-library">{t("readyLibrary")}</TabsTrigger>
+            <TabsTrigger value="songs">{t("songAudit")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="users">
             <Card>
               <CardHeader>
-                <CardTitle>User Management</CardTitle>
-                <CardDescription>Track registrations, used invite codes, and freeze unsafe accounts.</CardDescription>
+                <CardTitle>{t("userManagement")}</CardTitle>
+                <CardDescription>{t("trackRegistrations")}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Input value={userSearch} onChange={(event) => setUserSearch(event.target.value)} placeholder="Search users by email" />
+                <Input value={userSearch} onChange={(event) => setUserSearch(event.target.value)} placeholder={t("searchUsersByEmail")} />
                 <div className="space-y-3">
                   {pagedUsers.map((user) => (
                     <div key={user.id} className="flex flex-col gap-3 rounded-xl border p-4 lg:flex-row lg:items-center lg:justify-between">
                       <div>
                         <div className="font-medium">{user.email}</div>
                         <div className="text-sm text-muted-foreground">
-                          Invite: {user.inviteCode ?? "N/A"} • Credits: {user.unlimitedCredits ? "Unlimited" : user.creditsRemaining ?? 0} • Generated: {user.generationCount ?? 0}
+                          {t("inviteCode")}: {user.inviteCode ?? "-"} • {t("credits")}: {user.unlimitedCredits ? t("unlimited") : user.creditsRemaining ?? 0} • {t("generated")}: {user.generationCount ?? 0}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        {user.admin ? <span className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">Admin</span> : null}
-                        {user.frozen ? <span className="rounded-full bg-destructive/15 px-3 py-1 text-xs font-medium text-destructive">Frozen</span> : null}
+                        {user.admin ? <span className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">{t("admin")}</span> : null}
+                        {user.frozen ? <span className="rounded-full bg-destructive/15 px-3 py-1 text-xs font-medium text-destructive">{t("frozen")}</span> : null}
                         <Button variant={user.frozen ? "default" : "destructive"} size="sm" onClick={() => void handleFreezeToggle(user)}>
-                          {user.frozen ? "Unfreeze" : "Freeze"}
+                          {user.frozen ? t("unfreeze") : t("freeze")}
                         </Button>
                       </div>
                     </div>
@@ -576,16 +578,16 @@ export function AdminPage() {
             <Card>
               <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <CardTitle>Invite System</CardTitle>
-                  <CardDescription>Generate and manage the active pool of invite codes.</CardDescription>
+                  <CardTitle>{t("inviteSystem")}</CardTitle>
+                  <CardDescription>{t("inviteSystemDescription")}</CardDescription>
                 </div>
-                <Button onClick={() => void handleGenerateInvites()}>Generate Codes</Button>
+                <Button onClick={() => void handleGenerateInvites()}>{t("generateCodes")}</Button>
               </CardHeader>
               <CardContent className="space-y-4">
                 <Input
                   value={inviteSearch}
                   onChange={(event) => setInviteSearch(event.target.value)}
-                  placeholder="Search by code, used email, or sent email"
+                  placeholder={t("searchByCodeUsedEmailSentEmail")}
                   autoComplete="off"
                 />
                 <div className="flex flex-wrap gap-2">
@@ -595,7 +597,7 @@ export function AdminPage() {
                     variant={inviteActiveOnly ? "default" : "outline"}
                     onClick={() => setInviteActiveOnly((prev) => !prev)}
                   >
-                    Active only
+                    {t("activeOnly")}
                   </Button>
                   <Button
                     type="button"
@@ -603,13 +605,13 @@ export function AdminPage() {
                     variant={inviteUsedOnly ? "default" : "outline"}
                     onClick={() => setInviteUsedOnly((prev) => !prev)}
                   >
-                    Used only
+                    {t("usedOnly")}
                   </Button>
                 </div>
                 <div className="space-y-3">
                   {pagedInvites.length === 0 ? (
                     <div className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
-                      No invite codes match the current search/filter.
+                      {t("noInviteCodesMatch")}
                       <Button
                         type="button"
                         variant="link"
@@ -620,7 +622,7 @@ export function AdminPage() {
                           setInviteUsedOnly(false)
                         }}
                       >
-                        Clear filters
+                        {t("clearFilters")}
                       </Button>
                     </div>
                   ) : null}
@@ -635,11 +637,11 @@ export function AdminPage() {
                         <div className="flex-1">
                           <div className="font-mono text-sm font-semibold">{invite.code}</div>
                           <div className="text-sm text-muted-foreground">
-                            {invite.usedByEmail ? `Used by ${invite.usedByEmail}` : "Unused"} • {invite.active ? "Active" : "Inactive"}
+                            {invite.usedByEmail ? t("usedBy", { email: invite.usedByEmail }) : t("unused")} • {invite.active ? t("active") : t("inactive")}
                           </div>
                         {invite.lastSentToEmail ? (
                           <div className="text-xs text-muted-foreground">
-                            Last sent to {invite.lastSentToEmail}
+                            {t("lastSentTo", { email: invite.lastSentToEmail })}
                           </div>
                         ) : null}
                         </div>
@@ -656,18 +658,18 @@ export function AdminPage() {
                                 [invite.id]: !prev[invite.id],
                               }))
                             }
-                            title="Send invite code by email"
+                            title={t("sendInviteCodeByEmail")}
                           >
                             <MailPlus className="h-3.5 w-3.5" />
-                            Email
+                            {t("emailAction")}
                           </Button>
                           {isInviteSent ? (
                             <Button type="button" variant="secondary" size="sm" disabled>
-                              Sent Invitation
+                              {t("sentInvitation")}
                             </Button>
                           ) : null}
                           <Button variant="outline" size="sm" onClick={() => void handleInviteToggle(invite)} disabled={Boolean(invite.usedByUserId)}>
-                            {invite.active ? "Deactivate" : "Activate"}
+                            {invite.active ? t("deactivate") : t("activate")}
                           </Button>
                           <Button
                             type="button"
@@ -676,10 +678,10 @@ export function AdminPage() {
                             className="gap-1.5"
                             disabled={sendingInviteId === invite.id || removingInviteId === invite.id}
                             onClick={() => void handleRemoveInvite(invite)}
-                            title="Remove invite code and linked user account"
+                            title={t("removeInviteCodeAndLinkedUser")}
                           >
                             <Trash2 className="h-3.5 w-3.5" />
-                            {removingInviteId === invite.id ? "Removing..." : "Remove"}
+                            {removingInviteId === invite.id ? t("removing") : t("remove")}
                           </Button>
                         </div>
                       </div>
@@ -691,7 +693,7 @@ export function AdminPage() {
                             onChange={(event) =>
                               setInviteEmailDraftById((prev) => ({ ...prev, [invite.id]: event.target.value }))
                             }
-                            placeholder="Enter email to send invite code"
+                            placeholder={t("enterEmailToSendInviteCode")}
                             className="sm:max-w-sm"
                             disabled={Boolean(invite.usedByUserId) || sendingInviteId === invite.id}
                           />
@@ -704,7 +706,7 @@ export function AdminPage() {
                             onClick={() => void handleSendInviteEmail(invite)}
                           >
                             <MailPlus className="h-3.5 w-3.5" />
-                            {sendingInviteId === invite.id ? "Sending..." : "Send Email"}
+                            {sendingInviteId === invite.id ? t("sending") : t("sendEmail")}
                           </Button>
                         </div>
                       ) : null}
@@ -712,7 +714,7 @@ export function AdminPage() {
                       {isInviteSent ? (
                         <div className="mt-3">
                           <span className="inline-flex items-center rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
-                            Code sent
+                            {t("codeSentShort")}
                           </span>
                         </div>
                       ) : null}
@@ -730,14 +732,14 @@ export function AdminPage() {
           <TabsContent value="lyrics">
             <Card>
               <CardHeader>
-                <CardTitle>Lyrics Audit</CardTitle>
-                <CardDescription>Full lyric inventory with keyword filtering and lock visibility.</CardDescription>
+                <CardTitle>{t("lyricsAudit")}</CardTitle>
+                <CardDescription>{t("lyricsAuditDescription")}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <Input
                   value={lyricSearch}
                   onChange={(event) => setLyricSearch(event.target.value)}
-                  placeholder="Search title or lyric text"
+                  placeholder={t("searchTitleLyricText")}
                 />
                 <div className="space-y-3">
                   {pagedLyrics.map((lyric) => (
@@ -746,23 +748,23 @@ export function AdminPage() {
                         <div className="min-w-0">
                           <div className="font-medium truncate">{lyric.title}</div>
                           {lyric.language ? (
-                            <div className="mt-1 text-xs text-muted-foreground">Language: {lyric.language}</div>
+                            <div className="mt-1 text-xs text-muted-foreground">{t("language")}: {lyric.language}</div>
                           ) : null}
                           {typeof lyric.publicReadyLibrary === "boolean" ? (
                             <div className="mt-1 text-xs text-muted-foreground">
-                              {lyric.publicReadyLibrary ? "Public" : "Private"}
+                              {lyric.publicReadyLibrary ? t("public") : t("private")}
                             </div>
                           ) : null}
                           {lyric.locked ? (
                             <div className="mt-2">
                               <span className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
-                                Locked
+                                {t("locked")}
                               </span>
                             </div>
                           ) : (
                             <div className="mt-2">
                               <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
-                                Unlocked
+                                {t("unlocked")}
                               </span>
                             </div>
                           )}
@@ -770,10 +772,10 @@ export function AdminPage() {
                         <div className="hidden shrink-0 lg:block" />
                       </div>
                       <p className="mt-2 text-sm text-muted-foreground">
-                        {lyric.bodyPreview ?? "No preview available"}
+                        {lyric.bodyPreview ?? t("noPreviewAvailable")}
                       </p>
                       <div className="mt-2 text-xs text-muted-foreground">
-                        Linked Songs: {lyric.linkedSongIds.length}
+                        {t("linkedSongs")}: {lyric.linkedSongIds.length}
                       </div>
                     </div>
                   ))}
@@ -793,11 +795,11 @@ export function AdminPage() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <CardTitle>{t("readyLibrary")}</CardTitle>
-                    <CardDescription>Global public lyrics that can be created and maintained by admins.</CardDescription>
+                    <CardDescription>{t("readyLibraryDescription")}</CardDescription>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Button size="sm" onClick={() => openCreateReadyLibrary()} disabled={readyLibrarySaving}>
-                      New
+                      {t("new")}
                     </Button>
                   </div>
                 </div>
@@ -807,20 +809,20 @@ export function AdminPage() {
                   <Input
                     value={readyLibraryKeyword}
                     onChange={(event) => setReadyLibraryKeyword(event.target.value)}
-                    placeholder="Search Ready Library lyrics..."
+                    placeholder={t("searchReadyLibraryLyrics")}
                   />
                   <select
                     value={readyLibraryLanguageFilter}
                     onChange={(e) => setReadyLibraryLanguageFilter(e.target.value as "ALL" | "WESTERN_ARMENIAN")}
                     className="h-9 min-w-[220px] rounded-md border border-border bg-card px-2 text-sm text-foreground"
                   >
-                    <option value="ALL">All</option>
+                    <option value="ALL">{t("all")}</option>
                     <option value="WESTERN_ARMENIAN">{t("westernArmenian")}</option>
                   </select>
                 </div>
 
                 {readyLibraryLoading ? (
-                  <div className="text-sm text-muted-foreground">Loading...</div>
+                  <div className="text-sm text-muted-foreground">{t("loading")}</div>
                 ) : readyLibraryError ? (
                   <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                     {readyLibraryError}
@@ -829,7 +831,7 @@ export function AdminPage() {
                   <div className="space-y-3">
                     {readyLibrary.length === 0 ? (
                       <div className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
-                        No Ready Library lyrics found.
+                        {t("noReadyLibraryLyricsFound")}
                       </div>
                     ) : (
                       readyLibrary.map((item) => (
@@ -837,17 +839,17 @@ export function AdminPage() {
                           <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0">
                               <div className="font-medium truncate">{item.title}</div>
-                              <div className="mt-1 text-xs text-muted-foreground">Language: {item.language}</div>
+                              <div className="mt-1 text-xs text-muted-foreground">{t("language")}: {item.language}</div>
                               <div className="mt-1 text-xs text-muted-foreground">
-                                CurrentVersion: {item.currentVersion}
+                                {t("currentVersion")}: {item.currentVersion}
                               </div>
                               <div className="mt-1 text-xs text-muted-foreground">
-                                UpdatedAt:{" "}
-                                {item.updatedAt ? new Date(item.updatedAt).toLocaleString() : "N/A"}
+                                {t("updatedAt")}{" "}
+                                {item.updatedAt ? new Date(item.updatedAt).toLocaleString() : "-"}
                               </div>
                               {item.createdByAdminUserId ? (
                                 <div className="mt-1 text-xs text-muted-foreground">
-                                  CreatedBy: {item.createdByAdminUserId}
+                                  {t("createdBy")}: {item.createdByAdminUserId}
                                 </div>
                               ) : null}
                               <p className="mt-2 text-sm text-muted-foreground">{item.bodyPreview}</p>
@@ -883,11 +885,11 @@ export function AdminPage() {
           <TabsContent value="songs">
             <Card>
               <CardHeader>
-                <CardTitle>Song Audit</CardTitle>
-                <CardDescription>Play any generated song or download it directly from the admin dashboard.</CardDescription>
+                <CardTitle>{t("songAudit")}</CardTitle>
+                <CardDescription>{t("songAuditDescription")}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Input value={songSearch} onChange={(event) => setSongSearch(event.target.value)} placeholder="Search title, lyric title, or tags" />
+                <Input value={songSearch} onChange={(event) => setSongSearch(event.target.value)} placeholder={t("searchTitleLyricTitleTags")} />
                 <div className="space-y-4">
                   {pagedSongs.map((song) => (
                     <div key={song.id} className="rounded-xl border p-4">
@@ -898,15 +900,15 @@ export function AdminPage() {
                           <>
                       <div className="flex flex-col gap-1 lg:flex-row lg:items-center lg:justify-between">
                         <div>
-                          <div className="font-medium">{song.title ?? "Untitled Song"}</div>
+                          <div className="font-medium">{song.title ?? t("untitledSong")}</div>
                           <div className="text-sm text-muted-foreground">
-                            {song.lyricTitle ?? "No linked lyric"} • {(song.tags ?? []).join(", ") || "No tags"}
+                            {song.lyricTitle ?? t("noLinkedLyric")} • {(song.tags ?? []).join(", ") || t("noTags")}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            Project: {song.projectId ?? "N/A"}
+                            {t("project")}: {song.projectId ?? "-"}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            User: {song.userEmail ?? song.userId ?? "N/A"}
+                            {t("user")}: {song.userEmail ?? song.userId ?? "-"}
                           </div>
                         </div>
                         <Button
@@ -917,7 +919,7 @@ export function AdminPage() {
                           }}
                           disabled={!downloadUrl}
                         >
-                          Download
+                          {t("download")}
                         </Button>
                       </div>
                       {audioCandidates.length > 0 ? (
@@ -928,10 +930,10 @@ export function AdminPage() {
                               src={candidate}
                             />
                           ))}
-                          Your browser does not support the audio element.
+                          {t("yourBrowserNoAudio")}
                         </audio>
                       ) : (
-                        <div className="mt-3 text-sm text-muted-foreground">No playable URL available.</div>
+                        <div className="mt-3 text-sm text-muted-foreground">{t("noPlayableUrlAvailable")}</div>
                       )}
                           </>
                         )
@@ -954,9 +956,9 @@ export function AdminPage() {
           >
             <DialogContent className="sm:max-w-lg">
               <DialogHeader>
-                <DialogTitle>{readyLibraryEditingId ? t("edit") : t("save")} {t("readyLibrary")}</DialogTitle>
+                <DialogTitle>{readyLibraryEditingId ? t("edit") : t("create")} {t("readyLibrary")}</DialogTitle>
                 <DialogDescription>
-                  {readyLibraryEditingId ? "Update the Ready Library lyric." : "Create a new Ready Library lyric."}
+                  {readyLibraryEditingId ? t("updateReadyLibraryLyric") : t("createReadyLibraryLyric")}
                 </DialogDescription>
               </DialogHeader>
 
@@ -973,7 +975,7 @@ export function AdminPage() {
                     id="ready-library-title"
                     value={readyLibraryTitle}
                     onChange={(e) => setReadyLibraryTitle(e.target.value)}
-                    placeholder="Title"
+                    placeholder={t("title")}
                   />
                 </div>
 
@@ -996,7 +998,7 @@ export function AdminPage() {
                       !readyLibraryBody.trim()
                     }
                   >
-                    {readyLibrarySaving ? "Saving..." : t("save")}
+                    {readyLibrarySaving ? t("saving") : t("save")}
                   </Button>
                 </div>
               </div>
