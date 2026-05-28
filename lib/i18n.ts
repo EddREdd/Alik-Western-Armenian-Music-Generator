@@ -21,7 +21,17 @@ const en = {
   allGeneratedSongs: "All your generated songs in one place",
   clearFilters: "Clear filters",
   codeSentShort: "Code sent",
-  confirmDeleteReadyLibraryLyric: "Delete this Ready Library lyric?",
+  confirmDeleteReadyLibraryLyric: "Delete Ready Library lyric?",
+  deleteReadyLibraryLyricMessage:
+    "This action cannot be undone. The lyric will be removed from the public Ready Library.",
+  deleting: "Deleting...",
+  readyLibraryLyricDeletedSuccess: "Ready Library lyric deleted successfully.",
+  readyLibraryLyricDeleteFailed: "Failed to delete Ready Library lyric. Please try again.",
+  readyLibraryLyricCreatedSuccess: "Ready Library lyric created successfully.",
+  readyLibraryLyricUpdatedSuccess: "Ready Library lyric updated successfully.",
+  readyLibraryLyricPublishedSuccess: "Ready Library lyric published successfully.",
+  readyLibraryLyricUnpublishedSuccess: "Ready Library lyric unpublished successfully.",
+  readyLibraryActionFailed: "Ready Library action failed. Please try again.",
   confirmRemoveInviteCode:
     "Remove invite code {{code}}{{email}}? This deletes the invite data permanently.",
   createdBy: "CreatedBy",
@@ -587,7 +597,17 @@ const hyw: Partial<Record<TranslationKey, string>> = {
 
 const hywAdmin: Partial<Record<TranslationKey, string>> = {
   andUser: " եւ օգտատէր {{email}}",
-  confirmDeleteReadyLibraryLyric: "Ջնջե՞լ այս Պատրաստի գրադարանի բառերը։",
+  confirmDeleteReadyLibraryLyric: "Ջնջել Պատրաստի գրադարանի բառերը՞",
+  deleteReadyLibraryLyricMessage:
+    "Այս գործողութիւնը չի կրնար հետարկուել։ Բառերը կ՛ջնջուին հանրային Պատրաստի գրադարանից։",
+  deleting: "Ջնջուում է...",
+  readyLibraryLyricDeletedSuccess: "Պատրաստի գրադարանի բառերը յաջողութեամբ ջնջուեցան։",
+  readyLibraryLyricDeleteFailed: "Չյաջողեցաւ ջնջել Պատրաստի գրադարանի բառերը։ Փորձէք նորից։",
+  readyLibraryLyricCreatedSuccess: "Պատրաստի գրադարանի բառերը յաջողութեամբ ստեղծուեցան։",
+  readyLibraryLyricUpdatedSuccess: "Պատրաստի գրադարանի բառերը յաջողութեամբ թարմացուեցան։",
+  readyLibraryLyricPublishedSuccess: "Պատրաստի գրադարանի բառերը յաջողութեամբ հրապարակուեցան։",
+  readyLibraryLyricUnpublishedSuccess: "Պատրաստի գրադարանի բառերը հանուած են հրապարակումից։",
+  readyLibraryActionFailed: "Պատրաստի գրադարանի գործողութիւնը չյաջողեցաւ։ Փորձէք նորից։",
   confirmRemoveInviteCode:
     "Հեռացնե՞լ {{code}} հրաւէրի ծածկագիրը{{email}}։ Այս գործողութիւնը մշտապէս կը ջնջէ հրաւէրի տուեալները։",
   credits: "Վարկեր",
