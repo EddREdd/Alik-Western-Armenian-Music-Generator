@@ -34,12 +34,12 @@ media:
     type: ${MEDIA_STORAGE_TYPE:local}
     root-path: ${MEDIA_STORAGE_ROOT_PATH:storage}
     public-base-url: ${MEDIA_STORAGE_PUBLIC_BASE_URL:http://localhost:8080}
-    spaces-endpoint: ${MEDIA_STORAGE_SPACES_ENDPOINT:}
-    spaces-region: ${MEDIA_STORAGE_SPACES_REGION:us-east-1}
-    spaces-bucket: ${MEDIA_STORAGE_SPACES_BUCKET:}
-    spaces-access-key: ${MEDIA_STORAGE_SPACES_ACCESS_KEY:}
-    spaces-secret-key: ${MEDIA_STORAGE_SPACES_SECRET_KEY:}
-    spaces-public-base-url: ${MEDIA_STORAGE_SPACES_PUBLIC_BASE_URL:}
+    spaces-endpoint: ${MEDIA_STORAGE_SPACES_ENDPOINT:${MINIO_ENDPOINT:}}
+    spaces-region: ${MEDIA_STORAGE_SPACES_REGION:${MINIO_REGION:us-east-1}}
+    spaces-bucket: ${MEDIA_STORAGE_SPACES_BUCKET:${MINIO_BUCKET:}}
+    spaces-access-key: ${MEDIA_STORAGE_SPACES_ACCESS_KEY:${MINIO_ROOT_USER:}}
+    spaces-secret-key: ${MEDIA_STORAGE_SPACES_SECRET_KEY:${MINIO_ROOT_PASSWORD:}}
+    spaces-public-base-url: ${MEDIA_STORAGE_SPACES_PUBLIC_BASE_URL:${MINIO_PUBLIC_BASE_URL:}}
     proxy-allowed-hosts: ${MEDIA_PROXY_ALLOWED_HOSTS:musicfile.removeai.ai,tempfile.aiquickdraw.com}
 
 cors:

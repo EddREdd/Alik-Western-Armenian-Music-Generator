@@ -12,6 +12,18 @@ import org.springframework.stereotype.Component;
 @Component
 public class GenerationJobMapper {
 
+    private static String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return null;
+    }
+
     public GenerationJobSummaryResponse toSummary(GenerationJob job) {
         return new GenerationJobSummaryResponse(
                 job.getId(),
@@ -42,24 +54,40 @@ public class GenerationJobMapper {
                 .toList();
 
         List<GenerationTrackResponse> trackResponses = tracks.stream()
-                .map(track -> new GenerationTrackResponse(
-                        track.getId(),
-                        track.getProviderMusicId(),
-                        track.getTrackIndex(),
-                        track.getLocalAudioUrl(),
-                        track.getLocalAudioUrl(),
-                        track.getLocalImageUrl(),
-                        track.getLocalAudioUrl(),
-                        track.getLocalImageUrl(),
-                        track.getLyricsOrPrompt(),
-                        track.getTitle(),
-                        track.getTags(),
-                        track.getDurationSeconds(),
-                        track.getProviderCreateTime(),
-                        track.getAssetExpiryAt(),
-                        track.getSelectedFlag(),
-                        track.getCreatedAt()
-                ))
+                .map(track -> {
+                    String playableAudio = firstNonBlank(
+                            track.getLocalAudioUrl(),
+                            track.getAudioUrl(),
+                            track.getStreamAudioUrl()
+                    );
+                    String playableStream = firstNonBlank(
+                            track.getLocalAudioUrl(),
+                            track.getStreamAudioUrl(),
+                            track.getAudioUrl()
+                    );
+                    String playableImage = firstNonBlank(
+                            track.getLocalImageUrl(),
+                            track.getImageUrl()
+                    );
+                    return new GenerationTrackResponse(
+                            track.getId(),
+                            track.getProviderMusicId(),
+                            track.getTrackIndex(),
+                            playableAudio,
+                            playableStream,
+                            playableImage,
+                            track.getLocalAudioUrl(),
+                            track.getLocalImageUrl(),
+                            track.getLyricsOrPrompt(),
+                            track.getTitle(),
+                            track.getTags(),
+                            track.getDurationSeconds(),
+                            track.getProviderCreateTime(),
+                            track.getAssetExpiryAt(),
+                            track.getSelectedFlag(),
+                            track.getCreatedAt()
+                    );
+                })
                 .toList();
 
         return new GenerationJobResponse(

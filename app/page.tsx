@@ -121,6 +121,14 @@ function buildPlaybackCandidates(song: Song): string[] {
   return [...new Set(expanded)]
 }
 
+function resolveSongGenre(job: GenerationJob, uiLanguage: UiLanguage): string {
+  const styleGenre = job.styleFinal?.split(",")[0]?.trim()
+  if (styleGenre) {
+    return styleGenre
+  }
+  return t("generated", uiLanguage)
+}
+
 function mapJobToSongs(job: GenerationJob, uiLanguage: UiLanguage): Song[] {
   const tracks = [...(job.tracks ?? [])].sort((left, right) => {
     const leftIndex = left.trackIndex ?? 0
@@ -145,7 +153,7 @@ function mapJobToSongs(job: GenerationJob, uiLanguage: UiLanguage): Song[] {
         id: job.id,
         generationJobId: job.id,
         title: baseTitle,
-        genre: job.styleFinal?.split(",")[0]?.trim() || job.model || t("generated", uiLanguage),
+        genre: resolveSongGenre(job, uiLanguage),
         duration: "--:--",
         createdAt,
         status: fallbackStatus,
@@ -186,7 +194,7 @@ function mapJobToSongs(job: GenerationJob, uiLanguage: UiLanguage): Song[] {
       id: `${job.id}:${track.id ?? track.providerMusicId ?? versionIndex}`,
       generationJobId: job.id,
       title: `${variantBaseTitle} (V${versionIndex})`,
-      genre: job.styleFinal?.split(",")[0]?.trim() || job.model || t("generated", uiLanguage),
+      genre: resolveSongGenre(job, uiLanguage),
       duration: track.durationSeconds
         ? `${minutes}:${String(seconds).padStart(2, "0")}`
         : "--:--",
@@ -219,6 +227,7 @@ export default function Home() {
   const [currentSong, setCurrentSong] = useState<PlayingSong | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isTrackLoading, setIsTrackLoading] = useState(false)
+  const [playbackError, setPlaybackError] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const trackCandidatesLengthRef = useRef(0)
   const trackCandidateIndexRef = useRef(0)
@@ -386,6 +395,7 @@ export default function Home() {
     trackCandidatesLengthRef.current = playbackCandidates.length
     trackCandidateIndexRef.current = 0
     setIsTrackLoading(true)
+    setPlaybackError(null)
 
     setCurrentSong({
       id: song.id,
@@ -407,6 +417,7 @@ export default function Home() {
       if (index >= playbackCandidates.length) {
         setIsPlaying(false)
         setIsTrackLoading(false)
+        setPlaybackError(t("playbackFailed", uiLanguage))
         return
       }
       const candidate = playbackCandidates[index]
@@ -419,6 +430,7 @@ export default function Home() {
           if (activePlayAttemptIdRef.current !== attemptId) return
           setIsPlaying(true)
           setIsTrackLoading(false)
+          setPlaybackError(null)
         })
         .catch(() => {
           if (activePlayAttemptIdRef.current !== attemptId) return
@@ -427,7 +439,7 @@ export default function Home() {
     }
 
     tryCandidate(0)
-  }, [])
+  }, [uiLanguage])
 
   const togglePlayPause = useCallback(() => {
     const audio = audioRef.current
@@ -443,13 +455,15 @@ export default function Home() {
         .then(() => {
           setIsPlaying(true)
           setIsTrackLoading(false)
+          setPlaybackError(null)
         })
         .catch(() => {
           setIsPlaying(false)
           setIsTrackLoading(false)
+          setPlaybackError(t("playbackFailed", uiLanguage))
         })
     }
-  }, [isPlaying, currentSong])
+  }, [isPlaying, currentSong, uiLanguage])
 
   const closePlayer = useCallback(() => {
     const audio = audioRef.current
@@ -460,6 +474,7 @@ export default function Home() {
     setCurrentSong(null)
     setIsPlaying(false)
     setIsTrackLoading(false)
+    setPlaybackError(null)
   }, [])
 
   const skipToSong = useCallback((direction: "back" | "forward") => {
@@ -515,8 +530,9 @@ export default function Home() {
       trackCandidateIndexRef.current >= Math.max(0, trackCandidatesLengthRef.current - 1)
     ) {
       setIsTrackLoading(false)
+      setPlaybackError(t("playbackFailed", uiLanguage))
     }
-  }, [])
+  }, [uiLanguage])
 
   const handleDownloadSong = useCallback((song: Song) => {
     const url = song.streamAudioUrl || song.audioUrl
@@ -756,6 +772,7 @@ export default function Home() {
         song={currentSong}
         isPlaying={isPlaying}
         isLoading={isTrackLoading}
+        errorMessage={playbackError}
         onPlayPause={togglePlayPause}
         onSkipBack={() => skipToSong("back")}
         onSkipForward={() => skipToSong("forward")}

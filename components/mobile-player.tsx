@@ -15,6 +15,7 @@ interface MobilePlayerProps {
   song: PlayingSong | null
   isPlaying: boolean
   isLoading?: boolean
+  errorMessage?: string | null
   onPlayPause: () => void
   onSkipBack?: () => void
   onSkipForward?: () => void
@@ -24,12 +25,14 @@ export function MobilePlayer({
   song,
   isPlaying,
   isLoading,
+  errorMessage,
   onPlayPause,
   onSkipBack,
   onSkipForward,
 }: MobilePlayerProps) {
   useUiLanguage()
   const loading = Boolean(isLoading)
+  const playbackError = errorMessage?.trim() || null
 
   return (
     <div className="fixed bottom-[3.75rem] lg:bottom-0 left-0 right-0 z-40 border-t border-primary/20 bg-card shadow-lg">
@@ -67,7 +70,7 @@ export function MobilePlayer({
           </p>
           <div className="flex items-center gap-2">
             <p className="truncate text-xs text-muted-foreground">
-              {song?.genre || t("selectSongToPlay")}
+              {playbackError || song?.genre || t("selectSongToPlay")}
             </p>
             {loading ? (
               <div className="hidden items-center gap-2 text-xs text-secondary lg:flex">
@@ -82,6 +85,8 @@ export function MobilePlayer({
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
               <span>{t("loadingTrack")}</span>
             </div>
+          ) : playbackError ? (
+            <p className="mt-0.5 text-xs text-destructive lg:hidden">{playbackError}</p>
           ) : null}
         </div>
 

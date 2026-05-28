@@ -113,9 +113,18 @@ public class GenerationTrackUpsertService {
             String createTime
     ) {
         track.setTrackIndex(trackIndex);
-        track.setAudioUrl(trimToNull(audioUrl));
-        track.setStreamAudioUrl(trimToNull(streamAudioUrl));
-        track.setImageUrl(trimToNull(imageUrl));
+        String trimmedAudioUrl = trimToNull(audioUrl);
+        String trimmedStreamAudioUrl = trimToNull(streamAudioUrl);
+        String trimmedImageUrl = trimToNull(imageUrl);
+        if (!isBlank(trimmedAudioUrl)) {
+            track.setProviderAudioUrl(trimmedAudioUrl);
+        }
+        if (!isBlank(trimmedImageUrl)) {
+            track.setProviderImageUrl(trimmedImageUrl);
+        }
+        track.setAudioUrl(trimmedAudioUrl);
+        track.setStreamAudioUrl(trimmedStreamAudioUrl);
+        track.setImageUrl(trimmedImageUrl);
         track.setLyricsOrPrompt(trimToNull(prompt));
         track.setModelName(trimToNull(modelName));
         track.setTitle(trimToNull(title));

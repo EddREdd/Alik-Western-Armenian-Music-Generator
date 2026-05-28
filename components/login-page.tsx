@@ -8,6 +8,7 @@ import { GoogleAuthButton } from "@/components/google-auth-button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { login, loginWithGoogle, type AuthSession } from "@/lib/auth-api"
+import { AuthLanguageSwitcher } from "@/components/auth-language-switcher"
 import { t, useUiLanguage } from "@/lib/i18n"
 
 interface LoginPageProps {
@@ -41,6 +42,7 @@ export function LoginPage({ onLogin, onSwitchToRegister, onForgotPassword }: Log
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-primary px-4 py-8">
+      <AuthLanguageSwitcher />
       {/* Logo */}
       <div className="mb-8">
         <Image

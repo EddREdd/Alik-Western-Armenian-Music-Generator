@@ -3,6 +3,7 @@ package com.balians.musicgen.lyrics.service;
 import com.balians.musicgen.admin.dto.AdminReadyLibraryLyricDetailResponse;
 import com.balians.musicgen.admin.dto.AdminReadyLibraryLyricSummaryResponse;
 import com.balians.musicgen.admin.dto.CreateReadyLibraryLyricRequest;
+import com.balians.musicgen.admin.dto.SetReadyLibraryPublishedRequest;
 import com.balians.musicgen.admin.dto.UpdateReadyLibraryLyricRequest;
 import com.balians.musicgen.common.exception.NotFoundException;
 import com.balians.musicgen.lyrics.dto.LyricResponse;
@@ -35,13 +36,18 @@ public class ReadyLibraryService {
                 : lyricEntryRepository.findByPublicReadyLibraryTrueAndLanguageOrderByUpdatedAtDesc(languageFilter.name());
 
         return entries.stream()
+                .filter(entry -> isPublished(entry))
                 .filter(entry -> matchesKeyword(entry, keyword))
                 .map(this::toPublicSummary)
                 .toList();
     }
 
     public LyricResponse getPublicById(String id) {
-        return toPublicResponse(getReadyLibraryEntity(id));
+        LyricEntry entry = getReadyLibraryEntity(id);
+        if (!isPublished(entry)) {
+            throw new NotFoundException("Lyric not found: " + id);
+        }
+        return toPublicResponse(entry);
     }
 
     public List<AdminReadyLibraryLyricSummaryResponse> listForAdmin(String keyword, String language) {
@@ -72,6 +78,7 @@ public class ReadyLibraryService {
                 .body(normalizeBody(request.body()))
                 .language(language.name())
                 .publicReadyLibrary(true)
+                .readyLibraryPublished(resolvePublishedOnCreate(request.published()))
                 .createdByAdminUserId(adminUserId)
                 .sourceLyricId(null)
                 .currentVersion(1)
@@ -104,6 +111,14 @@ public class ReadyLibraryService {
         LyricEntry entry = getReadyLibraryEntity(id);
         lyricEntryRepository.delete(entry);
         log.info("Deleted Ready Library lyric id={}", id);
+    }
+
+    public AdminReadyLibraryLyricDetailResponse setPublished(String id, SetReadyLibraryPublishedRequest request) {
+        LyricEntry entry = getReadyLibraryEntity(id);
+        entry.setReadyLibraryPublished(Boolean.TRUE.equals(request.published()));
+        LyricEntry saved = lyricEntryRepository.save(entry);
+        log.info("Set Ready Library lyric id={} published={}", id, saved.getReadyLibraryPublished());
+        return toAdminDetail(saved);
     }
 
     public boolean isReadyLibraryLyric(String lyricId) {
@@ -205,6 +220,14 @@ public class ReadyLibraryService {
         );
     }
 
+    private boolean isPublished(LyricEntry entry) {
+        return entry.getReadyLibraryPublished() == null || Boolean.TRUE.equals(entry.getReadyLibraryPublished());
+    }
+
+    private boolean resolvePublishedOnCreate(Boolean published) {
+        return published == null || Boolean.TRUE.equals(published);
+    }
+
     private AdminReadyLibraryLyricSummaryResponse toAdminSummary(LyricEntry entry) {
         return new AdminReadyLibraryLyricSummaryResponse(
                 entry.getId(),
@@ -212,6 +235,7 @@ public class ReadyLibraryService {
                 preview(entry.getBody(), 120),
                 entry.getLanguage(),
                 entry.getCurrentVersion(),
+                isPublished(entry),
                 entry.getCreatedByAdminUserId(),
                 entry.getCreatedAt(),
                 entry.getUpdatedAt()
@@ -226,6 +250,7 @@ public class ReadyLibraryService {
                 entry.getBody(),
                 entry.getLanguage(),
                 entry.getCurrentVersion(),
+                isPublished(entry),
                 entry.getCreatedByAdminUserId(),
                 entry.getSourceLyricId(),
                 entry.getVersions().stream()

@@ -125,7 +125,11 @@ export function GoogleAuthButton({
       .catch((scriptError) => {
         if (!cancelled) {
           console.error(scriptError)
-          setError(t("googleSignInFailed"))
+          setError(
+            scriptError instanceof Error && scriptError.message.includes("browser")
+              ? t("googleSignInBrowserOnly")
+              : t("googleSignInLoadFailed"),
+          )
         }
       })
 

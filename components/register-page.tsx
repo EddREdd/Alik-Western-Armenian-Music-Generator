@@ -12,6 +12,7 @@ import {
   loginWithGoogle,
   type AuthSession,
 } from "@/lib/auth-api"
+import { AuthLanguageSwitcher } from "@/components/auth-language-switcher"
 import { t, useUiLanguage } from "@/lib/i18n"
 
 interface RegisterPageProps {
@@ -63,6 +64,7 @@ export function RegisterPage({ onRegisterComplete, onSwitchToLogin }: RegisterPa
   // Registration Form Step
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-primary px-4 py-8">
+      <AuthLanguageSwitcher />
       {/* Logo */}
       <div className="mb-8">
         <Image

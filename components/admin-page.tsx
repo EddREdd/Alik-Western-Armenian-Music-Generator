@@ -23,6 +23,7 @@ import {
   createAdminReadyLibraryLyric,
   deleteAdminReadyLibraryLyric,
   getAdminReadyLibraryLyric,
+  setAdminReadyLibraryPublished,
   updateAdminReadyLibraryLyric,
   removeInviteCode,
   sendInviteCodeEmail,
@@ -196,6 +197,7 @@ export function AdminPage() {
   const [readyLibraryEditingId, setReadyLibraryEditingId] = useState<string | null>(null)
   const [readyLibraryTitle, setReadyLibraryTitle] = useState("")
   const [readyLibraryBody, setReadyLibraryBody] = useState("")
+  const [readyLibraryPublishOnCreate, setReadyLibraryPublishOnCreate] = useState(true)
   const readyLibraryLanguage = "WESTERN_ARMENIAN" as const
   const [songs, setSongs] = useState<AdminSongSummary[]>([])
   const [loading, setLoading] = useState(true)
@@ -270,6 +272,7 @@ export function AdminPage() {
     setReadyLibraryEditingId(null)
     setReadyLibraryTitle("")
     setReadyLibraryBody("")
+    setReadyLibraryPublishOnCreate(true)
     setReadyLibraryDialogOpen(true)
   }
 
@@ -304,13 +307,31 @@ export function AdminPage() {
       if (readyLibraryEditingId) {
         await updateAdminReadyLibraryLyric(readyLibraryEditingId, payload)
       } else {
-        await createAdminReadyLibraryLyric(payload)
+        await createAdminReadyLibraryLyric({
+          ...payload,
+          published: readyLibraryPublishOnCreate,
+        })
       }
 
       setReadyLibraryDialogOpen(false)
       await loadReadyLibrary()
     } catch (saveError) {
       setReadyLibraryError(saveError instanceof Error ? saveError.message : t("unableToSaveLyric"))
+    } finally {
+      setReadyLibrarySaving(false)
+    }
+  }
+
+  const handleToggleReadyLibraryPublished = async (item: AdminReadyLibraryLyricSummary) => {
+    setReadyLibraryError("")
+    setReadyLibrarySaving(true)
+    try {
+      await setAdminReadyLibraryPublished(item.id, !item.published)
+      await loadReadyLibrary()
+    } catch (toggleError) {
+      setReadyLibraryError(
+        toggleError instanceof Error ? toggleError.message : t("unableToSaveLyric"),
+      )
     } finally {
       setReadyLibrarySaving(false)
     }
@@ -839,6 +860,17 @@ export function AdminPage() {
                           <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0">
                               <div className="font-medium truncate">{item.title}</div>
+                              <div className="mt-1">
+                                <span
+                                  className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                                    item.published
+                                      ? "bg-emerald-500/15 text-emerald-700"
+                                      : "bg-amber-500/15 text-amber-800"
+                                  }`}
+                                >
+                                  {item.published ? t("readyLibraryPublishedStatus") : t("readyLibraryDraft")}
+                                </span>
+                              </div>
                               <div className="mt-1 text-xs text-muted-foreground">{t("language")}: {item.language}</div>
                               <div className="mt-1 text-xs text-muted-foreground">
                                 {t("currentVersion")}: {item.currentVersion}
@@ -855,6 +887,14 @@ export function AdminPage() {
                               <p className="mt-2 text-sm text-muted-foreground">{item.bodyPreview}</p>
                             </div>
                             <div className="flex flex-col gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => void handleToggleReadyLibraryPublished(item)}
+                                disabled={readyLibrarySaving}
+                              >
+                                {item.published ? t("unpublishReadyLibrary") : t("publishReadyLibrary")}
+                              </Button>
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -988,6 +1028,18 @@ export function AdminPage() {
                     className="min-h-[180px] resize-none"
                   />
                 </div>
+
+                {!readyLibraryEditingId ? (
+                  <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={readyLibraryPublishOnCreate}
+                      onChange={(event) => setReadyLibraryPublishOnCreate(event.target.checked)}
+                      className="h-4 w-4 rounded border-border"
+                    />
+                    {t("publishOnCreate")}
+                  </label>
+                ) : null}
 
                 <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
                   <Button

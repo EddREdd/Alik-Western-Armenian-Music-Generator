@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import { LocaleHtmlLang } from '@/components/locale-html-lang'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -19,6 +20,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="font-sans antialiased">
+        <LocaleHtmlLang />
         {children}
       </body>
     </html>

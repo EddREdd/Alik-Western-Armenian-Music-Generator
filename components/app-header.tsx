@@ -11,7 +11,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { setStoredUiLanguage, useUiLanguage, t } from "@/lib/i18n"
+import { LanguageSwitcher } from "@/components/language-switcher"
+import { t, useUiLanguage } from "@/lib/i18n"
 
 interface AppHeaderProps {
   activeTab: string
@@ -28,7 +29,7 @@ export function AppHeader({
   creditsLabel = "0",
   showAdmin = false,
 }: AppHeaderProps) {
-  const uiLanguage = useUiLanguage()
+  useUiLanguage()
 
   return (
     <header className="bg-primary text-primary-foreground">
@@ -39,7 +40,7 @@ export function AppHeader({
         >
           <Image
             src="/images/logo.png"
-            alt="Alik logo"
+            alt={t("alikLogoAlt")}
             width={120}
             height={40}
             className="h-8 w-auto object-contain"
@@ -105,18 +106,7 @@ export function AppHeader({
             <span className="text-sm font-semibold text-primary-foreground">{creditsLabel}</span>
           </div>
 
-          {/* UI language switcher */}
-          <div className="hidden items-center lg:flex">
-            <select
-              value={uiLanguage}
-              onChange={(e) => setStoredUiLanguage(e.target.value as "en" | "hyw")}
-              className="h-9 rounded-md border border-primary-foreground/30 bg-primary-foreground/10 px-2 text-sm text-primary-foreground outline-none"
-              aria-label={t("lyricsLanguage")}
-            >
-              <option value="en">{t("english")}</option>
-              <option value="hyw">{t("westernArmenian")}</option>
-            </select>
-          </div>
+          <LanguageSwitcher className="h-9 max-w-[9.5rem] rounded-md border border-primary-foreground/30 bg-primary-foreground/10 px-2 text-sm text-primary-foreground outline-none" />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

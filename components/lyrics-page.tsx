@@ -38,7 +38,7 @@ import {
   createLyric,
   deleteLyric,
   getLyric,
-  listLyrics,
+  listMyLyrics,
   restoreLyricVersion,
   updateLyric,
   type Lyric,
@@ -51,9 +51,6 @@ interface LyricsPageProps {
 }
 
 type MobileView = "list" | "preview" | "create" | "edit"
-
-const defaultProjectId =
-  process.env.NEXT_PUBLIC_DEFAULT_PROJECT_ID?.trim() || "project-1"
 
 function formatDate(value: string | null) {
   if (!value) {
@@ -83,7 +80,7 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
 
   const loadLyrics = async () => {
     try {
-      const items = await listLyrics(defaultProjectId)
+      const items = await listMyLyrics()
       setLyrics(items)
       setError("")
     } catch (loadError) {
@@ -110,7 +107,6 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
 
     try {
       const created = await createLyric({
-        projectId: defaultProjectId,
         title: newTitle,
         body: newContent,
         language: "WESTERN_ARMENIAN",

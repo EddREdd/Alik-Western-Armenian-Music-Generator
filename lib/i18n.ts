@@ -103,6 +103,8 @@ const en = {
   googleAccountUnlinked: "Google account unlinked",
   googleSignInCredentialMissing: "Google sign-in did not return a credential",
   googleSignInFailed: "Google sign-in failed",
+  googleSignInBrowserOnly: "Google sign-in is only available in the browser",
+  googleSignInLoadFailed: "Failed to load Google sign-in",
   googleSignUpFailed: "Google sign-up failed",
   google: "Google",
   howManyInviteCodes: "How many invite codes do you want to generate?",
@@ -162,6 +164,7 @@ const en = {
   passwordMismatchPeriod: "Passwords do not match.",
   passwordUpdated: "Password updated!",
   pleaseEnterEmailFirst: "Please enter an email first",
+  playbackFailed: "Unable to play this track. Try again or choose another song.",
   play: "Play",
   previous: "Previous",
   private: "Private",
@@ -172,6 +175,11 @@ const en = {
   readOnly: "Read Only",
   readyLibrary: "Ready Library",
   readyLibraryDescription: "Global public lyrics that can be created and maintained by admins.",
+  readyLibraryDraft: "Draft",
+  readyLibraryPublishedStatus: "Published",
+  publishOnCreate: "Publish immediately",
+  publishReadyLibrary: "Publish to public library",
+  unpublishReadyLibrary: "Unpublish from public library",
   refresh: "Refresh",
   registrations: "Registrations",
   remove: "Remove",
@@ -387,6 +395,8 @@ const hyw: Partial<Record<TranslationKey, string>> = {
   googleAccountUnlinked: "Google հաշիւը անջատուեցաւ",
   googleSignInCredentialMissing: "Google մուտքը վաւերագիր չվերադարձուց",
   googleSignInFailed: "Google մուտքը ձախողեցաւ",
+  googleSignInBrowserOnly: "Google մուտքը հասանելի է միայն զննարկիչին մէջ",
+  googleSignInLoadFailed: "Չյաջողեցաւ բեռնել Google մուտքը",
   googleSignUpFailed: "Google գրանցումը ձախողեցաւ",
   google: "Google",
   inviteCode: "Հրաւէրի ծածկագիր",
@@ -436,7 +446,13 @@ const hyw: Partial<Record<TranslationKey, string>> = {
   passwordMismatch: "Գաղտնաբառերը չեն համապատասխաներ",
   passwordMismatchPeriod: "Գաղտնաբառերը չեն համապատասխաներ։",
   passwordUpdated: "Գաղտնաբառը թարմացաւ։",
+  playbackFailed: "Չկրնանք նուագել այս երգը։ Փորձէք նորից կամ ընտրէք ուրիշ երգ։",
   play: "Նուագել",
+  publishOnCreate: "Անմիջապես հրապարակել",
+  publishReadyLibrary: "Հրապարակել հանրային գրադարանին",
+  unpublishReadyLibrary: "Հանել հրապարակումից",
+  readyLibraryDraft: "Սևագիր",
+  readyLibraryPublishedStatus: "Հրապարակուած",
   previous: "Նախորդ",
   next: "Յաջորդ",
   pause: "Դադար",
@@ -651,9 +667,10 @@ export function t(
 }
 
 export function useUiLanguage(): UiLanguage {
-  const [language, setLanguage] = useState<UiLanguage>(() => getStoredUiLanguage())
+  const [language, setLanguage] = useState<UiLanguage>(DEFAULT_UI_LANGUAGE)
 
   useEffect(() => {
+    setLanguage(getStoredUiLanguage())
     const onChange = () => setLanguage(getStoredUiLanguage())
     window.addEventListener("alik-ui-language-changed", onChange)
     return () => window.removeEventListener("alik-ui-language-changed", onChange)
