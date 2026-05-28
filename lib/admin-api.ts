@@ -1,11 +1,9 @@
 "use client"
 
 import { getStoredSessionToken } from "@/lib/auth-api"
+import { buildQueryString, getApiBaseUrl, normalizeSearchKeyword } from "@/lib/api-base"
 
-const configuredBackendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL?.trim()
-const backendBaseUrl = configuredBackendBaseUrl
-  ? configuredBackendBaseUrl.replace(/\/+$/, "")
-  : ""
+const backendBaseUrl = getApiBaseUrl()
 
 interface ApiSuccess<T> {
   success: boolean
@@ -284,12 +282,16 @@ export async function listAdminLyrics(keyword?: string): Promise<AdminLyricSumma
   return adminRequest(`/api/v1/admin/lyrics${query}`)
 }
 
-export async function listAdminReadyLibrary(params?: { keyword?: string; language?: string }): Promise<AdminReadyLibraryLyricSummary[]> {
-  const search = new URLSearchParams()
-  if (params?.keyword) search.set("keyword", params.keyword)
-  if (params?.language) search.set("language", params.language)
-  const query = search.toString()
-  return adminRequest(`/api/v1/admin/ready-library${query ? `?${query}` : ""}`)
+export async function listAdminReadyLibrary(params?: {
+  keyword?: string
+  language?: string
+}): Promise<AdminReadyLibraryLyricSummary[]> {
+  const keyword = normalizeSearchKeyword(params?.keyword)
+  const query = buildQueryString({
+    keyword: keyword || undefined,
+    language: params?.language,
+  })
+  return adminRequest(`/api/v1/admin/ready-library${query}`)
 }
 
 export async function getAdminReadyLibraryLyric(id: string): Promise<AdminReadyLibraryLyricDetail> {

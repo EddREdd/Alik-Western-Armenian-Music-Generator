@@ -1,5 +1,7 @@
 "use client"
 
+import { getApiBaseUrl } from "@/lib/api-base"
+
 export type GenerationModel = "V4" | "V4_5" | "V4_5PLUS" | "V5"
 export type InternalJobStatus =
   | "DRAFT"
@@ -111,10 +113,7 @@ export interface CreateGenerationPayload {
   customMode: boolean
 }
 
-const configuredBackendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL?.trim()
-const backendBaseUrl = configuredBackendBaseUrl
-  ? configuredBackendBaseUrl.replace(/\/+$/, "")
-  : ""
+const backendBaseUrl = getApiBaseUrl()
 
 function getSessionHeader() {
   if (typeof window === "undefined") {

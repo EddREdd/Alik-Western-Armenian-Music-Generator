@@ -1,9 +1,8 @@
 "use client"
 
-const configuredBackendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL?.trim()
-const backendBaseUrl = configuredBackendBaseUrl
-  ? configuredBackendBaseUrl.replace(/\/+$/, "")
-  : ""
+import { buildQueryString, getApiBaseUrl, normalizeSearchKeyword } from "@/lib/api-base"
+
+const backendBaseUrl = getApiBaseUrl()
 
 function getSessionHeader() {
   if (typeof window === "undefined") {
@@ -113,15 +112,16 @@ export async function listPublicLyrics(params?: {
   keyword?: string
   language?: string
 }): Promise<LyricSummary[]> {
-  const searchParams = new URLSearchParams()
-  if (params?.keyword?.trim()) searchParams.set("keyword", params.keyword.trim())
-  if (params?.language?.trim()) searchParams.set("language", params.language.trim())
-  const query = searchParams.toString()
-  return apiRequest<LyricSummary[]>(`/api/v1/lyrics/ready-library${query ? `?${query}` : ""}`)
+  const keyword = normalizeSearchKeyword(params?.keyword)
+  const query = buildQueryString({
+    keyword: keyword || undefined,
+    language: params?.language,
+  })
+  return apiRequest<LyricSummary[]>(`/api/v1/ready-library${query}`)
 }
 
 export async function getPublicLyric(id: string): Promise<Lyric> {
-  return apiRequest<Lyric>(`/api/v1/lyrics/ready-library/${encodeURIComponent(id)}`)
+  return apiRequest<Lyric>(`/api/v1/ready-library/${encodeURIComponent(id)}`)
 }
 
 export async function createLyric(payload: {

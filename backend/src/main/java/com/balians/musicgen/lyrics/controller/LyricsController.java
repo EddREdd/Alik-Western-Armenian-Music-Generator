@@ -7,6 +7,7 @@ import com.balians.musicgen.lyrics.dto.LyricResponse;
 import com.balians.musicgen.lyrics.dto.LyricSummaryResponse;
 import com.balians.musicgen.lyrics.dto.UpdateLyricRequest;
 import com.balians.musicgen.lyrics.service.LyricsService;
+import com.balians.musicgen.lyrics.service.ReadyLibraryKeywordValidator;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -30,13 +31,16 @@ public class LyricsController {
 
     private final LyricsService lyricsService;
     private final AuthService authService;
+    private final ReadyLibraryKeywordValidator readyLibraryKeywordValidator;
 
     @GetMapping("/ready-library")
     public StandardSuccessResponse<List<LyricSummaryResponse>> listReadyLibrary(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String language
     ) {
-        return StandardSuccessResponse.ok(lyricsService.listReadyLibrary(keyword, language));
+        readyLibraryKeywordValidator.validate(keyword);
+        return StandardSuccessResponse.ok(
+                lyricsService.listReadyLibrary(readyLibraryKeywordValidator.normalize(keyword), language));
     }
 
     @GetMapping("/ready-library/{id}")

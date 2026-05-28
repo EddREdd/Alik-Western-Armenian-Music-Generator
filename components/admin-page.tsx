@@ -37,9 +37,11 @@ import {
   type AdminUserSummary,
 } from "@/lib/admin-api"
 import { t, useUiLanguage } from "@/lib/i18n"
+import { MAX_SEARCH_KEYWORD_LENGTH } from "@/lib/api-base"
 import { buildPlaybackCandidates } from "@/lib/media-playback"
 
 const PAGE_SIZE = 25
+const READY_LIBRARY_SEARCH_DEBOUNCE_MS = 400
 
 function buildAdminSongAudioCandidates(song: AdminSongSummary): string[] {
   return buildPlaybackCandidates({
@@ -114,6 +116,7 @@ export function AdminPage() {
   const [invites, setInvites] = useState<AdminInviteCode[]>([])
   const [lyrics, setLyrics] = useState<AdminLyricSummary[]>([])
   const [readyLibraryKeyword, setReadyLibraryKeyword] = useState("")
+  const [debouncedReadyLibraryKeyword, setDebouncedReadyLibraryKeyword] = useState("")
   const [readyLibraryLanguageFilter, setReadyLibraryLanguageFilter] = useState<"ALL" | "WESTERN_ARMENIAN">("WESTERN_ARMENIAN")
   const [readyLibrary, setReadyLibrary] = useState<AdminReadyLibraryLyricSummary[]>([])
   const [readyLibraryLoading, setReadyLibraryLoading] = useState(false)
@@ -176,7 +179,7 @@ export function AdminPage() {
     setReadyLibraryError("")
     try {
       const items = await listAdminReadyLibrary({
-        keyword: readyLibraryKeyword || undefined,
+        keyword: debouncedReadyLibraryKeyword || undefined,
         language: readyLibraryLanguageFilter === "ALL" ? undefined : readyLibraryLanguageFilter,
       })
       setReadyLibrary(items)
@@ -190,9 +193,18 @@ export function AdminPage() {
   }
 
   useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedReadyLibraryKeyword(
+        readyLibraryKeyword.trim().slice(0, MAX_SEARCH_KEYWORD_LENGTH),
+      )
+    }, READY_LIBRARY_SEARCH_DEBOUNCE_MS)
+    return () => window.clearTimeout(timer)
+  }, [readyLibraryKeyword])
+
+  useEffect(() => {
     if (adminTab !== "ready-library") return
     void loadReadyLibrary()
-  }, [adminTab, readyLibraryKeyword, readyLibraryLanguageFilter])
+  }, [adminTab, debouncedReadyLibraryKeyword, readyLibraryLanguageFilter])
 
   const openCreateReadyLibrary = () => {
     setReadyLibraryEditingId(null)
@@ -754,8 +766,15 @@ export function AdminPage() {
               <CardContent className="space-y-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <Input
+                    id="ready-library-search"
+                    name="ready-library-search"
+                    autoComplete="off"
                     value={readyLibraryKeyword}
-                    onChange={(event) => setReadyLibraryKeyword(event.target.value)}
+                    onChange={(event) =>
+                      setReadyLibraryKeyword(
+                        event.target.value.slice(0, MAX_SEARCH_KEYWORD_LENGTH),
+                      )
+                    }
                     placeholder={t("searchReadyLibraryLyrics")}
                   />
                   <select
