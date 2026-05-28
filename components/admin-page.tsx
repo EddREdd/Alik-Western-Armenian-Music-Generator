@@ -37,90 +37,16 @@ import {
   type AdminUserSummary,
 } from "@/lib/admin-api"
 import { t, useUiLanguage } from "@/lib/i18n"
+import { buildPlaybackCandidates } from "@/lib/media-playback"
 
 const PAGE_SIZE = 25
-const configuredBackendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL?.trim() || ""
-const backendBaseUrl = configuredBackendBaseUrl.replace(/\/+$/, "")
-const proxyPreferredHosts = new Set([
-  "musicfile.removeai.ai",
-  "tempfile.aiquickdraw.com",
-])
-
-function normalizeHost(host: string): string {
-  return host.trim().toLowerCase()
-}
-
-function isProxyPreferred(host: string): boolean {
-  const normalizedHost = normalizeHost(host)
-  for (const allowedHost of proxyPreferredHosts) {
-    if (
-      normalizedHost === normalizeHost(allowedHost) ||
-      normalizedHost.endsWith(`.${normalizeHost(allowedHost)}`)
-    ) {
-      return true
-    }
-  }
-  return false
-}
-
-function toAbsoluteAudioUrl(url: string): string {
-  const trimmed = url.trim()
-  if (!trimmed) return trimmed
-  if (/^https?:\/\//i.test(trimmed)) return trimmed
-  if (!backendBaseUrl) return trimmed
-  return `${backendBaseUrl}${trimmed.startsWith("/") ? "" : "/"}${trimmed}`
-}
-
-function toProxyUrl(url: string): string {
-  return `${backendBaseUrl}/api/v1/media/proxy?url=${encodeURIComponent(url)}`
-}
-
-function unwrapProxyUrl(url: string): string | undefined {
-  try {
-    const parsed = new URL(
-      url,
-      typeof window !== "undefined" ? window.location.origin : "http://localhost",
-    )
-    if (!parsed.pathname.endsWith("/api/v1/media/proxy")) {
-      return undefined
-    }
-    const nestedUrl = parsed.searchParams.get("url")
-    return nestedUrl?.trim() || undefined
-  } catch {
-    return undefined
-  }
-}
 
 function buildAdminSongAudioCandidates(song: AdminSongSummary): string[] {
-  const rawCandidates = [song.streamAudioUrl, song.audioUrl].filter(
-    (value): value is string => Boolean(value?.trim()),
-  )
-  const expanded: string[] = []
-
-  for (const rawCandidate of rawCandidates) {
-    const absoluteCandidate = toAbsoluteAudioUrl(rawCandidate)
-    if (!absoluteCandidate) continue
-    expanded.push(absoluteCandidate)
-
-    const unwrapped = unwrapProxyUrl(absoluteCandidate)
-    if (unwrapped) {
-      expanded.push(unwrapped)
-      continue
-    }
-
-    if (/^https?:\/\//i.test(absoluteCandidate) && backendBaseUrl) {
-      try {
-        const parsed = new URL(absoluteCandidate)
-        if (isProxyPreferred(parsed.hostname)) {
-          expanded.push(toProxyUrl(absoluteCandidate))
-        }
-      } catch {
-        // Keep current candidate only if URL parsing fails.
-      }
-    }
-  }
-
-  return [...new Set(expanded)]
+  return buildPlaybackCandidates({
+    localAudioUrl: song.audioUrl,
+    audioUrl: song.audioUrl,
+    streamAudioUrl: song.streamAudioUrl,
+  })
 }
 
 function MetricCard({

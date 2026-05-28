@@ -32,93 +32,17 @@ import {
   type GenerationJob,
 } from "@/lib/musicgen-api"
 import { t, useUiLanguage, type UiLanguage } from "@/lib/i18n"
-
-const configuredBackendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL?.trim() || ""
-const backendBaseUrl = configuredBackendBaseUrl.replace(/\/+$/, "")
-const proxyPreferredHosts = new Set([
-  "musicfile.removeai.ai",
-  "tempfile.aiquickdraw.com",
-])
-
-function isProxyPreferred(url: URL): boolean {
-  const host = url.hostname.toLowerCase()
-  for (const allowed of proxyPreferredHosts) {
-    if (host === allowed || host.endsWith(`.${allowed}`)) {
-      return true
-    }
-  }
-  return false
-}
-
-function toProxyUrl(rawUrl: string): string {
-  const proxyBase = backendBaseUrl || ""
-  return `${proxyBase}/api/v1/media/proxy?url=${encodeURIComponent(rawUrl)}`
-}
-
-function unwrapProxyUrl(url: string): string | undefined {
-  try {
-    const parsed = new URL(url, typeof window !== "undefined" ? window.location.origin : "http://localhost")
-    if (!parsed.pathname.endsWith("/api/v1/media/proxy")) {
-      return undefined
-    }
-    const nested = parsed.searchParams.get("url")
-    return nested?.trim() || undefined
-  } catch {
-    return undefined
-  }
-}
-
-function toPlayableAudioUrl(url?: string | null): string | undefined {
-  if (!url) {
-    return undefined
-  }
-  const trimmedUrl = url.trim()
-  if (!trimmedUrl) {
-    return undefined
-  }
-
-  if (!/^https?:\/\//i.test(trimmedUrl)) {
-    return trimmedUrl
-  }
-  if (trimmedUrl.includes("/api/v1/media/proxy?url=")) {
-    return trimmedUrl
-  }
-
-  try {
-    const parsed = new URL(trimmedUrl)
-    if (isProxyPreferred(parsed)) {
-      return toProxyUrl(trimmedUrl)
-    }
-    return trimmedUrl
-  } catch {
-    return trimmedUrl
-  }
-}
+import {
+  buildPlayableAudioUrl,
+  buildPlaybackCandidates as buildTrackPlaybackCandidates,
+} from "@/lib/media-playback"
 
 function buildPlaybackCandidates(song: Song): string[] {
-  const candidates = [song.streamAudioUrl, song.audioUrl].filter(
-    (value): value is string => Boolean(value?.trim()),
-  )
-  const expanded: string[] = []
-  for (const candidate of candidates) {
-    expanded.push(candidate)
-    const unwrapped = unwrapProxyUrl(candidate)
-    if (unwrapped) {
-      expanded.push(unwrapped)
-      continue
-    }
-    if (/^https?:\/\//i.test(candidate)) {
-      try {
-        const parsed = new URL(candidate)
-        if (isProxyPreferred(parsed)) {
-          expanded.push(toProxyUrl(candidate))
-        }
-      } catch {
-        // Keep only original candidate when URL parsing fails.
-      }
-    }
-  }
-  return [...new Set(expanded)]
+  return buildTrackPlaybackCandidates({
+    localAudioUrl: song.audioUrl,
+    audioUrl: song.audioUrl,
+    streamAudioUrl: song.streamAudioUrl,
+  })
 }
 
 function resolveSongGenre(job: GenerationJob, uiLanguage: UiLanguage): string {
@@ -168,10 +92,13 @@ function mapJobToSongs(job: GenerationJob, uiLanguage: UiLanguage): Song[] {
   }
 
   return tracks.map((track, index) => {
-    const resolvedAudioUrl = toPlayableAudioUrl(track.localAudioUrl || track.audioUrl)
-    const resolvedStreamAudioUrl = toPlayableAudioUrl(
-      track.localAudioUrl || track.streamAudioUrl || track.audioUrl,
-    )
+    const resolvedAudioUrl =
+      buildPlayableAudioUrl({
+        localAudioUrl: track.localAudioUrl,
+        audioUrl: track.audioUrl,
+        streamAudioUrl: track.streamAudioUrl,
+      }) ?? undefined
+    const resolvedStreamAudioUrl = resolvedAudioUrl
     const hasPlayableAudio = Boolean(resolvedAudioUrl || resolvedStreamAudioUrl)
 
     let status: Song["status"] = "generating"

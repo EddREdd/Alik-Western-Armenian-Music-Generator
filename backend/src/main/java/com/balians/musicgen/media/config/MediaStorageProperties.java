@@ -38,7 +38,14 @@ public class MediaStorageProperties {
      * Hosts allowed for backend media proxying.
      */
     private List<String> proxyAllowedHosts = new ArrayList<>(List.of(
+            "storage.beesync.co",
             "musicfile.removeai.ai",
             "tempfile.aiquickdraw.com"
     ));
+
+    /**
+     * Optional object URL used at startup to verify anonymous read (HEAD). Example:
+     * http://storage.beesync.co:9000/alik/audio/sample.mp3
+     */
+    private String publicProbeUrl;
 }
