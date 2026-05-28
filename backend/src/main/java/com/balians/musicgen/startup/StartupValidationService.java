@@ -89,7 +89,7 @@ public class StartupValidationService {
         }
         String trimmed = accessKey.trim();
         int prefixLength = Math.min(3, trimmed.length());
-        return trimmed.substring(0, prefixLength) + "...";
+        return trimmed.substring(0, prefixLength) + "***";
     }
 
     private void rejectLocalMongoUri(String uri) {
