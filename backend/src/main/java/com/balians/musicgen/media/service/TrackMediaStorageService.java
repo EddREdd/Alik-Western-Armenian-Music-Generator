@@ -182,15 +182,31 @@ public class TrackMediaStorageService {
     }
 
     private S3Client buildSpacesClient() {
+        String endpoint = normalizeSpacesEndpoint(mediaStorageProperties.getSpacesEndpoint());
         return S3Client.builder()
                 .region(Region.of(mediaStorageProperties.getSpacesRegion()))
-                .endpointOverride(URI.create(mediaStorageProperties.getSpacesEndpoint()))
+                .endpointOverride(URI.create(endpoint))
                 .forcePathStyle(true)
                 .credentialsProvider(StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(
                                 mediaStorageProperties.getSpacesAccessKey(),
                                 mediaStorageProperties.getSpacesSecretKey())))
                 .build();
+    }
+
+    private String normalizeSpacesEndpoint(String endpoint) {
+        if (!hasText(endpoint)) {
+            return endpoint;
+        }
+        String trimmed = endpoint.trim();
+        // MinIO console is usually on :9001; S3 API requests must go to :9000.
+        if (trimmed.matches("^https?://[^/]+:9001(/.*)?$")) {
+            String normalized = trimmed.replaceFirst(":9001", ":9000");
+            log.warn("MEDIA_STORAGE_SPACES_ENDPOINT points to MinIO console port (9001); using API port endpoint={}",
+                    normalized);
+            return normalized;
+        }
+        return trimmed;
     }
 
     private String buildSpacesPublicUrl(String key) {
