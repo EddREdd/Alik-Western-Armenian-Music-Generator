@@ -57,7 +57,7 @@ export function AppHeader({
             }`}
           >
             <Library className="h-4 w-4" />
-            Library
+            {t("library")}
           </button>
           <button
             onClick={() => onTabChange("lyrics")}
@@ -68,7 +68,7 @@ export function AppHeader({
             }`}
           >
             <FileText className="h-4 w-4" />
-            Lyrics
+            {t("lyrics")}
           </button>
           {showAdmin ? (
             <button
@@ -80,7 +80,7 @@ export function AppHeader({
               }`}
             >
               <Shield className="h-4 w-4" />
-              Admin
+              {t("admin")}
             </button>
           ) : null}
         </nav>
@@ -96,7 +96,7 @@ export function AppHeader({
             size="sm"
           >
             <Plus className="h-4 w-4" />
-            Create
+            {t("create")}
           </Button>
 
           {/* Credit Counter */}
@@ -111,10 +111,10 @@ export function AppHeader({
               value={uiLanguage}
               onChange={(e) => setStoredUiLanguage(e.target.value as "en" | "hyw")}
               className="h-9 rounded-md border border-primary-foreground/30 bg-primary-foreground/10 px-2 text-sm text-primary-foreground outline-none"
-              aria-label={t("english")}
+              aria-label={t("lyricsLanguage")}
             >
-              <option value="en">English</option>
-              <option value="hyw">Արեւմտահայերէն</option>
+              <option value="en">{t("english")}</option>
+              <option value="hyw">{t("westernArmenian")}</option>
             </select>
           </div>
 
@@ -137,7 +137,7 @@ export function AppHeader({
                 onClick={onLogout}
               >
                 <LogOut className="mr-2 h-4 w-4" />
-                Log Out
+                {t("logOut")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

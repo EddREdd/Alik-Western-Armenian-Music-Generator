@@ -12,6 +12,7 @@ import {
   loginWithGoogle,
   type AuthSession,
 } from "@/lib/auth-api"
+import { t, useUiLanguage } from "@/lib/i18n"
 
 interface RegisterPageProps {
   onRegisterComplete: (session: AuthSession) => void
@@ -19,6 +20,7 @@ interface RegisterPageProps {
 }
 
 export function RegisterPage({ onRegisterComplete, onSwitchToLogin }: RegisterPageProps) {
+  useUiLanguage()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -33,12 +35,12 @@ export function RegisterPage({ onRegisterComplete, onSwitchToLogin }: RegisterPa
     setError("")
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match")
+      setError(t("passwordMismatch"))
       return
     }
 
     if (password.length < 8) {
-      setError("Password must be at least 8 characters")
+      setError(t("passwordMin8Error"))
       return
     }
 
@@ -52,7 +54,7 @@ export function RegisterPage({ onRegisterComplete, onSwitchToLogin }: RegisterPa
       })
       onSwitchToLogin()
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Unable to register")
+      setError(submitError instanceof Error ? submitError.message : t("unableToRegister"))
     } finally {
       setIsLoading(false)
     }
@@ -65,7 +67,7 @@ export function RegisterPage({ onRegisterComplete, onSwitchToLogin }: RegisterPa
       <div className="mb-8">
         <Image
           src="/images/logo.png"
-          alt="Alik logo"
+          alt={t("alikLogoAlt")}
           width={160}
           height={53}
           className="h-12 w-auto object-contain"
@@ -76,9 +78,9 @@ export function RegisterPage({ onRegisterComplete, onSwitchToLogin }: RegisterPa
       {/* Card */}
       <div className="w-full max-w-md rounded-2xl bg-card p-8 shadow-xl">
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold text-foreground">Create Account</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t("createAccount")}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Join Alik and start creating Armenian music
+            {t("joinAndCreateMusic")}
           </p>
         </div>
 
@@ -92,14 +94,14 @@ export function RegisterPage({ onRegisterComplete, onSwitchToLogin }: RegisterPa
           {/* Email */}
           <div className="space-y-2">
             <Label htmlFor="email" className="text-sm font-medium text-foreground">
-              Email
+              {t("email")}
             </Label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="email"
                 type="email"
-                placeholder="Enter your email"
+                placeholder={t("enterEmail")}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="pl-10"
@@ -111,14 +113,14 @@ export function RegisterPage({ onRegisterComplete, onSwitchToLogin }: RegisterPa
           {/* Password */}
           <div className="space-y-2">
             <Label htmlFor="password" className="text-sm font-medium text-foreground">
-              Password
+              {t("password")}
             </Label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
-                placeholder="Create a password"
+                placeholder={t("createPassword")}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="pl-10 pr-10"
@@ -137,21 +139,21 @@ export function RegisterPage({ onRegisterComplete, onSwitchToLogin }: RegisterPa
               </button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Must be at least 8 characters
+              {t("mustBeAtLeast8Characters")}
             </p>
           </div>
 
           {/* Confirm Password */}
           <div className="space-y-2">
             <Label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
-              Confirm Password
+              {t("confirmPassword")}
             </Label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="confirmPassword"
                 type={showConfirmPassword ? "text" : "password"}
-                placeholder="Confirm your password"
+                placeholder={t("confirmYourPassword")}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="pl-10 pr-10"
@@ -174,14 +176,14 @@ export function RegisterPage({ onRegisterComplete, onSwitchToLogin }: RegisterPa
           {/* Invite Code */}
           <div className="space-y-2">
             <Label htmlFor="inviteCode" className="text-sm font-medium text-foreground">
-              Invite Code
+              {t("inviteCode")}
             </Label>
             <div className="relative">
               <Ticket className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="inviteCode"
                 type="text"
-                placeholder="Enter your invite code"
+                placeholder={t("enterInviteCode")}
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value)}
                 className="pl-10"
@@ -189,7 +191,7 @@ export function RegisterPage({ onRegisterComplete, onSwitchToLogin }: RegisterPa
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              You need an invite code to register
+              {t("youNeedInviteCode")}
             </p>
           </div>
 
@@ -199,14 +201,14 @@ export function RegisterPage({ onRegisterComplete, onSwitchToLogin }: RegisterPa
             className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90"
             disabled={isLoading}
           >
-            {isLoading ? "Creating account..." : "Create Account"}
+            {isLoading ? t("creatingAccount") : t("createAccountCta")}
           </Button>
         </form>
 
         {/* Divider */}
         <div className="my-6 flex items-center gap-4">
           <div className="h-px flex-1 bg-border" />
-          <span className="text-xs text-muted-foreground">or continue with</span>
+          <span className="text-xs text-muted-foreground">{t("orContinueWith")}</span>
           <div className="h-px flex-1 bg-border" />
         </div>
 
@@ -216,7 +218,7 @@ export function RegisterPage({ onRegisterComplete, onSwitchToLogin }: RegisterPa
           disabled={isLoading}
           onCredential={async (credential) => {
             if (!inviteCode.trim()) {
-              setError("Invite code is required for Google sign up")
+              setError(t("inviteCodeGoogleRequired"))
               return
             }
 
@@ -227,7 +229,7 @@ export function RegisterPage({ onRegisterComplete, onSwitchToLogin }: RegisterPa
               onRegisterComplete(session)
             } catch (googleError) {
               setError(
-                googleError instanceof Error ? googleError.message : "Google sign-up failed",
+                googleError instanceof Error ? googleError.message : t("googleSignUpFailed"),
               )
             } finally {
               setIsLoading(false)
@@ -237,20 +239,20 @@ export function RegisterPage({ onRegisterComplete, onSwitchToLogin }: RegisterPa
 
         {/* Switch to Login */}
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          Already have an account?{" "}
+          {t("accountAlreadyExists")}{" "}
           <button
             type="button"
             onClick={onSwitchToLogin}
             className="font-medium text-secondary hover:text-secondary/80 hover:underline"
           >
-            Sign in
+            {t("signInCta")}
           </button>
         </p>
       </div>
 
       {/* Footer */}
       <p className="mt-8 text-center text-xs text-primary-foreground/60">
-        Western Armenian Music Generator
+        {t("westernArmenianMusicGenerator")}
       </p>
     </div>
   )

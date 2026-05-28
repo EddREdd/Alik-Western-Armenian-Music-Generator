@@ -1,6 +1,7 @@
 "use client"
 
 import { Library, FileText, Plus, Shield } from "lucide-react"
+import { t, useUiLanguage } from "@/lib/i18n"
 
 interface BottomNavProps {
   activeTab: string
@@ -9,11 +10,12 @@ interface BottomNavProps {
 }
 
 export function BottomNav({ activeTab, onTabChange, showAdmin = false }: BottomNavProps) {
+  useUiLanguage()
   const items = [
-    { id: "library", label: "Library", icon: Library },
-    { id: "create", label: "Create", icon: Plus, accent: true },
-    { id: "lyrics", label: "Lyrics", icon: FileText },
-    ...(showAdmin ? [{ id: "admin", label: "Admin", icon: Shield }] : []),
+    { id: "library", label: t("library"), icon: Library },
+    { id: "create", label: t("create"), icon: Plus, accent: true },
+    { id: "lyrics", label: t("lyrics"), icon: FileText },
+    ...(showAdmin ? [{ id: "admin", label: t("admin"), icon: Shield }] : []),
   ]
 
   return (

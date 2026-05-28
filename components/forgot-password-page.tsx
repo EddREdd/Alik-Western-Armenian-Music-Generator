@@ -11,6 +11,7 @@ import {
   resetForgotPassword,
   verifyForgotPasswordCode,
 } from "@/lib/auth-api"
+import { t, useUiLanguage } from "@/lib/i18n"
 
 interface ForgotPasswordPageProps {
   onBackToLogin: () => void
@@ -19,6 +20,7 @@ interface ForgotPasswordPageProps {
 type ForgotStep = "request" | "verify" | "reset"
 
 export function ForgotPasswordPage({ onBackToLogin }: ForgotPasswordPageProps) {
+  useUiLanguage()
   const [step, setStep] = useState<ForgotStep>("request")
   const [email, setEmail] = useState("")
   const [code, setCode] = useState("")
@@ -40,9 +42,9 @@ export function ForgotPasswordPage({ onBackToLogin }: ForgotPasswordPageProps) {
       setCode("")
       setResetToken("")
       setStep("verify")
-      setSuccess("Code sent. Check your email.")
+      setSuccess(t("codeSent"))
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Unable to send code")
+      setError(requestError instanceof Error ? requestError.message : t("unableToSendCode"))
     } finally {
       setIsLoading(false)
     }
@@ -56,12 +58,12 @@ export function ForgotPasswordPage({ onBackToLogin }: ForgotPasswordPageProps) {
       const token = await verifyForgotPasswordCode(email, code)
       setResetToken(token)
       setStep("reset")
-      setSuccess("Code verified. Set your new password.")
+      setSuccess(t("codeVerified"))
     } catch (verifyError) {
       setError(
         verifyError instanceof Error
           ? verifyError.message
-          : "Wrong code, please click resend for a new one",
+          : t("wrongCodeResend"),
       )
     } finally {
       setIsLoading(false)
@@ -79,12 +81,12 @@ export function ForgotPasswordPage({ onBackToLogin }: ForgotPasswordPageProps) {
         newPassword,
         confirmPassword,
       })
-      setSuccess("Password changed successfully. Redirecting to login...")
+      setSuccess(t("passwordChangedRedirecting"))
       setTimeout(() => {
         onBackToLogin()
       }, 700)
     } catch (resetError) {
-      setError(resetError instanceof Error ? resetError.message : "Unable to reset password")
+      setError(resetError instanceof Error ? resetError.message : t("unableToResetPassword"))
     } finally {
       setIsLoading(false)
     }
@@ -95,7 +97,7 @@ export function ForgotPasswordPage({ onBackToLogin }: ForgotPasswordPageProps) {
       <div className="mb-8">
         <Image
           src="/images/logo.png"
-          alt="Alik logo"
+          alt={t("alikLogoAlt")}
           width={160}
           height={53}
           className="h-12 w-auto object-contain"
@@ -105,11 +107,11 @@ export function ForgotPasswordPage({ onBackToLogin }: ForgotPasswordPageProps) {
 
       <div className="w-full max-w-md rounded-2xl bg-card p-8 shadow-xl">
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold text-foreground">Forgot Password</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t("forgotPassword")}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {step === "request" && "Enter your account email to receive a reset code"}
-            {step === "verify" && "Enter the 5-digit code sent to your email"}
-            {step === "reset" && "Set your new password"}
+            {step === "request" && t("enterAccountEmailResetCode")}
+            {step === "verify" && t("enter5DigitCode")}
+            {step === "reset" && t("setNewPassword")}
           </p>
         </div>
 
@@ -124,14 +126,14 @@ export function ForgotPasswordPage({ onBackToLogin }: ForgotPasswordPageProps) {
           {(step === "request" || step === "verify" || step === "reset") && (
             <div className="space-y-2">
               <Label htmlFor="fp-email" className="text-sm font-medium text-foreground">
-                Email
+                {t("email")}
               </Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="fp-email"
                   type="email"
-                  placeholder="Enter your email"
+                  placeholder={t("enterEmail")}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
@@ -145,13 +147,13 @@ export function ForgotPasswordPage({ onBackToLogin }: ForgotPasswordPageProps) {
           {step === "verify" || step === "reset" ? (
             <div className="space-y-2">
               <Label htmlFor="fp-code" className="text-sm font-medium text-foreground">
-                Verification Code
+                {t("verificationCode")}
               </Label>
               <Input
                 id="fp-code"
                 type="text"
                 inputMode="numeric"
-                placeholder="Enter 5-digit code"
+                placeholder={t("enter5DigitCode")}
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 5))}
                 className="text-center tracking-[0.35em] text-lg"
@@ -164,14 +166,14 @@ export function ForgotPasswordPage({ onBackToLogin }: ForgotPasswordPageProps) {
             <>
               <div className="space-y-2">
                 <Label htmlFor="fp-new-password" className="text-sm font-medium text-foreground">
-                  New Password
+                  {t("newPassword")}
                 </Label>
                 <div className="relative">
                   <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="fp-new-password"
                     type={showNewPassword ? "text" : "password"}
-                    placeholder="Enter new password"
+                    placeholder={t("enterNewPassword")}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     className="pl-10 pr-10"
@@ -189,14 +191,14 @@ export function ForgotPasswordPage({ onBackToLogin }: ForgotPasswordPageProps) {
 
               <div className="space-y-2">
                 <Label htmlFor="fp-confirm-password" className="text-sm font-medium text-foreground">
-                  Confirm Password
+                  {t("confirmPassword")}
                 </Label>
                 <div className="relative">
                   <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="fp-confirm-password"
                     type={showConfirmPassword ? "text" : "password"}
-                    placeholder="Confirm new password"
+                    placeholder={t("confirmNewPassword")}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="pl-10 pr-10"
@@ -224,7 +226,7 @@ export function ForgotPasswordPage({ onBackToLogin }: ForgotPasswordPageProps) {
               disabled={isLoading || !email.trim()}
               onClick={() => void handleSendCode()}
             >
-              {isLoading ? "Sending..." : "Send Code"}
+              {isLoading ? t("sending") : t("sendCode")}
             </Button>
           ) : null}
 
@@ -235,7 +237,7 @@ export function ForgotPasswordPage({ onBackToLogin }: ForgotPasswordPageProps) {
                 disabled={isLoading || code.length !== 5}
                 onClick={() => void handleVerifyCode()}
               >
-                {isLoading ? "Verifying..." : "Verify Code"}
+                {isLoading ? t("verifying") : t("verifyCode")}
               </Button>
               <Button
                 variant="outline"
@@ -243,7 +245,7 @@ export function ForgotPasswordPage({ onBackToLogin }: ForgotPasswordPageProps) {
                 disabled={isLoading}
                 onClick={() => void handleSendCode()}
               >
-                {isLoading ? "Sending..." : "Resend Code"}
+                {isLoading ? t("sending") : t("resendCode")}
               </Button>
             </>
           ) : null}
@@ -254,7 +256,7 @@ export function ForgotPasswordPage({ onBackToLogin }: ForgotPasswordPageProps) {
               disabled={isLoading || !newPassword || !confirmPassword || !resetToken}
               onClick={() => void handleResetPassword()}
             >
-              {isLoading ? "Saving..." : "Change Password"}
+              {isLoading ? t("saving") : t("changePasswordButton")}
             </Button>
           ) : null}
         </div>
@@ -265,12 +267,12 @@ export function ForgotPasswordPage({ onBackToLogin }: ForgotPasswordPageProps) {
           className="mt-6 flex items-center justify-center gap-1 text-sm text-muted-foreground hover:text-foreground mx-auto"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to login
+          {t("backToLogin")}
         </button>
       </div>
 
       <p className="mt-8 text-center text-xs text-primary-foreground/60">
-        Western Armenian Music Generator
+        {t("westernArmenianMusicGenerator")}
       </p>
     </div>
   )

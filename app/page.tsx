@@ -31,6 +31,7 @@ import {
   submitGenerationJob,
   type GenerationJob,
 } from "@/lib/musicgen-api"
+import { t, useUiLanguage, type UiLanguage } from "@/lib/i18n"
 
 const configuredBackendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL?.trim() || ""
 const backendBaseUrl = configuredBackendBaseUrl.replace(/\/+$/, "")
@@ -120,7 +121,7 @@ function buildPlaybackCandidates(song: Song): string[] {
   return [...new Set(expanded)]
 }
 
-function mapJobToSongs(job: GenerationJob): Song[] {
+function mapJobToSongs(job: GenerationJob, uiLanguage: UiLanguage): Song[] {
   const tracks = [...(job.tracks ?? [])].sort((left, right) => {
     const leftIndex = left.trackIndex ?? 0
     const rightIndex = right.trackIndex ?? 0
@@ -128,9 +129,9 @@ function mapJobToSongs(job: GenerationJob): Song[] {
   })
   const createdAt = job.createdAt
     ? new Date(job.createdAt).toLocaleString()
-    : "Just now"
+    : t("justNow", uiLanguage)
 
-  const baseTitle = job.titleFinal?.trim() || "Untitled Song"
+  const baseTitle = job.titleFinal?.trim() || t("untitledSong", uiLanguage)
 
   if (tracks.length === 0) {
     let fallbackStatus: Song["status"] = "generating"
@@ -144,7 +145,7 @@ function mapJobToSongs(job: GenerationJob): Song[] {
         id: job.id,
         generationJobId: job.id,
         title: baseTitle,
-        genre: job.styleFinal?.split(",")[0]?.trim() || job.model || "Generated",
+        genre: job.styleFinal?.split(",")[0]?.trim() || job.model || t("generated", uiLanguage),
         duration: "--:--",
         createdAt,
         status: fallbackStatus,
@@ -179,13 +180,13 @@ function mapJobToSongs(job: GenerationJob): Song[] {
       ? track.durationSeconds % 60
       : 0
     const versionIndex = track.trackIndex ?? index + 1
-    const variantBaseTitle = job.titleFinal?.trim() || "Untitled Song"
+    const variantBaseTitle = job.titleFinal?.trim() || t("untitledSong", uiLanguage)
 
     return {
       id: `${job.id}:${track.id ?? track.providerMusicId ?? versionIndex}`,
       generationJobId: job.id,
       title: `${variantBaseTitle} (V${versionIndex})`,
-      genre: job.styleFinal?.split(",")[0]?.trim() || job.model || "Generated",
+      genre: job.styleFinal?.split(",")[0]?.trim() || job.model || t("generated", uiLanguage),
       duration: track.durationSeconds
         ? `${minutes}:${String(seconds).padStart(2, "0")}`
         : "--:--",
@@ -202,6 +203,7 @@ function mapJobToSongs(job: GenerationJob): Song[] {
 }
 
 export default function Home() {
+  const uiLanguage = useUiLanguage()
   const [authView, setAuthView] = useState<"login" | "register" | "forgot-password" | "app">("login")
   const [authLoading, setAuthLoading] = useState(true)
   const [sessionToken, setSessionToken] = useState<string | null>(null)
@@ -269,8 +271,8 @@ export default function Home() {
   }, [backendJobs])
 
   useEffect(() => {
-    setGeneratedSongs(backendJobs.flatMap(mapJobToSongs))
-  }, [backendJobs])
+    setGeneratedSongs(backendJobs.flatMap((job) => mapJobToSongs(job, uiLanguage)))
+  }, [backendJobs, uiLanguage])
 
   useEffect(() => {
     void refreshAllJobs()
@@ -591,7 +593,7 @@ export default function Home() {
         })
       } catch (error) {
         setGenerationError(
-          error instanceof Error ? error.message : "Failed to create generation job",
+          error instanceof Error ? error.message : t("unableToCreateGenerationJob"),
         )
       } finally {
         setIsGenerating(false)
@@ -608,7 +610,7 @@ export default function Home() {
     storeSessionToken(session.sessionToken)
     setSessionToken(session.sessionToken)
     setCurrentUser(session.user)
-    const loginSongs = (session.songs ?? []).flatMap(mapJobToSongs)
+    const loginSongs = (session.songs ?? []).flatMap((job) => mapJobToSongs(job, uiLanguage))
     if (session.songs && session.songs.length > 0) {
       setBackendJobs(
         [...session.songs].sort((left, right) => {
@@ -625,7 +627,7 @@ export default function Home() {
     )
     if (mostRecent) loadSongWithoutPlaying(mostRecent)
     setAuthView("app")
-  }, [loadSongWithoutPlaying])
+  }, [loadSongWithoutPlaying, uiLanguage])
 
   const handleLogout = useCallback(() => {
     // Make sign-out instant on the client; backend invalidation runs in background.
@@ -640,7 +642,7 @@ export default function Home() {
   }, [sessionToken])
 
   if (authLoading) {
-    return <div className="flex min-h-screen items-center justify-center bg-background text-foreground">Loading...</div>
+    return <div className="flex min-h-screen items-center justify-center bg-background text-foreground">{t("loading")}</div>
   }
 
   // Auth views
@@ -690,7 +692,7 @@ export default function Home() {
         showAdmin={Boolean(currentUser?.admin)}
         creditsLabel={
           currentUser?.unlimitedCredits
-            ? "Unlimited"
+            ? t("unlimited")
             : String(currentUser?.creditsRemaining ?? 0)
         }
       />

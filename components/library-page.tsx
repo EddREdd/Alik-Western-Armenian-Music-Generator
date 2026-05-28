@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import type { Song } from "@/components/song-library-panel"
 import { SongDetailPage, type SongDetail } from "@/components/song-detail-page"
+import { t, useUiLanguage } from "@/lib/i18n"
 
 export type LibrarySong = Song
 
@@ -56,6 +57,7 @@ export function LibraryPage({
   initialSelectedSongId,
   onClearInitialSong,
 }: LibraryPageProps) {
+  useUiLanguage()
   const [search, setSearch] = useState("")
   const [selectedSongId, setSelectedSongId] = useState<string | null>(initialSelectedSongId ?? null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -119,17 +121,17 @@ export function LibraryPage({
         <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-xl font-bold tracking-wide text-foreground lg:text-2xl">
-              Song Library
+              {t("songLibrary")}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              All your generated songs in one place
+              {t("allGeneratedSongs")}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <div className="relative flex-1 lg:flex-none">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search songs..."
+                placeholder={t("searchSongs")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-9 lg:w-64"
@@ -137,7 +139,7 @@ export function LibraryPage({
             </div>
             <Button variant="outline" size="sm" className="hidden gap-1.5 lg:flex">
               <Filter className="h-3.5 w-3.5" />
-              Filter
+              {t("filter")}
             </Button>
           </div>
         </div>
@@ -211,7 +213,7 @@ export function LibraryPage({
                       }}
                     >
                       <Download className="mr-2 h-4 w-4" />
-                      Download
+                      {t("download")}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="text-destructive"
@@ -222,7 +224,7 @@ export function LibraryPage({
                       }}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
+                      {t("delete")}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -232,8 +234,8 @@ export function LibraryPage({
             {filtered.length === 0 ? (
               <div className="flex flex-col items-center py-16 text-center">
                 <Music className="h-12 w-12 text-muted-foreground/40" />
-                <p className="mt-4 font-semibold text-foreground">No songs found</p>
-                <p className="mt-1 text-sm text-muted-foreground">Generate a song to see it here</p>
+                <p className="mt-4 font-semibold text-foreground">{t("noSongsFound")}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{t("generateSongToSeeItHere")}</p>
               </div>
             ) : null}
           </div>
@@ -243,18 +245,18 @@ export function LibraryPage({
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Song</AlertDialogTitle>
+            <AlertDialogTitle>{t("deleteSong")}</AlertDialogTitle>
             <AlertDialogDescription>
-              This removes the song from your library view, but keeps the original cloud asset for admin and audit purposes.
+              {t("deleteSongLibraryDescription")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => void confirmDelete()}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {t("delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

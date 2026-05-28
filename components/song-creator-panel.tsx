@@ -48,7 +48,7 @@ export function SongCreatorPanel({
   }
 
   const handleGenerate = () => {
-    const normalizedTitle = title.trim() || "Untitled Song"
+    const normalizedTitle = title.trim() || t("songTitle")
     const trimmedLyrics = lyrics.trim()
     if (!stylePrompt.trim()) return
     if (trimmedLyrics.length < 50) return
@@ -72,7 +72,7 @@ export function SongCreatorPanel({
           {t("createNewSong")}
         </h2>
         <p className="mt-0.5 text-sm text-muted-foreground">
-          Add your lyrics and describe the style you want
+          {t("writeLyricsAndDescribeStyle")}
         </p>
       </div>
 
@@ -85,7 +85,7 @@ export function SongCreatorPanel({
             </Label>
             <Input
               id="title"
-              placeholder="Give your song a name..."
+              placeholder={t("songTitlePlaceholder")}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="border-border bg-card text-foreground placeholder:text-muted-foreground"
@@ -122,7 +122,7 @@ export function SongCreatorPanel({
             <Textarea
               id="lyrics"
               placeholder={
-                `[Verse 1]\nWrite your first verse...\n\n[Chorus]\nWrite your chorus...`
+                t("writeLyricsPlaceholder")
               }
               value={lyrics}
               onChange={(e) => {
@@ -136,7 +136,7 @@ export function SongCreatorPanel({
             />
             <div className="flex items-center justify-between gap-3 text-xs">
               <p className="text-muted-foreground">
-                {lyricCharCount}/50 characters minimum
+                {t("charactersMinimum", { count: lyricCharCount })}
               </p>
               {!lyricIsValid && lyricCharCount > 0 ? (
                 <p className="text-destructive">{t("lyricsMinChars")}</p>
@@ -144,7 +144,7 @@ export function SongCreatorPanel({
             </div>
             {selectedLyricId ? (
               <p className="text-xs text-secondary">
-                Using saved lyric {selectedLyricLocked ? "(locked)" : ""}. Editing the text will create a new lyric entry.
+                {t("usingSavedLyric", { locked: selectedLyricLocked ? ` (${t("locked")})` : "" })}
               </p>
             ) : null}
           </div>
@@ -156,7 +156,7 @@ export function SongCreatorPanel({
             </Label>
             <Textarea
               id="prompt"
-              placeholder="Describe the style, genre, mood, instruments, tempo, etc. Example: Upbeat indie pop with acoustic guitar, warm vocals, 120 BPM"
+              placeholder={t("stylePromptPlaceholder")}
               value={stylePrompt}
               onChange={(e) => setStylePrompt(e.target.value)}
               className="min-h-[100px] resize-none border-border bg-card text-sm text-foreground placeholder:text-muted-foreground"
@@ -187,7 +187,7 @@ export function SongCreatorPanel({
           {isGenerating ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              Generating...
+              {t("generatingEllipsis")}
             </>
           ) : (
             <>
