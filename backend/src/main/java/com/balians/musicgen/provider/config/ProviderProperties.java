@@ -20,4 +20,6 @@ public class ProviderProperties {
 
     @NotBlank
     private String callbackBaseUrl;
+
+    private ProviderSunoProperties suno = new ProviderSunoProperties();
 }

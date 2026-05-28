@@ -61,6 +61,7 @@ class GenerationSubmissionServiceTest {
         when(featureFlagsProperties.isProviderSubmissionEnabled()).thenReturn(true);
         when(providerProperties.getCallbackBaseUrl()).thenReturn("http://localhost:8080");
         when(westernArmenianLyricsTransformer.transform("բձգճդպծջկտ")).thenReturn("փցքջթբձչգդ");
+        when(providerSubmissionValidator.toProviderModel(GenerationModel.V5_5)).thenReturn("V5_5");
         when(sunoClient.submitGeneration(any())).thenReturn(new SunoGenerateResponse(200, "ok", new SunoGenerateResponseData("task-123")));
         when(generationJobRepository.save(any(GenerationJob.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -76,7 +77,7 @@ class GenerationSubmissionServiceTest {
                 "փցքջթբձչգդ",
                 true,
                 false,
-                null,
+                "V5_5",
                 "style",
                 "title",
                 "http://localhost:8080/api/v1/integrations/suno/callback"
@@ -114,7 +115,7 @@ class GenerationSubmissionServiceTest {
                 .titleFinal("title")
                 .customMode(true)
                 .instrumental(false)
-                .model(GenerationModel.V4)
+                .model(GenerationModel.V5_5)
                 .build();
     }
 }

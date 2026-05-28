@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { setStoredUiLanguage, useUiLanguage, t } from "@/lib/i18n"
 
 interface AppHeaderProps {
   activeTab: string
@@ -27,6 +28,8 @@ export function AppHeader({
   creditsLabel = "0",
   showAdmin = false,
 }: AppHeaderProps) {
+  const uiLanguage = useUiLanguage()
+
   return (
     <header className="bg-primary text-primary-foreground">
       <div className="flex items-center justify-between px-6 py-3">
@@ -100,6 +103,19 @@ export function AppHeader({
           <div className="flex items-center gap-1.5 rounded-full bg-primary-foreground/10 px-3 py-1.5">
             <Coins className="h-4 w-4 text-secondary" />
             <span className="text-sm font-semibold text-primary-foreground">{creditsLabel}</span>
+          </div>
+
+          {/* UI language switcher */}
+          <div className="hidden items-center lg:flex">
+            <select
+              value={uiLanguage}
+              onChange={(e) => setStoredUiLanguage(e.target.value as "en" | "hyw")}
+              className="h-9 rounded-md border border-primary-foreground/30 bg-primary-foreground/10 px-2 text-sm text-primary-foreground outline-none"
+              aria-label={t("english")}
+            >
+              <option value="en">English</option>
+              <option value="hyw">Արեւմտահայերէն</option>
+            </select>
           </div>
 
           <DropdownMenu>

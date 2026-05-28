@@ -1,6 +1,6 @@
 const internalBackendUrl =
   process.env.INTERNAL_BACKEND_URL?.replace(/\/+$/, "") ||
-  "http://alik-app-mw9ydy-0d3794-95-140-192-45.traefik.me"
+  "http://localhost:8080"
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {

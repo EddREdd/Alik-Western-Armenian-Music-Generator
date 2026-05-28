@@ -122,6 +122,52 @@ export interface AdminLyricSummary {
   locked: boolean
   linkedSongIds: string[]
   updatedAt: string | null
+  language?: string
+  publicReadyLibrary?: boolean
+}
+
+export interface AdminReadyLibraryLyricSummary {
+  id: string
+  title: string
+  bodyPreview: string
+  language: string
+  currentVersion: number
+  createdByAdminUserId: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AdminReadyLibraryLyricVersion {
+  versionNumber: number
+  title: string
+  body: string
+  editedAt: string
+}
+
+export interface AdminReadyLibraryLyricDetail {
+  id: string
+  projectId: string
+  title: string
+  body: string
+  language: string
+  currentVersion: number
+  createdByAdminUserId: string
+  sourceLyricId: string
+  versions: AdminReadyLibraryLyricVersion[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateReadyLibraryLyricRequest {
+  title: string
+  body: string
+  language: string
+}
+
+export interface UpdateReadyLibraryLyricRequest {
+  title: string
+  body: string
+  language: string
 }
 
 export interface AdminSongSummary {
@@ -233,6 +279,43 @@ export async function sendInviteCodeEmail(
 export async function listAdminLyrics(keyword?: string): Promise<AdminLyricSummary[]> {
   const query = keyword ? `?keyword=${encodeURIComponent(keyword)}` : ""
   return adminRequest(`/api/v1/admin/lyrics${query}`)
+}
+
+export async function listAdminReadyLibrary(params?: { keyword?: string; language?: string }): Promise<AdminReadyLibraryLyricSummary[]> {
+  const search = new URLSearchParams()
+  if (params?.keyword) search.set("keyword", params.keyword)
+  if (params?.language) search.set("language", params.language)
+  const query = search.toString()
+  return adminRequest(`/api/v1/admin/ready-library${query ? `?${query}` : ""}`)
+}
+
+export async function getAdminReadyLibraryLyric(id: string): Promise<AdminReadyLibraryLyricDetail> {
+  return adminRequest(`/api/v1/admin/ready-library/${encodeURIComponent(id)}`)
+}
+
+export async function createAdminReadyLibraryLyric(
+  payload: CreateReadyLibraryLyricRequest,
+): Promise<AdminReadyLibraryLyricDetail> {
+  return adminRequest("/api/v1/admin/ready-library", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function updateAdminReadyLibraryLyric(
+  id: string,
+  payload: UpdateReadyLibraryLyricRequest,
+): Promise<AdminReadyLibraryLyricDetail> {
+  return adminRequest(`/api/v1/admin/ready-library/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function deleteAdminReadyLibraryLyric(id: string): Promise<void> {
+  await adminRequest<string>(`/api/v1/admin/ready-library/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  })
 }
 
 export async function listAdminSongs(keyword?: string): Promise<AdminSongSummary[]> {

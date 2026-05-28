@@ -10,32 +10,56 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Label } from "@/components/ui/label"
 import { useEffect, useMemo, useState } from "react"
-import { getLyric, listLyrics, type Lyric, type LyricSummary } from "@/lib/lyrics-api"
+import {
+  getLyric,
+  getPublicLyric,
+  listMyLyrics,
+  listPublicLyrics,
+  type Lyric,
+  type LyricSummary,
+} from "@/lib/lyrics-api"
+import { type LyricContentLanguage, t, useUiLanguage } from "@/lib/i18n"
 
 interface LyricsImportDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSelect: (lyric: Lyric) => void
-  projectId: string
+  onSelect: (lyric: Lyric, source: "my" | "public") => void
+  source: "my" | "public"
+  defaultPublicLanguage?: LyricContentLanguage
 }
 
 export function LyricsImportDialog({
   open,
   onOpenChange,
   onSelect,
-  projectId,
+  source,
+  defaultPublicLanguage = "WESTERN_ARMENIAN",
 }: LyricsImportDialogProps) {
+  useUiLanguage()
   const [search, setSearch] = useState("")
   const [lyrics, setLyrics] = useState<LyricSummary[]>([])
   const [error, setError] = useState("")
+  const [publicLanguageFilter, setPublicLanguageFilter] = useState<
+    "ALL" | LyricContentLanguage
+  >("ALL")
 
   useEffect(() => {
-    if (!open || !projectId.trim()) {
+    if (!open) {
       return
     }
 
-    void listLyrics(projectId)
+    const keyword = search.trim()
+    const loader =
+      source === "my"
+        ? listMyLyrics()
+        : listPublicLyrics({
+            keyword: keyword || undefined,
+            language: publicLanguageFilter === "ALL" ? undefined : publicLanguageFilter,
+          })
+
+    void loader
       .then((items) => {
         setLyrics(items)
         setError("")
@@ -43,7 +67,14 @@ export function LyricsImportDialog({
       .catch((loadError) => {
         setError(loadError instanceof Error ? loadError.message : "Unable to load lyrics")
       })
-  }, [open, projectId])
+  }, [open, source, search, publicLanguageFilter])
+
+  useEffect(() => {
+    if (!open) return
+    if (source === "public") {
+      setPublicLanguageFilter(defaultPublicLanguage)
+    }
+  }, [open, source, defaultPublicLanguage])
 
   const filtered = useMemo(() => {
     const query = search.toLowerCase().trim()
@@ -70,15 +101,36 @@ export function LyricsImportDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle className="text-foreground">Import from Lyrics Library</DialogTitle>
+          <DialogTitle className="text-foreground">
+            {source === "my" ? t("importFromMyLyrics") : t("importFromPublicLyrics")}
+          </DialogTitle>
           <DialogDescription className="text-muted-foreground">
-            Select lyrics from your saved collection to use in your song.
+            {source === "my"
+              ? "Select lyrics from your saved collection to use in your song."
+              : `Select lyrics from the public ${t("readyLibrary")} to use in your song.`}
           </DialogDescription>
         </DialogHeader>
+        {source === "public" ? (
+          <div className="flex items-center gap-3 pb-2">
+            <Label className="text-xs text-muted-foreground" htmlFor="public-language-filter">
+              {t("readyLibrary")}
+            </Label>
+            <select
+              id="public-language-filter"
+              value={publicLanguageFilter}
+              onChange={(e) => setPublicLanguageFilter(e.target.value as "ALL" | LyricContentLanguage)}
+              className="h-9 flex-1 rounded-md border border-border bg-card px-2 text-sm text-foreground"
+            >
+              <option value="ALL">All</option>
+              <option value="ENGLISH">{t("english")}</option>
+              <option value="WESTERN_ARMENIAN">{t("westernArmenian")}</option>
+            </select>
+          </div>
+        ) : null}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search your lyrics..."
+            placeholder={source === "my" ? "Search your lyrics..." : "Search public lyrics..."}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -91,8 +143,11 @@ export function LyricsImportDialog({
                 key={item.id}
                 onClick={async () => {
                   try {
-                    const lyric = await getLyric(item.id)
-                    onSelect(lyric)
+                    const lyric =
+                      source === "my"
+                        ? await getLyric(item.id)
+                        : await getPublicLyric(item.id)
+                    onSelect(lyric, source)
                     onOpenChange(false)
                   } catch (selectError) {
                     setError(
@@ -114,7 +169,7 @@ export function LyricsImportDialog({
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground/60">
                     {item.wordCount} words
-                    {item.locked ? " • Locked" : ""}
+                    {source === "my" && item.locked ? " • Locked" : ""}
                   </p>
                 </div>
               </button>

@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
 import {
   activateInviteCode,
   deactivateInviteCode,
@@ -13,18 +16,26 @@ import {
   generateInviteCodes,
   getAdminDashboard,
   listAdminLyrics,
+  listAdminReadyLibrary,
   listAdminSongs,
   listAdminUsers,
   listInviteCodes,
+  createAdminReadyLibraryLyric,
+  deleteAdminReadyLibraryLyric,
+  getAdminReadyLibraryLyric,
+  updateAdminReadyLibraryLyric,
   removeInviteCode,
   sendInviteCodeEmail,
   unfreezeUser,
   type AdminDashboard,
   type AdminInviteCode,
   type AdminLyricSummary,
+  type AdminReadyLibraryLyricDetail,
+  type AdminReadyLibraryLyricSummary,
   type AdminSongSummary,
   type AdminUserSummary,
 } from "@/lib/admin-api"
+import { t, useUiLanguage, type LyricContentLanguage } from "@/lib/i18n"
 
 const PAGE_SIZE = 25
 const configuredBackendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL?.trim() || ""
@@ -169,10 +180,23 @@ function PaginationControls({
 }
 
 export function AdminPage() {
+  useUiLanguage()
+  const [adminTab, setAdminTab] = useState<"users" | "invites" | "lyrics" | "ready-library" | "songs">("users")
   const [dashboard, setDashboard] = useState<AdminDashboard | null>(null)
   const [users, setUsers] = useState<AdminUserSummary[]>([])
   const [invites, setInvites] = useState<AdminInviteCode[]>([])
   const [lyrics, setLyrics] = useState<AdminLyricSummary[]>([])
+  const [readyLibraryKeyword, setReadyLibraryKeyword] = useState("")
+  const [readyLibraryLanguageFilter, setReadyLibraryLanguageFilter] = useState<"ALL" | LyricContentLanguage>("ALL")
+  const [readyLibrary, setReadyLibrary] = useState<AdminReadyLibraryLyricSummary[]>([])
+  const [readyLibraryLoading, setReadyLibraryLoading] = useState(false)
+  const [readyLibrarySaving, setReadyLibrarySaving] = useState(false)
+  const [readyLibraryError, setReadyLibraryError] = useState("")
+  const [readyLibraryDialogOpen, setReadyLibraryDialogOpen] = useState(false)
+  const [readyLibraryEditingId, setReadyLibraryEditingId] = useState<string | null>(null)
+  const [readyLibraryTitle, setReadyLibraryTitle] = useState("")
+  const [readyLibraryBody, setReadyLibraryBody] = useState("")
+  const [readyLibraryLanguage, setReadyLibraryLanguage] = useState<LyricContentLanguage>("WESTERN_ARMENIAN")
   const [songs, setSongs] = useState<AdminSongSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -218,6 +242,105 @@ export function AdminPage() {
   useEffect(() => {
     void loadAll()
   }, [])
+
+  const loadReadyLibrary = async () => {
+    setReadyLibraryLoading(true)
+    setReadyLibraryError("")
+    try {
+      const items = await listAdminReadyLibrary({
+        keyword: readyLibraryKeyword || undefined,
+        language: readyLibraryLanguageFilter === "ALL" ? undefined : readyLibraryLanguageFilter,
+      })
+      setReadyLibrary(items)
+    } catch (loadError) {
+      setReadyLibraryError(
+        loadError instanceof Error ? loadError.message : "Failed to load Ready Library",
+      )
+    } finally {
+      setReadyLibraryLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (adminTab !== "ready-library") return
+    void loadReadyLibrary()
+  }, [adminTab, readyLibraryKeyword, readyLibraryLanguageFilter])
+
+  const openCreateReadyLibrary = () => {
+    setReadyLibraryEditingId(null)
+    setReadyLibraryTitle("")
+    setReadyLibraryBody("")
+    setReadyLibraryLanguage("WESTERN_ARMENIAN")
+    setReadyLibraryDialogOpen(true)
+  }
+
+  const openEditReadyLibrary = async (id: string) => {
+    setReadyLibraryError("")
+    try {
+      const detail = await getAdminReadyLibraryLyric(id)
+      setReadyLibraryEditingId(id)
+      setReadyLibraryTitle(detail.title ?? "")
+      setReadyLibraryBody(detail.body ?? "")
+      setReadyLibraryLanguage(detail.language as LyricContentLanguage)
+      setReadyLibraryDialogOpen(true)
+    } catch (loadError) {
+      setReadyLibraryError(loadError instanceof Error ? loadError.message : "Unable to load lyric")
+    }
+  }
+
+  const handleSaveReadyLibrary = async () => {
+    setReadyLibraryError("")
+    setReadyLibrarySaving(true)
+    try {
+      if (readyLibraryLanguage == null) {
+        setReadyLibraryError("Language is required")
+        return
+      }
+
+      const payload = {
+        title: readyLibraryTitle.trim(),
+        body: readyLibraryBody,
+        language: readyLibraryLanguage,
+      }
+
+      if (!payload.title || !payload.body.trim()) {
+        setReadyLibraryError("Title and body are required")
+        return
+      }
+
+      if (readyLibraryEditingId) {
+        await updateAdminReadyLibraryLyric(readyLibraryEditingId, payload)
+      } else {
+        await createAdminReadyLibraryLyric(payload)
+      }
+
+      setReadyLibraryDialogOpen(false)
+      await loadReadyLibrary()
+    } catch (saveError) {
+      setReadyLibraryError(saveError instanceof Error ? saveError.message : "Unable to save lyric")
+    } finally {
+      setReadyLibrarySaving(false)
+    }
+  }
+
+  const handleDeleteReadyLibrary = async (id: string) => {
+    setReadyLibraryError("")
+    setReadyLibrarySaving(true)
+    const confirmed = window.confirm("Delete this Ready Library lyric?")
+    if (!confirmed) return
+    try {
+      await deleteAdminReadyLibraryLyric(id)
+      await loadReadyLibrary()
+      if (readyLibraryEditingId === id) {
+        setReadyLibraryDialogOpen(false)
+        setReadyLibraryEditingId(null)
+      }
+    } catch (deleteError) {
+      setReadyLibraryError(deleteError instanceof Error ? deleteError.message : "Unable to delete lyric")
+    } finally {
+      setReadyLibrarySaving(false)
+    }
+  }
 
   const filteredUsers = useMemo(
     () => users.filter((user) => !userSearch || user.email.toLowerCase().includes(userSearch.toLowerCase())),
@@ -415,11 +538,12 @@ export function AdminPage() {
           </>
         ) : null}
 
-        <Tabs defaultValue="users" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+        <Tabs value={adminTab} onValueChange={(value) => setAdminTab(value as typeof adminTab)} className="w-full">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="invites">Invites</TabsTrigger>
             <TabsTrigger value="lyrics">Lyrics Audit</TabsTrigger>
+            <TabsTrigger value="ready-library">Ready Library</TabsTrigger>
             <TabsTrigger value="songs">Song Audit</TabsTrigger>
           </TabsList>
 
@@ -617,20 +741,151 @@ export function AdminPage() {
                 <CardDescription>Full lyric inventory with keyword filtering and lock visibility.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Input value={lyricSearch} onChange={(event) => setLyricSearch(event.target.value)} placeholder="Search title or lyric text" />
+                <Input
+                  value={lyricSearch}
+                  onChange={(event) => setLyricSearch(event.target.value)}
+                  placeholder="Search title or lyric text"
+                />
                 <div className="space-y-3">
                   {pagedLyrics.map((lyric) => (
                     <div key={lyric.id} className="rounded-xl border p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="font-medium">{lyric.title}</div>
-                        {lyric.locked ? <span className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">Locked</span> : null}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="font-medium truncate">{lyric.title}</div>
+                          {lyric.language ? (
+                            <div className="mt-1 text-xs text-muted-foreground">Language: {lyric.language}</div>
+                          ) : null}
+                          {typeof lyric.publicReadyLibrary === "boolean" ? (
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              {lyric.publicReadyLibrary ? "Public" : "Private"}
+                            </div>
+                          ) : null}
+                          {lyric.locked ? (
+                            <div className="mt-2">
+                              <span className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
+                                Locked
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="mt-2">
+                              <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+                                Unlocked
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="hidden shrink-0 lg:block" />
                       </div>
-                      <p className="mt-2 text-sm text-muted-foreground">{lyric.bodyPreview ?? "No preview available"}</p>
-                      <div className="mt-2 text-xs text-muted-foreground">Linked Songs: {lyric.linkedSongIds.length}</div>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        {lyric.bodyPreview ?? "No preview available"}
+                      </p>
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        Linked Songs: {lyric.linkedSongIds.length}
+                      </div>
                     </div>
                   ))}
                 </div>
-                <PaginationControls page={lyricsPage} totalPages={lyricsTotalPages} onPageChange={setLyricsPage} />
+                <PaginationControls
+                  page={lyricsPage}
+                  totalPages={lyricsTotalPages}
+                  onPageChange={setLyricsPage}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="ready-library">
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <CardTitle>{t("readyLibrary")}</CardTitle>
+                    <CardDescription>Global public lyrics that can be created and maintained by admins.</CardDescription>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button size="sm" onClick={() => openCreateReadyLibrary()} disabled={readyLibrarySaving}>
+                      New
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <Input
+                    value={readyLibraryKeyword}
+                    onChange={(event) => setReadyLibraryKeyword(event.target.value)}
+                    placeholder="Search Ready Library lyrics..."
+                  />
+                  <select
+                    value={readyLibraryLanguageFilter}
+                    onChange={(e) =>
+                      setReadyLibraryLanguageFilter(e.target.value as "ALL" | LyricContentLanguage)
+                    }
+                    className="h-9 min-w-[220px] rounded-md border border-border bg-card px-2 text-sm text-foreground"
+                  >
+                    <option value="ALL">All</option>
+                    <option value="ENGLISH">{t("english")}</option>
+                    <option value="WESTERN_ARMENIAN">{t("westernArmenian")}</option>
+                  </select>
+                </div>
+
+                {readyLibraryLoading ? (
+                  <div className="text-sm text-muted-foreground">Loading...</div>
+                ) : readyLibraryError ? (
+                  <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                    {readyLibraryError}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {readyLibrary.length === 0 ? (
+                      <div className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
+                        No Ready Library lyrics found.
+                      </div>
+                    ) : (
+                      readyLibrary.map((item) => (
+                        <div key={item.id} className="rounded-xl border p-4">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="min-w-0">
+                              <div className="font-medium truncate">{item.title}</div>
+                              <div className="mt-1 text-xs text-muted-foreground">Language: {item.language}</div>
+                              <div className="mt-1 text-xs text-muted-foreground">
+                                CurrentVersion: {item.currentVersion}
+                              </div>
+                              <div className="mt-1 text-xs text-muted-foreground">
+                                UpdatedAt:{" "}
+                                {item.updatedAt ? new Date(item.updatedAt).toLocaleString() : "N/A"}
+                              </div>
+                              {item.createdByAdminUserId ? (
+                                <div className="mt-1 text-xs text-muted-foreground">
+                                  CreatedBy: {item.createdByAdminUserId}
+                                </div>
+                              ) : null}
+                              <p className="mt-2 text-sm text-muted-foreground">{item.bodyPreview}</p>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => void openEditReadyLibrary(item.id)}
+                                disabled={readyLibrarySaving}
+                              >
+                                {t("edit")}
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => void handleDeleteReadyLibrary(item.id)}
+                                disabled={readyLibrarySaving}
+                              >
+                                {t("delete")}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -699,6 +954,77 @@ export function AdminPage() {
             </Card>
           </TabsContent>
         </Tabs>
+
+          <Dialog
+            open={readyLibraryDialogOpen}
+            onOpenChange={(open) => {
+              setReadyLibraryDialogOpen(open)
+              if (!open) setReadyLibraryError("")
+            }}
+          >
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>{readyLibraryEditingId ? t("edit") : t("save")} {t("readyLibrary")}</DialogTitle>
+                <DialogDescription>
+                  {readyLibraryEditingId ? "Update the Ready Library lyric." : "Create a new Ready Library lyric."}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="flex flex-col gap-4">
+                {readyLibraryError ? (
+                  <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                    {readyLibraryError}
+                  </div>
+                ) : null}
+
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="ready-library-title">{t("songTitle")}</Label>
+                  <Input
+                    id="ready-library-title"
+                    value={readyLibraryTitle}
+                    onChange={(e) => setReadyLibraryTitle(e.target.value)}
+                    placeholder="Title"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="ready-library-body">{t("lyrics")}</Label>
+                  <Textarea
+                    id="ready-library-body"
+                    value={readyLibraryBody}
+                    onChange={(e) => setReadyLibraryBody(e.target.value)}
+                    className="min-h-[180px] resize-none"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="ready-library-language">{t("lyricsLanguage")} *</Label>
+                  <select
+                    id="ready-library-language"
+                    value={readyLibraryLanguage}
+                    onChange={(e) => setReadyLibraryLanguage(e.target.value as LyricContentLanguage)}
+                    className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground"
+                  >
+                    <option value="ENGLISH">{t("english")}</option>
+                    <option value="WESTERN_ARMENIAN">{t("westernArmenian")}</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                  <Button
+                    onClick={() => void handleSaveReadyLibrary()}
+                    disabled={
+                      readyLibrarySaving ||
+                      !readyLibraryTitle.trim() ||
+                      !readyLibraryBody.trim()
+                    }
+                  >
+                    {readyLibrarySaving ? "Saving..." : t("save")}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
       </div>
     </div>
   )

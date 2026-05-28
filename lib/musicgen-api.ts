@@ -103,13 +103,12 @@ interface PageResponse<T> {
 }
 
 export interface CreateGenerationPayload {
-  projectId: string
   lyricId?: string | null
-  title: string
-  lyrics: string
-  stylePrompt: string
-  instrumental: boolean
-  model: GenerationModel
+  titleFinal: string
+  promptFinal: string
+  styleFinal: string
+  sourceType: "MANUAL" | "TEMPLATE" | "SCHEDULED"
+  customMode: boolean
 }
 
 const configuredBackendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL?.trim()
@@ -172,21 +171,16 @@ async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
 export async function createGenerationJob(
   payload: CreateGenerationPayload,
 ): Promise<GenerationJob> {
-  const promptFinal = payload.lyrics.trim() || payload.stylePrompt.trim()
-
   return apiRequest<GenerationJob>("/api/v1/generation-jobs", {
     method: "POST",
     body: JSON.stringify({
-      projectId: payload.projectId.trim(),
       templateId: null,
       lyricId: payload.lyricId ?? null,
-      sourceType: "MANUAL",
-      promptFinal,
-      styleFinal: payload.stylePrompt.trim(),
-      titleFinal: payload.title.trim(),
-      customMode: true,
-      instrumental: payload.instrumental,
-      model: payload.model,
+      sourceType: payload.sourceType,
+      promptFinal: payload.promptFinal,
+      styleFinal: payload.styleFinal,
+      titleFinal: payload.titleFinal,
+      customMode: payload.customMode,
     }),
   })
 }

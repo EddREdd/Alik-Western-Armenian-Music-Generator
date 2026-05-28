@@ -45,6 +45,8 @@ export interface Lyric {
   wordCount: number
   linkedSongIds: string[]
   versions: LyricVersion[]
+  language?: string
+  publicReadyLibrary?: boolean
   createdAt: string | null
   updatedAt: string | null
 }
@@ -58,6 +60,8 @@ export interface LyricSummary {
   locked: boolean
   linkedSongIds: string[]
   currentVersion: number
+  language?: string
+  publicReadyLibrary?: boolean
   createdAt: string | null
   updatedAt: string | null
 }
@@ -90,20 +94,41 @@ async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
   return body.data
 }
 
+export async function listMyLyrics(params?: { projectId?: string }): Promise<LyricSummary[]> {
+  const projectId = params?.projectId?.trim()
+  const query = projectId ? `?projectId=${encodeURIComponent(projectId)}` : ""
+  return apiRequest<LyricSummary[]>(`/api/v1/lyrics${query}`)
+}
+
+// Backwards-compatible alias for older callsites.
 export async function listLyrics(projectId: string): Promise<LyricSummary[]> {
-  return apiRequest<LyricSummary[]>(
-    `/api/v1/lyrics?projectId=${encodeURIComponent(projectId.trim())}`,
-  )
+  return listMyLyrics({ projectId })
 }
 
 export async function getLyric(id: string): Promise<Lyric> {
   return apiRequest<Lyric>(`/api/v1/lyrics/${id}`)
 }
 
+export async function listPublicLyrics(params?: {
+  keyword?: string
+  language?: string
+}): Promise<LyricSummary[]> {
+  const searchParams = new URLSearchParams()
+  if (params?.keyword?.trim()) searchParams.set("keyword", params.keyword.trim())
+  if (params?.language?.trim()) searchParams.set("language", params.language.trim())
+  const query = searchParams.toString()
+  return apiRequest<LyricSummary[]>(`/api/v1/lyrics/ready-library${query ? `?${query}` : ""}`)
+}
+
+export async function getPublicLyric(id: string): Promise<Lyric> {
+  return apiRequest<Lyric>(`/api/v1/lyrics/ready-library/${encodeURIComponent(id)}`)
+}
+
 export async function createLyric(payload: {
-  projectId: string
   title: string
   body: string
+  projectId?: string
+  language?: string
 }): Promise<Lyric> {
   return apiRequest<Lyric>("/api/v1/lyrics", {
     method: "POST",
@@ -125,4 +150,16 @@ export async function deleteLyric(id: string): Promise<void> {
   await apiRequest<string>(`/api/v1/lyrics/${id}`, {
     method: "DELETE",
   })
+}
+
+export async function restoreLyricVersion(
+  id: string,
+  versionNumber: number,
+): Promise<Lyric> {
+  return apiRequest<Lyric>(
+    `/api/v1/lyrics/${encodeURIComponent(id)}/versions/${versionNumber}/restore`,
+    {
+      method: "POST",
+    },
+  )
 }

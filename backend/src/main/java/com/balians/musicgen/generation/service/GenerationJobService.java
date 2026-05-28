@@ -1,7 +1,6 @@
 package com.balians.musicgen.generation.service;
 
 import com.balians.musicgen.auth.model.UserAccount;
-import com.balians.musicgen.common.enums.GenerationModel;
 import com.balians.musicgen.common.enums.InternalJobStatus;
 import com.balians.musicgen.common.enums.ProviderJobStatus;
 import com.balians.musicgen.common.exception.BadRequestException;
@@ -49,12 +48,12 @@ public class GenerationJobService {
         validateGenerationRequest(request);
         LyricResponse lyric = null;
         if (hasText(request.lyricId())) {
-            lyric = lyricsService.assertAvailableForGeneration(request.lyricId().trim());
+            lyric = lyricsService.assertAvailableForGeneration(request.lyricId().trim(), owner);
         }
 
         GenerationJob job = GenerationJob.builder()
                 .ownerUserId(owner.getId())
-                .projectId(request.projectId().trim())
+                .projectId(lyricsService.resolveProjectId(request.projectId(), owner))
                 .templateId(trimToNull(request.templateId()))
                 .lyricId(lyric == null ? null : lyric.id())
                 .lyricTitle(lyric == null ? null : lyric.title())
@@ -65,8 +64,8 @@ public class GenerationJobService {
                 .styleFinal(trimToNull(request.styleFinal()))
                 .titleFinal(trimToNull(request.titleFinal()))
                 .customMode(request.customMode())
-                .instrumental(request.instrumental())
-                .model(request.model())
+                .instrumental(false)
+                .model(GenerationConstraints.REQUIRED_MODEL)
                 .hiddenFromLibrary(false)
                 .statusHistory(List.of(JobStatusHistoryEntry.builder()
                         .internalStatus(InternalJobStatus.VALIDATED)
@@ -202,11 +201,20 @@ public class GenerationJobService {
     }
 
     private void validateGenerationRequest(CreateGenerationJobRequest request) {
-        if (request.model() != GenerationModel.V5) {
-            throw new BadRequestException("Only V5 model is supported");
+        if (Boolean.TRUE.equals(request.instrumental())) {
+            throw new BadRequestException("Instrumental generation is disabled.");
         }
-        if (Boolean.TRUE.equals(request.customMode()) && !Boolean.TRUE.equals(request.instrumental()) && !hasText(request.promptFinal())) {
-            throw new BadRequestException("promptFinal is required when customMode is true and instrumental is false");
+        if (request.model() != null && request.model() != GenerationConstraints.REQUIRED_MODEL) {
+            throw new BadRequestException("Only Suno v5.5 is supported.");
+        }
+        if (!hasText(request.promptFinal()) || request.promptFinal().trim().length() < GenerationConstraints.MIN_PROMPT_LENGTH) {
+            throw new BadRequestException("Lyrics must be at least 50 characters.");
+        }
+        if (Boolean.TRUE.equals(request.customMode()) && !hasText(request.styleFinal())) {
+            throw new BadRequestException("styleFinal is required when customMode is true");
+        }
+        if (Boolean.TRUE.equals(request.customMode()) && !hasText(request.titleFinal())) {
+            throw new BadRequestException("titleFinal is required when customMode is true");
         }
     }
 

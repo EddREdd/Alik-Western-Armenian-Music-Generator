@@ -3,14 +3,24 @@ package com.balians.musicgen.provider.service;
 import com.balians.musicgen.common.enums.GenerationModel;
 import com.balians.musicgen.common.exception.BadRequestException;
 import com.balians.musicgen.generation.model.GenerationJob;
+import com.balians.musicgen.generation.service.GenerationConstraints;
+import com.balians.musicgen.provider.config.ProviderProperties;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class ProviderSubmissionValidator {
 
+    private final ProviderProperties providerProperties;
+
     public void validateForSubmission(GenerationJob job) {
+        if (Boolean.TRUE.equals(job.getInstrumental())) {
+            throw new BadRequestException("Instrumental generation is disabled.");
+        }
+
         if (job.getModel() == null || !isSupportedModel(job.getModel())) {
-            throw new BadRequestException("Unsupported provider model");
+            throw new BadRequestException("Only Suno v5.5 is supported.");
         }
 
         if (Boolean.FALSE.equals(job.getCustomMode())) {
@@ -26,26 +36,28 @@ public class ProviderSubmissionValidator {
         validateStyleLength(job.getStyleFinal(), job.getModel());
         validateTitleLength(job.getTitleFinal());
 
-        if (Boolean.FALSE.equals(job.getInstrumental())) {
-            requireText(job.getPromptFinal(), "promptFinal is required when customMode is true and instrumental is false");
-            validatePromptLength(job.getPromptFinal(), job.getModel());
-        }
+        requireText(job.getPromptFinal(), "promptFinal is required when customMode is true and instrumental is false");
+        validatePromptLength(job.getPromptFinal(), job.getModel());
     }
 
     public String toProviderModel(GenerationModel model) {
         if (!isSupportedModel(model)) {
-            throw new BadRequestException("Unsupported provider model");
+            throw new BadRequestException("Only Suno v5.5 is supported.");
         }
-        return model.name();
+        return providerProperties.getSuno().getDefaultModel();
     }
 
     private boolean isSupportedModel(GenerationModel model) {
-        return model == GenerationModel.V5;
+        return model == GenerationModel.V5_5 || model == GenerationModel.V5;
     }
 
     private void validatePromptLength(String prompt, GenerationModel model) {
+        String trimmed = prompt.trim();
+        if (trimmed.length() < GenerationConstraints.MIN_PROMPT_LENGTH) {
+            throw new BadRequestException("Lyrics must be at least 50 characters.");
+        }
         int max = model == GenerationModel.V3_5 || model == GenerationModel.V4 ? 3000 : 5000;
-        if (prompt.trim().length() > max) {
+        if (trimmed.length() > max) {
             throw new BadRequestException("promptFinal exceeds provider limit of " + max + " characters");
         }
     }
@@ -58,9 +70,14 @@ public class ProviderSubmissionValidator {
     }
 
     private void validateTitleLength(String title) {
-        if (title.trim().length() > 80) {
-            throw new BadRequestException("titleFinal exceeds provider limit of 80 characters");
+        int max = titleMaxLength();
+        if (title.trim().length() > max) {
+            throw new BadRequestException("titleFinal exceeds provider limit of " + max + " characters");
         }
+    }
+
+    private int titleMaxLength() {
+        return 100;
     }
 
     private void requireText(String value, String message) {

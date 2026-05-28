@@ -10,7 +10,6 @@ import com.balians.musicgen.generation.model.GenerationTrack;
 import com.balians.musicgen.generation.repository.GenerationTrackRepository;
 import com.balians.musicgen.media.service.TrackMediaStorageService;
 import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -32,8 +31,8 @@ class GenerationTrackUpsertServiceTest {
     void upsertTracks_updatesExistingTrackInsteadOfDuplicating() {
         GenerationJob job = GenerationJob.builder().id("job-1").build();
         GenerationTrack existing = GenerationTrack.builder().id("track-local").generationJobId("job-1").providerMusicId("provider-1").build();
-        when(generationTrackRepository.findByGenerationJobIdAndProviderMusicId("job-1", "provider-1"))
-                .thenReturn(Optional.of(existing));
+        when(generationTrackRepository.findByGenerationJobIdAndProviderMusicIdOrderByCreatedAtDesc("job-1", "provider-1"))
+                .thenReturn(java.util.List.of(existing));
         when(generationTrackRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         int upserted = service.upsertTracks(job, List.of(new SunoCallbackTrackDto(
