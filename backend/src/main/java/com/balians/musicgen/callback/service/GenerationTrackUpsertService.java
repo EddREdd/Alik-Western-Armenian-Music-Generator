@@ -54,8 +54,7 @@ public class GenerationTrackUpsertService {
                     trackDto.duration(),
                     trackDto.createTime()
             );
-            trackMediaStorageService.storeTrackAssets(track);
-            generationTrackRepository.save(track);
+            saveTrackThenStoreAssets(track);
             upsertedCount++;
         }
 
@@ -92,8 +91,7 @@ public class GenerationTrackUpsertService {
                     trackDto.duration(),
                     trackDto.createTime()
             );
-            trackMediaStorageService.storeTrackAssets(track);
-            generationTrackRepository.save(track);
+            saveTrackThenStoreAssets(track);
             upsertedCount++;
         }
 
@@ -125,6 +123,12 @@ public class GenerationTrackUpsertService {
         track.setDurationSeconds(duration);
         track.setProviderCreateTime(parseInstant(createTime));
         track.setSelectedFlag(Boolean.FALSE);
+    }
+
+    private void saveTrackThenStoreAssets(GenerationTrack track) {
+        GenerationTrack savedTrack = generationTrackRepository.save(track);
+        trackMediaStorageService.storeTrackAssets(savedTrack);
+        generationTrackRepository.save(savedTrack);
     }
 
     private List<String> parseTags(String tags) {

@@ -57,8 +57,10 @@ public class TrackMediaStorageService {
                     ex.awsErrorDetails() == null ? "unknown" : ex.awsErrorDetails().errorCode(),
                     ex.awsErrorDetails() == null ? ex.getMessage() : ex.awsErrorDetails().errorMessage()
             );
+            throw new IllegalStateException("Unable to mirror " + folder + " asset to configured Spaces/S3 storage", ex);
         } catch (Exception ex) {
             log.warn("Failed to store {} asset for track id={} remoteUrl={}", folder, track.getId(), remoteUrl, ex);
+            throw new IllegalStateException("Unable to mirror " + folder + " asset to configured media storage", ex);
         }
     }
 
