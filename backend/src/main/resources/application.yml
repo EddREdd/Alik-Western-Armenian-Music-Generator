@@ -37,8 +37,8 @@ media:
     spaces-endpoint: ${MEDIA_STORAGE_SPACES_ENDPOINT:${DO_SPACES_ENDPOINT:}}
     spaces-region: ${MEDIA_STORAGE_SPACES_REGION:${DO_SPACES_REGION:}}
     spaces-bucket: ${MEDIA_STORAGE_SPACES_BUCKET:${DO_SPACES_BUCKET:}}
-    spaces-access-key: ${MEDIA_STORAGE_SPACES_ACCESS_KEY:${DO_SPACES_ACCESS_KEY:}}
-    spaces-secret-key: ${MEDIA_STORAGE_SPACES_SECRET_KEY:${DO_SPACES_SECRET_KEY:}}
+    spaces-access-key: ${MEDIA_STORAGE_SPACES_ACCESS_KEY:${DO_SPACES_ACCESS_KEY:${MINIO_ROOT_USER:}}}
+    spaces-secret-key: ${MEDIA_STORAGE_SPACES_SECRET_KEY:${DO_SPACES_SECRET_KEY:${MINIO_ROOT_PASSWORD:}}}
     spaces-public-base-url: ${MEDIA_STORAGE_SPACES_PUBLIC_BASE_URL:${DO_SPACES_PUBLIC_BASE_URL:}}
     proxy-allowed-hosts: ${MEDIA_PROXY_ALLOWED_HOSTS:musicfile.removeai.ai,tempfile.aiquickdraw.com}
 
