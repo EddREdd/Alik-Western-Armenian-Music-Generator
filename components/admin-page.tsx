@@ -35,11 +35,10 @@ import {
   type AdminSongSummary,
   type AdminUserSummary,
 } from "@/lib/admin-api"
+import { buildApiUrl } from "@/lib/api-client"
 import { t, useUiLanguage } from "@/lib/i18n"
 
 const PAGE_SIZE = 25
-const configuredBackendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL?.trim() || ""
-const backendBaseUrl = configuredBackendBaseUrl.replace(/\/+$/, "")
 const proxyPreferredHosts = new Set([
   "musicfile.removeai.ai",
   "tempfile.aiquickdraw.com",
@@ -66,12 +65,11 @@ function toAbsoluteAudioUrl(url: string): string {
   const trimmed = url.trim()
   if (!trimmed) return trimmed
   if (/^https?:\/\//i.test(trimmed)) return trimmed
-  if (!backendBaseUrl) return trimmed
-  return `${backendBaseUrl}${trimmed.startsWith("/") ? "" : "/"}${trimmed}`
+  return buildApiUrl(trimmed.startsWith("/") ? trimmed : `/${trimmed}`)
 }
 
 function toProxyUrl(url: string): string {
-  return `${backendBaseUrl}/api/v1/media/proxy?url=${encodeURIComponent(url)}`
+  return buildApiUrl(`/api/v1/media/proxy?url=${encodeURIComponent(url)}`)
 }
 
 function unwrapProxyUrl(url: string): string | undefined {
@@ -107,7 +105,7 @@ function buildAdminSongAudioCandidates(song: AdminSongSummary): string[] {
       continue
     }
 
-    if (/^https?:\/\//i.test(absoluteCandidate) && backendBaseUrl) {
+    if (/^https?:\/\//i.test(absoluteCandidate)) {
       try {
         const parsed = new URL(absoluteCandidate)
         if (isProxyPreferred(parsed.hostname)) {

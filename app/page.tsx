@@ -31,10 +31,9 @@ import {
   submitGenerationJob,
   type GenerationJob,
 } from "@/lib/musicgen-api"
+import { buildApiUrl } from "@/lib/api-client"
 import { t, useUiLanguage, type UiLanguage } from "@/lib/i18n"
 
-const configuredBackendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL?.trim() || ""
-const backendBaseUrl = configuredBackendBaseUrl.replace(/\/+$/, "")
 const proxyPreferredHosts = new Set([
   "musicfile.removeai.ai",
   "tempfile.aiquickdraw.com",
@@ -51,8 +50,7 @@ function isProxyPreferred(url: URL): boolean {
 }
 
 function toProxyUrl(rawUrl: string): string {
-  const proxyBase = backendBaseUrl || ""
-  return `${proxyBase}/api/v1/media/proxy?url=${encodeURIComponent(rawUrl)}`
+  return buildApiUrl(`/api/v1/media/proxy?url=${encodeURIComponent(rawUrl)}`)
 }
 
 function unwrapProxyUrl(url: string): string | undefined {

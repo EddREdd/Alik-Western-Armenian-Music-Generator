@@ -1,29 +1,14 @@
 "use client"
 
 import type { GenerationJob } from "@/lib/musicgen-api"
-
-const configuredBackendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL?.trim()
-const backendBaseUrl = configuredBackendBaseUrl
-  ? configuredBackendBaseUrl.replace(/\/+$/, "")
-  : ""
+import {
+  apiFetchJson,
+  buildApiUrl,
+  buildJsonHeaders,
+  toApiRequestError,
+} from "@/lib/api-client"
 
 const sessionStorageKey = "balians.session-token"
-
-interface ApiSuccess<T> {
-  success: boolean
-  timestamp: string
-  data: T
-}
-
-interface ApiError {
-  timestamp: string
-  status: number
-  error: string
-  code: string
-  message: string
-  path: string
-  validationErrors?: Record<string, string>
-}
 
 export interface AuthUser {
   id: string
@@ -78,39 +63,6 @@ export interface ForgotPasswordResetPayload {
   confirmPassword: string
 }
 
-async function authRequest<T>(
-  path: string,
-  init?: RequestInit,
-  sessionToken?: string | null,
-): Promise<T> {
-  const headers = new Headers(init?.headers)
-  headers.set("Content-Type", "application/json")
-
-  if (sessionToken) {
-    headers.set("X-Session-Token", sessionToken)
-  }
-
-  const response = await fetch(`${backendBaseUrl}${path}`, {
-    ...init,
-    headers,
-    cache: "no-store",
-  })
-
-  const body = (await response.json().catch(() => null)) as ApiSuccess<T> | ApiError | null
-
-  if (!response.ok) {
-    const message =
-      body && "message" in body && body.message ? body.message : "Request failed"
-    throw new Error(message)
-  }
-
-  if (!body || !("data" in body)) {
-    throw new Error("Backend returned an unexpected response")
-  }
-
-  return body.data
-}
-
 export function getStoredSessionToken(): string | null {
   if (typeof window === "undefined") {
     return null
@@ -133,7 +85,7 @@ export function clearStoredSessionToken() {
 }
 
 export async function register(payload: RegisterPayload): Promise<void> {
-  await authRequest<string>("/api/v1/auth/register", {
+  await apiFetchJson<string>("/api/v1/auth/register", {
     method: "POST",
     body: JSON.stringify(payload),
   })
@@ -143,7 +95,7 @@ export async function verifyRegistration(
   email: string,
   otpCode: string,
 ): Promise<AuthSession> {
-  return authRequest<AuthSession>("/api/v1/auth/register/verify", {
+  return apiFetchJson<AuthSession>("/api/v1/auth/register/verify", {
     method: "POST",
     body: JSON.stringify({
       email: email.trim(),
@@ -153,7 +105,7 @@ export async function verifyRegistration(
 }
 
 export async function login(payload: LoginPayload): Promise<AuthSession> {
-  return authRequest<AuthSession>("/api/v1/auth/login", {
+  return apiFetchJson<AuthSession>("/api/v1/auth/login", {
     method: "POST",
     body: JSON.stringify(payload),
   })
@@ -163,7 +115,7 @@ export async function loginWithGoogle(
   idToken: string,
   inviteCode?: string,
 ): Promise<AuthSession> {
-  return authRequest<AuthSession>("/api/v1/auth/google", {
+  return apiFetchJson<AuthSession>("/api/v1/auth/google", {
     method: "POST",
     body: JSON.stringify({
       idToken,
@@ -173,14 +125,14 @@ export async function loginWithGoogle(
 }
 
 export async function getCurrentUser(sessionToken: string): Promise<AuthUser> {
-  return authRequest<AuthUser>("/api/v1/auth/me", undefined, sessionToken)
+  return apiFetchJson<AuthUser>("/api/v1/auth/me", undefined, sessionToken)
 }
 
 export async function requestEmailChange(
   sessionToken: string,
   newEmail: string,
 ): Promise<OtpChallenge> {
-  return authRequest<OtpChallenge>(
+  return apiFetchJson<OtpChallenge>(
     "/api/v1/auth/email/change/request",
     {
       method: "POST",
@@ -194,7 +146,7 @@ export async function verifyEmailChange(
   sessionToken: string,
   otpCode: string,
 ): Promise<AuthUser> {
-  return authRequest<AuthUser>(
+  return apiFetchJson<AuthUser>(
     "/api/v1/auth/email/change/verify",
     {
       method: "POST",
@@ -208,7 +160,7 @@ export async function changePassword(
   sessionToken: string,
   payload: ChangePasswordPayload,
 ): Promise<AuthUser> {
-  return authRequest<AuthUser>(
+  return apiFetchJson<AuthUser>(
     "/api/v1/auth/password/change",
     {
       method: "POST",
@@ -219,7 +171,7 @@ export async function changePassword(
 }
 
 export async function requestForgotPasswordCode(email: string): Promise<void> {
-  await authRequest<string>("/api/v1/auth/password/forgot/request", {
+  await apiFetchJson<string>("/api/v1/auth/password/forgot/request", {
     method: "POST",
     body: JSON.stringify({
       email: email.trim(),
@@ -228,7 +180,7 @@ export async function requestForgotPasswordCode(email: string): Promise<void> {
 }
 
 export async function verifyForgotPasswordCode(email: string, otpCode: string): Promise<string> {
-  return authRequest<string>("/api/v1/auth/password/forgot/verify", {
+  return apiFetchJson<string>("/api/v1/auth/password/forgot/verify", {
     method: "POST",
     body: JSON.stringify({
       email: email.trim(),
@@ -238,7 +190,7 @@ export async function verifyForgotPasswordCode(email: string, otpCode: string): 
 }
 
 export async function resetForgotPassword(payload: ForgotPasswordResetPayload): Promise<void> {
-  await authRequest<string>("/api/v1/auth/password/forgot/reset", {
+  await apiFetchJson<string>("/api/v1/auth/password/forgot/reset", {
     method: "POST",
     body: JSON.stringify({
       email: payload.email.trim(),
@@ -253,7 +205,7 @@ export async function linkGoogleAccount(
   sessionToken: string,
   idToken: string,
 ): Promise<AuthUser> {
-  return authRequest<AuthUser>(
+  return apiFetchJson<AuthUser>(
     "/api/v1/auth/google/link",
     {
       method: "POST",
@@ -264,7 +216,7 @@ export async function linkGoogleAccount(
 }
 
 export async function unlinkGoogleAccount(sessionToken: string): Promise<AuthUser> {
-  return authRequest<AuthUser>(
+  return apiFetchJson<AuthUser>(
     "/api/v1/auth/google/unlink",
     {
       method: "POST",
@@ -279,13 +231,9 @@ export async function logout(explicitToken?: string | null): Promise<void> {
 
   try {
     if (tokenToUse) {
-      const headers = new Headers()
-      headers.set("Content-Type", "application/json")
-      headers.set("X-Session-Token", tokenToUse)
-
-      await fetch(`${backendBaseUrl}/api/v1/auth/logout`, {
+      await fetch(buildApiUrl("/api/v1/auth/logout"), {
         method: "POST",
-        headers,
+        headers: buildJsonHeaders(tokenToUse),
         cache: "no-store",
         keepalive: true,
       })
@@ -296,3 +244,5 @@ export async function logout(explicitToken?: string | null): Promise<void> {
     clearStoredSessionToken()
   }
 }
+
+export { ApiRequestError, toApiRequestError } from "@/lib/api-client"

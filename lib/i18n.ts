@@ -612,6 +612,8 @@ const translations: Record<UiLanguage, Record<TranslationKey, string>> = {
 
 export { type TranslationKey }
 
+let currentUiLanguage: UiLanguage = DEFAULT_UI_LANGUAGE
+
 export function getStoredUiLanguage(): UiLanguage {
   if (typeof window === "undefined") return DEFAULT_UI_LANGUAGE
   const raw = window.localStorage.getItem(UI_LANGUAGE_STORAGE_KEY)
@@ -621,6 +623,7 @@ export function getStoredUiLanguage(): UiLanguage {
 
 export function setStoredUiLanguage(language: UiLanguage) {
   if (typeof window === "undefined") return
+  currentUiLanguage = language
   window.localStorage.setItem(UI_LANGUAGE_STORAGE_KEY, language)
   window.dispatchEvent(new Event("alik-ui-language-changed"))
 }
@@ -637,7 +640,7 @@ export function t(
   const lang =
     typeof paramsOrLanguage === "string"
       ? paramsOrLanguage
-      : language ?? getStoredUiLanguage()
+      : language ?? currentUiLanguage
 
   let value = translations[lang][key]
   if (!params) {
@@ -651,10 +654,17 @@ export function t(
 }
 
 export function useUiLanguage(): UiLanguage {
-  const [language, setLanguage] = useState<UiLanguage>(() => getStoredUiLanguage())
+  const [language, setLanguage] = useState<UiLanguage>(DEFAULT_UI_LANGUAGE)
 
   useEffect(() => {
-    const onChange = () => setLanguage(getStoredUiLanguage())
+    const stored = getStoredUiLanguage()
+    currentUiLanguage = stored
+    setLanguage(stored)
+
+    const onChange = () => {
+      currentUiLanguage = getStoredUiLanguage()
+      setLanguage(currentUiLanguage)
+    }
     window.addEventListener("alik-ui-language-changed", onChange)
     return () => window.removeEventListener("alik-ui-language-changed", onChange)
   }, [])

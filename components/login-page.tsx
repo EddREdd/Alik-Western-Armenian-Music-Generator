@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { GoogleAuthButton } from "@/components/google-auth-button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { login, loginWithGoogle, type AuthSession } from "@/lib/auth-api"
+import { ApiRequestError, login, loginWithGoogle, type AuthSession } from "@/lib/auth-api"
 import { t, useUiLanguage } from "@/lib/i18n"
 
 interface LoginPageProps {
@@ -27,13 +27,24 @@ export function LoginPage({ onLogin, onSwitchToRegister, onForgotPassword }: Log
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
+
+    const trimmedEmail = email.trim()
+    if (!trimmedEmail || !password) {
+      setError(t("unableToSignIn"))
+      return
+    }
+
     setIsLoading(true)
 
     try {
-      const session = await login({ email, password })
+      const session = await login({ email: trimmedEmail, password })
       onLogin(session)
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : t("unableToSignIn"))
+      if (submitError instanceof ApiRequestError) {
+        setError(submitError.message)
+      } else {
+        setError(submitError instanceof Error ? submitError.message : t("unableToSignIn"))
+      }
     } finally {
       setIsLoading(false)
     }

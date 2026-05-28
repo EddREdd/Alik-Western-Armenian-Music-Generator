@@ -1,45 +1,10 @@
 "use client"
 
+import { apiFetchJson } from "@/lib/api-client"
 import { getStoredSessionToken } from "@/lib/auth-api"
 
-const configuredBackendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL?.trim()
-const backendBaseUrl = configuredBackendBaseUrl
-  ? configuredBackendBaseUrl.replace(/\/+$/, "")
-  : ""
-
-interface ApiSuccess<T> {
-  success: boolean
-  timestamp: string
-  data: T
-}
-
-interface ApiError {
-  message?: string
-}
-
 async function adminRequest<T>(path: string, init?: RequestInit): Promise<T> {
-  const sessionToken = getStoredSessionToken()
-  const headers = new Headers(init?.headers)
-  headers.set("Content-Type", "application/json")
-
-  if (sessionToken) {
-    headers.set("X-Session-Token", sessionToken)
-  }
-
-  const response = await fetch(`${backendBaseUrl}${path}`, {
-    ...init,
-    headers,
-    cache: "no-store",
-  })
-
-  const body = (await response.json().catch(() => null)) as ApiSuccess<T> | ApiError | null
-  if (!response.ok) {
-    throw new Error(body && "message" in body && body.message ? body.message : "Admin request failed")
-  }
-  if (!body || !("data" in body)) {
-    throw new Error("Backend returned an unexpected admin response")
-  }
-  return body.data
+  return apiFetchJson<T>(path, init, getStoredSessionToken())
 }
 
 export interface MetricSnapshot {
