@@ -1,11 +1,9 @@
 "use client"
 
 import type { GenerationJob } from "@/lib/musicgen-api"
+import { getApiBaseUrl } from "@/lib/api-base"
 
-const configuredBackendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL?.trim()
-const backendBaseUrl = configuredBackendBaseUrl
-  ? configuredBackendBaseUrl.replace(/\/+$/, "")
-  : ""
+const backendBaseUrl = getApiBaseUrl()
 
 const sessionStorageKey = "balians.session-token"
 

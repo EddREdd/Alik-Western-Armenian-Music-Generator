@@ -9,10 +9,10 @@ const PROXY_PREFERRED_HOSTS = [
   "tempfile.aiquickdraw.com",
 ] as const
 
-const configuredBackendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL?.trim() || ""
+import { getApiBaseUrl } from "@/lib/api-base"
 
 export function getBackendBaseUrl(): string {
-  return configuredBackendBaseUrl.replace(/\/+$/, "")
+  return getApiBaseUrl()
 }
 
 export function shouldProxyMediaUrl(url: string): boolean {

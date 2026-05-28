@@ -32,6 +32,7 @@ import com.balians.musicgen.common.response.StandardSuccessResponse;
 import com.balians.musicgen.config.FeatureFlagsProperties;
 import com.balians.musicgen.generation.dto.GenerationJobResponse;
 import com.balians.musicgen.generation.dto.GenerationTrackResponse;
+import com.balians.musicgen.lyrics.service.ReadyLibraryKeywordValidator;
 import com.balians.musicgen.lyrics.service.ReadyLibraryService;
 import com.balians.musicgen.polling.dto.PollAttemptResponse;
 import com.balians.musicgen.schedule.dto.ScheduleDefinitionResponse;
@@ -64,6 +65,7 @@ public class AdminController {
 
     private final AdminOperationsService adminOperationsService;
     private final ReadyLibraryService readyLibraryService;
+    private final ReadyLibraryKeywordValidator readyLibraryKeywordValidator;
     private final ScheduleService scheduleService;
     private final FeatureFlagsProperties featureFlagsProperties;
     private final AuthService authService;
@@ -267,7 +269,9 @@ public class AdminController {
             @RequestParam(required = false) String language
     ) {
         ensureAdminAccess(sessionToken);
-        return StandardSuccessResponse.ok(readyLibraryService.listForAdmin(keyword, language));
+        readyLibraryKeywordValidator.validate(keyword);
+        return StandardSuccessResponse.ok(
+                readyLibraryService.listForAdmin(readyLibraryKeywordValidator.normalize(keyword), language));
     }
 
     @GetMapping("/ready-library/{id}")
