@@ -192,8 +192,7 @@ public class TrackMediaStorageService {
                 || !hasText(mediaStorageProperties.getSpacesRegion())
                 || !hasText(mediaStorageProperties.getSpacesBucket())
                 || !hasText(mediaStorageProperties.getSpacesAccessKey())
-                || !hasText(mediaStorageProperties.getSpacesSecretKey())
-                || !hasText(mediaStorageProperties.getSpacesPublicBaseUrl())) {
+                || !hasText(mediaStorageProperties.getSpacesSecretKey())) {
             throw new IllegalStateException("DigitalOcean Spaces storage is enabled but configuration is incomplete");
         }
     }
@@ -227,7 +226,11 @@ public class TrackMediaStorageService {
     }
 
     private String buildSpacesPublicUrl(String key) {
-        String baseUrl = mediaStorageProperties.getSpacesPublicBaseUrl().replaceAll("/+$", "");
+        String configuredBaseUrl = mediaStorageProperties.getSpacesPublicBaseUrl();
+        String baseUrl = hasText(configuredBaseUrl)
+                ? configuredBaseUrl.trim().replaceAll("/+$", "")
+                : normalizeSpacesEndpoint(mediaStorageProperties.getSpacesEndpoint()).replaceAll("/+$", "")
+                    + "/" + mediaStorageProperties.getSpacesBucket();
         return baseUrl + "/" + key;
     }
 }
