@@ -45,16 +45,23 @@ public class TrackMediaStorageService {
                 storeAssetToLocalFilesystem(track, remoteUrl, folder, defaultExtension);
             }
         } catch (S3Exception ex) {
+            String errorCode = ex.awsErrorDetails() == null ? "unknown" : ex.awsErrorDetails().errorCode();
+            if ("InvalidAccessKeyId".equals(errorCode)) {
+                log.error(
+                        "MinIO rejected the configured access key. Check MEDIA_STORAGE_SPACES_ACCESS_KEY / "
+                                + "MINIO_ROOT_USER and ensure no old DO_SPACES_* variables are overriding the MinIO values.");
+            }
             log.warn(
                     "Failed to store {} asset for track id={} remoteUrl={} because Spaces/S3 rejected the request "
                             + "(statusCode={}, errorCode={}, message={}). Verify MEDIA_STORAGE_SPACES_ACCESS_KEY, "
                             + "MEDIA_STORAGE_SPACES_SECRET_KEY, MEDIA_STORAGE_SPACES_BUCKET, and "
-                            + "MEDIA_STORAGE_SPACES_ENDPOINT, or set MEDIA_STORAGE_TYPE=local to disable asset mirroring.",
+                            + "MEDIA_STORAGE_SPACES_ENDPOINT (S3 API port :9000, not console :9001), or set "
+                            + "MEDIA_STORAGE_TYPE=local to disable asset mirroring.",
                     folder,
                     track.getId(),
                     remoteUrl,
                     ex.statusCode(),
-                    ex.awsErrorDetails() == null ? "unknown" : ex.awsErrorDetails().errorCode(),
+                    errorCode,
                     ex.awsErrorDetails() == null ? ex.getMessage() : ex.awsErrorDetails().errorMessage()
             );
             throw new IllegalStateException("Unable to mirror " + folder + " asset to configured Spaces/S3 storage", ex);
@@ -168,11 +175,13 @@ public class TrackMediaStorageService {
         String key = folder + "/" + fileName;
 
         byte[] bytes = downloadToBytes(remoteUrl);
+        String contentType = resolveContentType(folder);
 
         try (S3Client s3Client = buildSpacesClient()) {
             PutObjectRequest putRequest = PutObjectRequest.builder()
                     .bucket(mediaStorageProperties.getSpacesBucket())
                     .key(key)
+                    .contentType(contentType)
                     .build();
             s3Client.putObject(putRequest, RequestBody.fromBytes(bytes));
         }
@@ -210,19 +219,21 @@ public class TrackMediaStorageService {
                 .build();
     }
 
+    private String resolveContentType(String folder) {
+        if ("audio".equals(folder)) {
+            return "audio/mpeg";
+        }
+        if ("images".equals(folder)) {
+            return "image/jpeg";
+        }
+        return "application/octet-stream";
+    }
+
     private String normalizeSpacesEndpoint(String endpoint) {
         if (!hasText(endpoint)) {
             return endpoint;
         }
-        String trimmed = endpoint.trim();
-        // MinIO console is usually on :9001; S3 API requests must go to :9000.
-        if (trimmed.matches("^https?://[^/]+:9001(/.*)?$")) {
-            String normalized = trimmed.replaceFirst(":9001", ":9000");
-            log.warn("MEDIA_STORAGE_SPACES_ENDPOINT points to MinIO console port (9001); using API port endpoint={}",
-                    normalized);
-            return normalized;
-        }
-        return trimmed;
+        return endpoint.trim();
     }
 
     private String buildSpacesPublicUrl(String key) {
