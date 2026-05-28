@@ -20,14 +20,14 @@ import {
   type Lyric,
   type LyricSummary,
 } from "@/lib/lyrics-api"
-import { type LyricContentLanguage, t, useUiLanguage } from "@/lib/i18n"
+import { t, useUiLanguage } from "@/lib/i18n"
 
 interface LyricsImportDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSelect: (lyric: Lyric, source: "my" | "public") => void
   source: "my" | "public"
-  defaultPublicLanguage?: LyricContentLanguage
+  defaultPublicLanguage?: "WESTERN_ARMENIAN"
 }
 
 export function LyricsImportDialog({
@@ -41,9 +41,7 @@ export function LyricsImportDialog({
   const [search, setSearch] = useState("")
   const [lyrics, setLyrics] = useState<LyricSummary[]>([])
   const [error, setError] = useState("")
-  const [publicLanguageFilter, setPublicLanguageFilter] = useState<
-    "ALL" | LyricContentLanguage
-  >("ALL")
+  const [publicLanguageFilter, setPublicLanguageFilter] = useState<"ALL" | "WESTERN_ARMENIAN">("ALL")
 
   useEffect(() => {
     if (!open) {
@@ -118,11 +116,10 @@ export function LyricsImportDialog({
             <select
               id="public-language-filter"
               value={publicLanguageFilter}
-              onChange={(e) => setPublicLanguageFilter(e.target.value as "ALL" | LyricContentLanguage)}
+              onChange={(e) => setPublicLanguageFilter(e.target.value as "ALL" | "WESTERN_ARMENIAN")}
               className="h-9 flex-1 rounded-md border border-border bg-card px-2 text-sm text-foreground"
             >
               <option value="ALL">All</option>
-              <option value="ENGLISH">{t("english")}</option>
               <option value="WESTERN_ARMENIAN">{t("westernArmenian")}</option>
             </select>
           </div>

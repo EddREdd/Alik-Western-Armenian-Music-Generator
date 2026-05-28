@@ -17,6 +17,7 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 @Slf4j
 @Service
@@ -43,6 +44,19 @@ public class TrackMediaStorageService {
             } else {
                 storeAssetToLocalFilesystem(track, remoteUrl, folder, defaultExtension);
             }
+        } catch (S3Exception ex) {
+            log.warn(
+                    "Failed to store {} asset for track id={} remoteUrl={} because Spaces/S3 rejected the request "
+                            + "(statusCode={}, errorCode={}, message={}). Verify MEDIA_STORAGE_SPACES_ACCESS_KEY, "
+                            + "MEDIA_STORAGE_SPACES_SECRET_KEY, MEDIA_STORAGE_SPACES_BUCKET, and "
+                            + "MEDIA_STORAGE_SPACES_ENDPOINT, or set MEDIA_STORAGE_TYPE=local to disable asset mirroring.",
+                    folder,
+                    track.getId(),
+                    remoteUrl,
+                    ex.statusCode(),
+                    ex.awsErrorDetails() == null ? "unknown" : ex.awsErrorDetails().errorCode(),
+                    ex.awsErrorDetails() == null ? ex.getMessage() : ex.awsErrorDetails().errorMessage()
+            );
         } catch (Exception ex) {
             log.warn("Failed to store {} asset for track id={} remoteUrl={}", folder, track.getId(), remoteUrl, ex);
         }
@@ -153,12 +167,13 @@ public class TrackMediaStorageService {
 
         byte[] bytes = downloadToBytes(remoteUrl);
 
-        S3Client s3Client = buildSpacesClient();
-        PutObjectRequest putRequest = PutObjectRequest.builder()
-                .bucket(mediaStorageProperties.getSpacesBucket())
-                .key(key)
-                .build();
-        s3Client.putObject(putRequest, RequestBody.fromBytes(bytes));
+        try (S3Client s3Client = buildSpacesClient()) {
+            PutObjectRequest putRequest = PutObjectRequest.builder()
+                    .bucket(mediaStorageProperties.getSpacesBucket())
+                    .key(key)
+                    .build();
+            s3Client.putObject(putRequest, RequestBody.fromBytes(bytes));
+        }
 
         String publicUrl = buildSpacesPublicUrl(key);
         if ("audio".equals(folder)) {

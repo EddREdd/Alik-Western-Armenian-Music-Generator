@@ -35,7 +35,7 @@ import {
   type AdminSongSummary,
   type AdminUserSummary,
 } from "@/lib/admin-api"
-import { t, useUiLanguage, type LyricContentLanguage } from "@/lib/i18n"
+import { t, useUiLanguage } from "@/lib/i18n"
 
 const PAGE_SIZE = 25
 const configuredBackendBaseUrl = process.env.NEXT_PUBLIC_BACKEND_URL?.trim() || ""
@@ -187,7 +187,7 @@ export function AdminPage() {
   const [invites, setInvites] = useState<AdminInviteCode[]>([])
   const [lyrics, setLyrics] = useState<AdminLyricSummary[]>([])
   const [readyLibraryKeyword, setReadyLibraryKeyword] = useState("")
-  const [readyLibraryLanguageFilter, setReadyLibraryLanguageFilter] = useState<"ALL" | LyricContentLanguage>("ALL")
+  const [readyLibraryLanguageFilter, setReadyLibraryLanguageFilter] = useState<"ALL" | "WESTERN_ARMENIAN">("WESTERN_ARMENIAN")
   const [readyLibrary, setReadyLibrary] = useState<AdminReadyLibraryLyricSummary[]>([])
   const [readyLibraryLoading, setReadyLibraryLoading] = useState(false)
   const [readyLibrarySaving, setReadyLibrarySaving] = useState(false)
@@ -196,7 +196,7 @@ export function AdminPage() {
   const [readyLibraryEditingId, setReadyLibraryEditingId] = useState<string | null>(null)
   const [readyLibraryTitle, setReadyLibraryTitle] = useState("")
   const [readyLibraryBody, setReadyLibraryBody] = useState("")
-  const [readyLibraryLanguage, setReadyLibraryLanguage] = useState<LyricContentLanguage>("WESTERN_ARMENIAN")
+  const readyLibraryLanguage = "WESTERN_ARMENIAN" as const
   const [songs, setSongs] = useState<AdminSongSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -270,7 +270,6 @@ export function AdminPage() {
     setReadyLibraryEditingId(null)
     setReadyLibraryTitle("")
     setReadyLibraryBody("")
-    setReadyLibraryLanguage("WESTERN_ARMENIAN")
     setReadyLibraryDialogOpen(true)
   }
 
@@ -281,7 +280,6 @@ export function AdminPage() {
       setReadyLibraryEditingId(id)
       setReadyLibraryTitle(detail.title ?? "")
       setReadyLibraryBody(detail.body ?? "")
-      setReadyLibraryLanguage(detail.language as LyricContentLanguage)
       setReadyLibraryDialogOpen(true)
     } catch (loadError) {
       setReadyLibraryError(loadError instanceof Error ? loadError.message : "Unable to load lyric")
@@ -292,11 +290,6 @@ export function AdminPage() {
     setReadyLibraryError("")
     setReadyLibrarySaving(true)
     try {
-      if (readyLibraryLanguage == null) {
-        setReadyLibraryError("Language is required")
-        return
-      }
-
       const payload = {
         title: readyLibraryTitle.trim(),
         body: readyLibraryBody,
@@ -818,13 +811,10 @@ export function AdminPage() {
                   />
                   <select
                     value={readyLibraryLanguageFilter}
-                    onChange={(e) =>
-                      setReadyLibraryLanguageFilter(e.target.value as "ALL" | LyricContentLanguage)
-                    }
+                    onChange={(e) => setReadyLibraryLanguageFilter(e.target.value as "ALL" | "WESTERN_ARMENIAN")}
                     className="h-9 min-w-[220px] rounded-md border border-border bg-card px-2 text-sm text-foreground"
                   >
                     <option value="ALL">All</option>
-                    <option value="ENGLISH">{t("english")}</option>
                     <option value="WESTERN_ARMENIAN">{t("westernArmenian")}</option>
                   </select>
                 </div>
@@ -995,19 +985,6 @@ export function AdminPage() {
                     onChange={(e) => setReadyLibraryBody(e.target.value)}
                     className="min-h-[180px] resize-none"
                   />
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="ready-library-language">{t("lyricsLanguage")} *</Label>
-                  <select
-                    id="ready-library-language"
-                    value={readyLibraryLanguage}
-                    onChange={(e) => setReadyLibraryLanguage(e.target.value as LyricContentLanguage)}
-                    className="h-9 w-full rounded-md border border-border bg-card px-2 text-sm text-foreground"
-                  >
-                    <option value="ENGLISH">{t("english")}</option>
-                    <option value="WESTERN_ARMENIAN">{t("westernArmenian")}</option>
-                  </select>
                 </div>
 
                 <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">

@@ -22,7 +22,6 @@ import {
   type AuthUser,
 } from "@/lib/auth-api"
 import { createLyric } from "@/lib/lyrics-api"
-import type { LyricContentLanguage } from "@/lib/i18n"
 import {
   createGenerationJob,
   deleteGenerationJob,
@@ -549,7 +548,6 @@ export default function Home() {
       title: string
       lyrics: string
       stylePrompt: string
-      lyricsLanguage: LyricContentLanguage
     }) => {
       setGenerationError("")
       setIsGenerating(true)
@@ -560,7 +558,7 @@ export default function Home() {
           const createdLyric = await createLyric({
             title: data.title,
             body: data.lyrics,
-            language: data.lyricsLanguage,
+            language: "WESTERN_ARMENIAN",
           })
           lyricId = createdLyric.id
         }
