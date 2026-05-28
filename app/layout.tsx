@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { LocaleHtmlLang } from '@/components/locale-html-lang'
+import { Toaster } from '@/components/ui/toaster'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -22,6 +23,7 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         <LocaleHtmlLang />
         {children}
+        <Toaster />
       </body>
     </html>
   )

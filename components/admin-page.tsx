@@ -9,6 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { PromptDialog } from "@/components/ui/prompt-dialog"
 import {
   activateInviteCode,
   deactivateInviteCode,
@@ -39,6 +41,7 @@ import {
 import { t, useUiLanguage } from "@/lib/i18n"
 import { MAX_SEARCH_KEYWORD_LENGTH } from "@/lib/api-base"
 import { buildPlaybackCandidates } from "@/lib/media-playback"
+import { toastError, toastSuccess } from "@/lib/app-toast"
 
 const PAGE_SIZE = 25
 const READY_LIBRARY_SEARCH_DEBOUNCE_MS = 400
@@ -127,6 +130,16 @@ export function AdminPage() {
   const [readyLibraryTitle, setReadyLibraryTitle] = useState("")
   const [readyLibraryBody, setReadyLibraryBody] = useState("")
   const [readyLibraryPublishOnCreate, setReadyLibraryPublishOnCreate] = useState(true)
+  const [confirmDeleteReadyLibraryOpen, setConfirmDeleteReadyLibraryOpen] = useState(false)
+  const [readyLibraryDeleteId, setReadyLibraryDeleteId] = useState<string | null>(null)
+  const [readyLibraryDeleting, setReadyLibraryDeleting] = useState(false)
+  const [confirmRemoveInviteOpen, setConfirmRemoveInviteOpen] = useState(false)
+  const [inviteToRemove, setInviteToRemove] = useState<AdminInviteCode | null>(null)
+  const [freezePromptOpen, setFreezePromptOpen] = useState(false)
+  const [userToFreeze, setUserToFreeze] = useState<AdminUserSummary | null>(null)
+  const [freezeSubmitting, setFreezeSubmitting] = useState(false)
+  const [inviteCountPromptOpen, setInviteCountPromptOpen] = useState(false)
+  const [inviteCountSubmitting, setInviteCountSubmitting] = useState(false)
   const readyLibraryLanguage = "WESTERN_ARMENIAN" as const
   const [songs, setSongs] = useState<AdminSongSummary[]>([])
   const [loading, setLoading] = useState(true)
@@ -253,8 +266,15 @@ export function AdminPage() {
 
       setReadyLibraryDialogOpen(false)
       await loadReadyLibrary()
+      toastSuccess({
+        title: readyLibraryEditingId
+          ? t("readyLibraryLyricUpdatedSuccess")
+          : t("readyLibraryLyricCreatedSuccess"),
+      })
     } catch (saveError) {
-      setReadyLibraryError(saveError instanceof Error ? saveError.message : t("unableToSaveLyric"))
+      const message = saveError instanceof Error ? saveError.message : t("unableToSaveLyric")
+      setReadyLibraryError(message)
+      toastError({ title: t("readyLibraryActionFailed"), description: message })
     } finally {
       setReadyLibrarySaving(false)
     }
@@ -266,31 +286,48 @@ export function AdminPage() {
     try {
       await setAdminReadyLibraryPublished(item.id, !item.published)
       await loadReadyLibrary()
+      toastSuccess({
+        title: item.published
+          ? t("readyLibraryLyricUnpublishedSuccess")
+          : t("readyLibraryLyricPublishedSuccess"),
+      })
     } catch (toggleError) {
-      setReadyLibraryError(
-        toggleError instanceof Error ? toggleError.message : t("unableToSaveLyric"),
-      )
+      const message = toggleError instanceof Error ? toggleError.message : t("unableToSaveLyric")
+      setReadyLibraryError(message)
+      toastError({ title: t("readyLibraryActionFailed"), description: message })
     } finally {
       setReadyLibrarySaving(false)
     }
   }
 
-  const handleDeleteReadyLibrary = async (id: string) => {
+  const openDeleteReadyLibraryConfirm = (id: string) => {
+    setReadyLibraryDeleteId(id)
+    setConfirmDeleteReadyLibraryOpen(true)
+  }
+
+  const handleConfirmDeleteReadyLibrary = async () => {
+    if (!readyLibraryDeleteId) {
+      return
+    }
+    setReadyLibraryDeleting(true)
     setReadyLibraryError("")
-    setReadyLibrarySaving(true)
-    const confirmed = window.confirm(t("confirmDeleteReadyLibraryLyric"))
-    if (!confirmed) return
     try {
-      await deleteAdminReadyLibraryLyric(id)
+      await deleteAdminReadyLibraryLyric(readyLibraryDeleteId)
       await loadReadyLibrary()
-      if (readyLibraryEditingId === id) {
+      if (readyLibraryEditingId === readyLibraryDeleteId) {
         setReadyLibraryDialogOpen(false)
         setReadyLibraryEditingId(null)
       }
+      setConfirmDeleteReadyLibraryOpen(false)
+      setReadyLibraryDeleteId(null)
+      toastSuccess({ title: t("readyLibraryLyricDeletedSuccess") })
     } catch (deleteError) {
-      setReadyLibraryError(deleteError instanceof Error ? deleteError.message : t("unableToDeleteLyric"))
+      const message =
+        deleteError instanceof Error ? deleteError.message : t("readyLibraryLyricDeleteFailed")
+      setReadyLibraryError(message)
+      toastError({ title: t("readyLibraryLyricDeleteFailed"), description: message })
     } finally {
-      setReadyLibrarySaving(false)
+      setReadyLibraryDeleting(false)
     }
   }
 
@@ -372,28 +409,70 @@ export function AdminPage() {
     try {
       if (user.frozen) {
         await unfreezeUser(user.id)
+        setUsers(await listAdminUsers())
+        setDashboard(await getAdminDashboard())
       } else {
-        const reason = window.prompt(t("freezeUserReason", { email: user.email }))
-        if (!reason?.trim()) return
-        await freezeUser(user.id, reason.trim())
+        setUserToFreeze(user)
+        setFreezePromptOpen(true)
       }
-      setUsers(await listAdminUsers())
-      setDashboard(await getAdminDashboard())
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : t("failedToUpdateUser"))
+      toastError({
+        title: t("failedToUpdateUser"),
+        description: actionError instanceof Error ? actionError.message : undefined,
+      })
     }
   }
 
-  const handleGenerateInvites = async () => {
-    const raw = window.prompt(t("howManyInviteCodes"), "10")
+  const handleConfirmFreezeUser = async (reason: string) => {
+    if (!userToFreeze) {
+      return
+    }
+    const trimmed = reason.trim()
+    if (!trimmed) {
+      return
+    }
+    setFreezeSubmitting(true)
+    try {
+      await freezeUser(userToFreeze.id, trimmed)
+      setUsers(await listAdminUsers())
+      setDashboard(await getAdminDashboard())
+      setFreezePromptOpen(false)
+      setUserToFreeze(null)
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : t("failedToUpdateUser"))
+      toastError({
+        title: t("failedToUpdateUser"),
+        description: actionError instanceof Error ? actionError.message : undefined,
+      })
+    } finally {
+      setFreezeSubmitting(false)
+    }
+  }
+
+  const handleGenerateInvites = () => {
+    setInviteCountPromptOpen(true)
+  }
+
+  const handleConfirmGenerateInvites = async (raw: string) => {
     const count = Number(raw)
-    if (!Number.isFinite(count) || count <= 0) return
+    if (!Number.isFinite(count) || count <= 0) {
+      return
+    }
+    setInviteCountSubmitting(true)
     try {
       await generateInviteCodes(count)
       setInvites(await listInviteCodes())
       setDashboard(await getAdminDashboard())
+      setInviteCountPromptOpen(false)
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : t("failedToGenerateInviteCodes"))
+      toastError({
+        title: t("failedToGenerateInviteCodes"),
+        description: actionError instanceof Error ? actionError.message : undefined,
+      })
+    } finally {
+      setInviteCountSubmitting(false)
     }
   }
 
@@ -430,19 +509,19 @@ export function AdminPage() {
     }
   }
 
-  const handleRemoveInvite = async (invite: AdminInviteCode) => {
-    const confirmed = window.confirm(
-      t("confirmRemoveInviteCode", {
-        code: invite.code,
-        email: invite.usedByEmail ? t("andUser", { email: invite.usedByEmail }) : "",
-      }),
-    )
-    if (!confirmed) return
+  const openRemoveInviteConfirm = (invite: AdminInviteCode) => {
+    setInviteToRemove(invite)
+    setConfirmRemoveInviteOpen(true)
+  }
 
+  const handleConfirmRemoveInvite = async () => {
+    if (!inviteToRemove) {
+      return
+    }
     setError("")
-    setRemovingInviteId(invite.id)
+    setRemovingInviteId(inviteToRemove.id)
     try {
-      await removeInviteCode(invite.id)
+      await removeInviteCode(inviteToRemove.id)
       const [inviteData, userData, dashboardData] = await Promise.all([
         listInviteCodes(),
         listAdminUsers(),
@@ -451,8 +530,14 @@ export function AdminPage() {
       setInvites(inviteData)
       setUsers(userData)
       setDashboard(dashboardData)
+      setConfirmRemoveInviteOpen(false)
+      setInviteToRemove(null)
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : t("failedToRemoveInviteCode"))
+      toastError({
+        title: t("failedToRemoveInviteCode"),
+        description: actionError instanceof Error ? actionError.message : undefined,
+      })
     } finally {
       setRemovingInviteId(null)
     }
@@ -636,7 +721,7 @@ export function AdminPage() {
                             size="sm"
                             className="gap-1.5"
                             disabled={sendingInviteId === invite.id || removingInviteId === invite.id}
-                            onClick={() => void handleRemoveInvite(invite)}
+                            onClick={() => openRemoveInviteConfirm(invite)}
                             title={t("removeInviteCodeAndLinkedUser")}
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -851,8 +936,8 @@ export function AdminPage() {
                               <Button
                                 variant="destructive"
                                 size="sm"
-                                onClick={() => void handleDeleteReadyLibrary(item.id)}
-                                disabled={readyLibrarySaving}
+                                onClick={() => openDeleteReadyLibraryConfirm(item.id)}
+                                disabled={readyLibrarySaving || readyLibraryDeleting}
                               >
                                 {t("delete")}
                               </Button>
@@ -1001,6 +1086,81 @@ export function AdminPage() {
               </div>
             </DialogContent>
           </Dialog>
+
+          <ConfirmDialog
+            open={confirmDeleteReadyLibraryOpen}
+            title={t("confirmDeleteReadyLibraryLyric")}
+            message={t("deleteReadyLibraryLyricMessage")}
+            confirmText={t("delete")}
+            cancelText={t("cancel")}
+            loadingLabel={t("deleting")}
+            danger
+            loading={readyLibraryDeleting}
+            onConfirm={() => void handleConfirmDeleteReadyLibrary()}
+            onCancel={() => {
+              if (readyLibraryDeleting) return
+              setConfirmDeleteReadyLibraryOpen(false)
+              setReadyLibraryDeleteId(null)
+            }}
+          />
+
+          <ConfirmDialog
+            open={confirmRemoveInviteOpen}
+            title={t("removeInviteCodeAndLinkedUser")}
+            message={
+              inviteToRemove
+                ? t("confirmRemoveInviteCode", {
+                    code: inviteToRemove.code,
+                    email: inviteToRemove.usedByEmail
+                      ? t("andUser", { email: inviteToRemove.usedByEmail })
+                      : "",
+                  })
+                : ""
+            }
+            confirmText={t("remove")}
+            cancelText={t("cancel")}
+            danger
+            loading={removingInviteId !== null}
+            onConfirm={() => void handleConfirmRemoveInvite()}
+            onCancel={() => {
+              if (removingInviteId) return
+              setConfirmRemoveInviteOpen(false)
+              setInviteToRemove(null)
+            }}
+          />
+
+          <PromptDialog
+            open={freezePromptOpen}
+            title={t("freeze")}
+            message={
+              userToFreeze ? t("freezeUserReason", { email: userToFreeze.email }) : undefined
+            }
+            confirmText={t("freeze")}
+            cancelText={t("cancel")}
+            loading={freezeSubmitting}
+            onConfirm={(value) => void handleConfirmFreezeUser(value)}
+            onCancel={() => {
+              if (freezeSubmitting) return
+              setFreezePromptOpen(false)
+              setUserToFreeze(null)
+            }}
+          />
+
+          <PromptDialog
+            open={inviteCountPromptOpen}
+            title={t("generateCodes")}
+            message={t("howManyInviteCodes")}
+            defaultValue="10"
+            inputType="number"
+            confirmText={t("generateCodes")}
+            cancelText={t("cancel")}
+            loading={inviteCountSubmitting}
+            onConfirm={(value) => void handleConfirmGenerateInvites(value)}
+            onCancel={() => {
+              if (inviteCountSubmitting) return
+              setInviteCountPromptOpen(false)
+            }}
+          />
       </div>
     </div>
   )
