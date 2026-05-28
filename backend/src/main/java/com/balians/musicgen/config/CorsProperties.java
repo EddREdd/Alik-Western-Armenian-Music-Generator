@@ -12,4 +12,5 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class CorsProperties {
 
     private List<String> allowedOrigins = new ArrayList<>();
+    private List<String> allowedOriginPatterns = new ArrayList<>();
 }
