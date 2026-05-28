@@ -10,6 +10,7 @@ import com.balians.musicgen.admin.dto.AdminLyricSummaryResponse;
 import com.balians.musicgen.admin.dto.AdminReadyLibraryLyricDetailResponse;
 import com.balians.musicgen.admin.dto.AdminReadyLibraryLyricSummaryResponse;
 import com.balians.musicgen.admin.dto.CreateReadyLibraryLyricRequest;
+import com.balians.musicgen.admin.dto.SetReadyLibraryPublishedRequest;
 import com.balians.musicgen.admin.dto.UpdateReadyLibraryLyricRequest;
 import com.balians.musicgen.admin.dto.AdminSongDetailResponse;
 import com.balians.musicgen.admin.dto.AdminSongSummaryResponse;
@@ -44,6 +45,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -294,6 +296,16 @@ public class AdminController {
     ) {
         ensureAdminAccess(sessionToken);
         return StandardSuccessResponse.ok(readyLibraryService.update(id, request));
+    }
+
+    @PatchMapping("/ready-library/{id}/published")
+    public StandardSuccessResponse<AdminReadyLibraryLyricDetailResponse> setReadyLibraryPublished(
+            @RequestHeader(name = SESSION_HEADER, required = false) String sessionToken,
+            @PathVariable String id,
+            @Valid @RequestBody SetReadyLibraryPublishedRequest request
+    ) {
+        ensureAdminAccess(sessionToken);
+        return StandardSuccessResponse.ok(readyLibraryService.setPublished(id, request));
     }
 
     @DeleteMapping("/ready-library/{id}")

@@ -45,6 +45,7 @@ class GenerationTrackUpsertServiceTest {
 
         assertThat(upserted).isEqualTo(1);
         assertThat(existing.getAudioUrl()).isEqualTo("audio.mp3");
+        assertThat(existing.getProviderAudioUrl()).isEqualTo("audio.mp3");
         assertThat(existing.getTags()).containsExactly("tag1", "tag2");
     }
 

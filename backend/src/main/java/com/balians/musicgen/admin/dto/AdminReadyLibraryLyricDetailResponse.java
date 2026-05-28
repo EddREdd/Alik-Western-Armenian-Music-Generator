@@ -11,6 +11,7 @@ public record AdminReadyLibraryLyricDetailResponse(
         String body,
         String language,
         Integer currentVersion,
+        boolean published,
         String createdByAdminUserId,
         String sourceLyricId,
         List<LyricVersionResponse> versions,

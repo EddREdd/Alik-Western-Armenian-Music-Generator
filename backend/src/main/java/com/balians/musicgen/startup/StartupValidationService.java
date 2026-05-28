@@ -68,7 +68,7 @@ public class StartupValidationService {
                 "media.storage.spaces-public-base-url must not use MinIO console port :9001");
 
         log.info(
-                "Media storage config: type={}, endpoint={}, region={}, bucket={}, publicBaseUrl={}, accessKeyPrefix={}",
+                "Media storage resolved config: type={}, endpoint={}, region={}, bucket={}, publicBaseUrl={}, accessKeyPrefix={}",
                 mediaStorageProperties.getType(),
                 mediaStorageProperties.getSpacesEndpoint(),
                 mediaStorageProperties.getSpacesRegion(),

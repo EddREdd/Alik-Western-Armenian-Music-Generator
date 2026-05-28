@@ -6,7 +6,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.balians.musicgen.admin.dto.CreateReadyLibraryLyricRequest;
+import com.balians.musicgen.admin.dto.SetReadyLibraryPublishedRequest;
 import com.balians.musicgen.admin.dto.UpdateReadyLibraryLyricRequest;
+import com.balians.musicgen.common.exception.NotFoundException;
 import com.balians.musicgen.lyrics.model.LyricEntry;
 import com.balians.musicgen.lyrics.repository.LyricEntryRepository;
 import java.time.Instant;
@@ -38,7 +40,9 @@ class ReadyLibraryServiceTest {
             return entry;
         });
 
-        var created = service.create("admin-1", new CreateReadyLibraryLyricRequest("My Title", "Hello world lyrics", "ENGLISH"));
+        var created = service.create(
+                "admin-1",
+                new CreateReadyLibraryLyricRequest("My Title", "Hello world lyrics", "WESTERN_ARMENIAN", true));
 
         ArgumentCaptor<LyricEntry> captor = ArgumentCaptor.forClass(LyricEntry.class);
         verify(lyricEntryRepository).save(captor.capture());
@@ -49,6 +53,8 @@ class ReadyLibraryServiceTest {
         assertThat(saved.getCreatedByAdminUserId()).isEqualTo("admin-1");
         assertThat(saved.getCurrentVersion()).isEqualTo(1);
         assertThat(saved.getLocked()).isFalse();
+        assertThat(saved.getReadyLibraryPublished()).isTrue();
+        assertThat(created.published()).isTrue();
         assertThat(created.id()).isEqualTo("ready-1");
     }
 
@@ -67,7 +73,7 @@ class ReadyLibraryServiceTest {
         when(lyricEntryRepository.findByIdAndPublicReadyLibraryTrue("ready-1")).thenReturn(Optional.of(entry));
         when(lyricEntryRepository.save(any(LyricEntry.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        var updated = service.update("ready-1", new UpdateReadyLibraryLyricRequest("New", "New body with text", "ENGLISH"));
+        var updated = service.update("ready-1", new UpdateReadyLibraryLyricRequest("New", "New body with text", "WESTERN_ARMENIAN"));
 
         assertThat(updated.currentVersion()).isEqualTo(2);
         assertThat(updated.versions()).hasSize(1);
@@ -86,21 +92,63 @@ class ReadyLibraryServiceTest {
     }
 
     @Test
-    void publicReadyLibraryListReturnsOnlyPublicLyrics() {
-        LyricEntry publicLyric = LyricEntry.builder()
+    void publicReadyLibraryListReturnsOnlyPublishedLyrics() {
+        LyricEntry published = LyricEntry.builder()
                 .id("ready-1")
                 .title("Public")
                 .body("Some body")
-                .language("ENGLISH")
+                .language("WESTERN_ARMENIAN")
                 .publicReadyLibrary(true)
+                .readyLibraryPublished(true)
                 .currentVersion(1)
                 .build();
-        when(lyricEntryRepository.findByPublicReadyLibraryTrueOrderByUpdatedAtDesc()).thenReturn(List.of(publicLyric));
+        LyricEntry draft = LyricEntry.builder()
+                .id("ready-2")
+                .title("Draft")
+                .body("Draft body")
+                .language("WESTERN_ARMENIAN")
+                .publicReadyLibrary(true)
+                .readyLibraryPublished(false)
+                .currentVersion(1)
+                .build();
+        when(lyricEntryRepository.findByPublicReadyLibraryTrueOrderByUpdatedAtDesc())
+                .thenReturn(List.of(published, draft));
 
         var list = service.listPublic(null, null);
 
         assertThat(list).hasSize(1);
-        assertThat(list.get(0).publicReadyLibrary()).isTrue();
+        assertThat(list.get(0).id()).isEqualTo("ready-1");
+    }
+
+    @Test
+    void unpublishedReadyLibraryLyricIsHiddenFromPublicGetById() {
+        LyricEntry draft = LyricEntry.builder()
+                .id("ready-1")
+                .publicReadyLibrary(true)
+                .readyLibraryPublished(false)
+                .build();
+        when(lyricEntryRepository.findByIdAndPublicReadyLibraryTrue("ready-1")).thenReturn(Optional.of(draft));
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+                NotFoundException.class,
+                () -> service.getPublicById("ready-1"));
+    }
+
+    @Test
+    void adminCanPublishAndUnpublishReadyLibraryLyric() {
+        LyricEntry entry = LyricEntry.builder()
+                .id("ready-1")
+                .publicReadyLibrary(true)
+                .readyLibraryPublished(false)
+                .build();
+        when(lyricEntryRepository.findByIdAndPublicReadyLibraryTrue("ready-1")).thenReturn(Optional.of(entry));
+        when(lyricEntryRepository.save(any(LyricEntry.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var published = service.setPublished("ready-1", new SetReadyLibraryPublishedRequest(true));
+        assertThat(published.published()).isTrue();
+
+        var unpublished = service.setPublished("ready-1", new SetReadyLibraryPublishedRequest(false));
+        assertThat(unpublished.published()).isFalse();
     }
 
     @Test

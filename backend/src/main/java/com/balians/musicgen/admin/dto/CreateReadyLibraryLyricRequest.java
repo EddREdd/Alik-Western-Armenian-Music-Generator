@@ -14,6 +14,8 @@ public record CreateReadyLibraryLyricRequest(
 
         @NotBlank(message = "language is required")
         @Size(max = 50, message = "language must be at most 50 characters")
-        String language
+        String language,
+
+        Boolean published
 ) {
 }

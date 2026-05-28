@@ -46,10 +46,27 @@ public class GenerationTrack extends AuditableDocument {
     private String audioUrl;
     private String streamAudioUrl;
     private String imageUrl;
+    private String providerAudioUrl;
+    private String providerImageUrl;
     private String localAudioPath;
     private String localAudioUrl;
     private String localImagePath;
     private String localImageUrl;
+
+    private String mediaStorageStatus;
+    private String mediaStorageProvider;
+    private String mediaStorageBucket;
+    private String mediaStorageKey;
+    private Long mediaStorageSizeBytes;
+    private String mediaStorageContentType;
+    private Instant mediaStoredAt;
+    private Integer mediaStorageAttemptCount;
+    private Instant mediaStorageLastAttemptAt;
+    private String mediaStorageError;
+
+    private String imageStorageKey;
+    private String imageStorageStatus;
+    private String imageStorageError;
     private String lyricsOrPrompt;
     private String modelName;
     private String title;

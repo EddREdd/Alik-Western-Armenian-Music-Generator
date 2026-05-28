@@ -8,6 +8,7 @@ public record AdminReadyLibraryLyricSummaryResponse(
         String bodyPreview,
         String language,
         Integer currentVersion,
+        boolean published,
         String createdByAdminUserId,
         Instant createdAt,
         Instant updatedAt

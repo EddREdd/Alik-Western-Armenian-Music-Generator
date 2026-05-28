@@ -49,6 +49,12 @@ public class LyricEntry extends AuditableDocument {
     @Builder.Default
     private Boolean publicReadyLibrary = false;
 
+    /**
+     * When true (or null for legacy entries), Ready Library lyric is visible to all users.
+     * Admins can unpublish to keep drafts out of the public list.
+     */
+    private Boolean readyLibraryPublished;
+
     @Indexed(name = "idx_lyrics_created_by_admin_user_id", sparse = true)
     private String createdByAdminUserId;
 

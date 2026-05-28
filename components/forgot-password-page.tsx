@@ -11,6 +11,7 @@ import {
   resetForgotPassword,
   verifyForgotPasswordCode,
 } from "@/lib/auth-api"
+import { AuthLanguageSwitcher } from "@/components/auth-language-switcher"
 import { t, useUiLanguage } from "@/lib/i18n"
 
 interface ForgotPasswordPageProps {
@@ -94,6 +95,7 @@ export function ForgotPasswordPage({ onBackToLogin }: ForgotPasswordPageProps) {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-primary px-4 py-8">
+      <AuthLanguageSwitcher />
       <div className="mb-8">
         <Image
           src="/images/logo.png"

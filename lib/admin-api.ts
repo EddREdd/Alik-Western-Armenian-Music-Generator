@@ -132,6 +132,7 @@ export interface AdminReadyLibraryLyricSummary {
   bodyPreview: string
   language: string
   currentVersion: number
+  published: boolean
   createdByAdminUserId: string
   createdAt: string
   updatedAt: string
@@ -151,6 +152,7 @@ export interface AdminReadyLibraryLyricDetail {
   body: string
   language: string
   currentVersion: number
+  published: boolean
   createdByAdminUserId: string
   sourceLyricId: string
   versions: AdminReadyLibraryLyricVersion[]
@@ -162,6 +164,7 @@ export interface CreateReadyLibraryLyricRequest {
   title: string
   body: string
   language: string
+  published?: boolean
 }
 
 export interface UpdateReadyLibraryLyricRequest {
@@ -315,6 +318,16 @@ export async function updateAdminReadyLibraryLyric(
 export async function deleteAdminReadyLibraryLyric(id: string): Promise<void> {
   await adminRequest<string>(`/api/v1/admin/ready-library/${encodeURIComponent(id)}`, {
     method: "DELETE",
+  })
+}
+
+export async function setAdminReadyLibraryPublished(
+  id: string,
+  published: boolean,
+): Promise<AdminReadyLibraryLyricDetail> {
+  return adminRequest(`/api/v1/admin/ready-library/${encodeURIComponent(id)}/published`, {
+    method: "PATCH",
+    body: JSON.stringify({ published }),
   })
 }
 
