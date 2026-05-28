@@ -4,6 +4,7 @@ import com.balians.musicgen.media.config.MediaStorageProperties;
 import java.nio.file.Path;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -41,7 +42,12 @@ public class WebConfig implements WebMvcConfigurer {
             var mapping = registry.addMapping(pathPattern)
                     .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                     .allowedHeaders("*")
-                    .exposedHeaders("Content-Disposition")
+                    .exposedHeaders(
+                            "Content-Disposition",
+                            HttpHeaders.ACCEPT_RANGES,
+                            HttpHeaders.CONTENT_RANGE,
+                            HttpHeaders.CONTENT_LENGTH
+                    )
                     .allowCredentials(false);
 
             if (allowedOrigins.length > 0) {

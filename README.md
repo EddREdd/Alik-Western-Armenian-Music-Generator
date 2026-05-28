@@ -15,6 +15,15 @@ The backend manages async music generation with Suno:
 - runs daily schedule-driven generation from prompt templates
 - exposes admin/ops endpoints for support and recovery
 
+## Media storage (MinIO)
+
+Generated audio/images are mirrored to external MinIO (`alik/audio/`, `alik/images/`). For browser playback, either:
+
+1. **Public read** on MinIO prefixes (`mc anonymous set download`), or  
+2. **Backend proxy** at `GET /api/v1/media/proxy?url=...` (used automatically by the frontend for `storage.beesync.co`).
+
+See [docs/MINIO.md](docs/MINIO.md) for `mc` commands, env vars, and verification steps.
+
 ## Architecture Summary
 
 - Framework: Spring Boot

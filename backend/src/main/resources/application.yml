@@ -40,7 +40,8 @@ media:
     spaces-access-key: ${MEDIA_STORAGE_SPACES_ACCESS_KEY:${MINIO_ROOT_USER:}}
     spaces-secret-key: ${MEDIA_STORAGE_SPACES_SECRET_KEY:${MINIO_ROOT_PASSWORD:}}
     spaces-public-base-url: ${MEDIA_STORAGE_SPACES_PUBLIC_BASE_URL:${MINIO_PUBLIC_BASE_URL:}}
-    proxy-allowed-hosts: ${MEDIA_PROXY_ALLOWED_HOSTS:musicfile.removeai.ai,tempfile.aiquickdraw.com}
+    proxy-allowed-hosts: ${MEDIA_PROXY_ALLOWED_HOSTS:storage.beesync.co,musicfile.removeai.ai,tempfile.aiquickdraw.com}
+    public-probe-url: ${MEDIA_STORAGE_PUBLIC_PROBE_URL:}
 
 cors:
   # Comma-separated lists, e.g. CORS_ALLOWED_ORIGINS=http://localhost:3000

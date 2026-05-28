@@ -4,6 +4,11 @@ import com.balians.musicgen.config.FeatureFlagsProperties;
 import com.balians.musicgen.media.config.MediaStorageProperties;
 import com.balians.musicgen.provider.config.ProviderProperties;
 import jakarta.annotation.PostConstruct;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.mongo.MongoProperties;
@@ -75,6 +80,51 @@ public class StartupValidationService {
                 mediaStorageProperties.getSpacesBucket(),
                 mediaStorageProperties.getSpacesPublicBaseUrl(),
                 accessKeyPrefix(mediaStorageProperties.getSpacesAccessKey()));
+
+        warnIfMinioNotPubliclyReadable();
+    }
+
+    private void warnIfMinioNotPubliclyReadable() {
+        String probeUrl = mediaStorageProperties.getPublicProbeUrl();
+        if (probeUrl == null || probeUrl.isBlank()) {
+            log.info(
+                    "MinIO public-read probe skipped. Set MEDIA_STORAGE_PUBLIC_PROBE_URL to verify anonymous download, "
+                            + "or configure: mc anonymous set download beesync/alik/audio");
+            return;
+        }
+
+        try {
+            HttpClient client = HttpClient.newBuilder()
+                    .followRedirects(HttpClient.Redirect.NORMAL)
+                    .connectTimeout(Duration.ofSeconds(10))
+                    .build();
+            HttpRequest request = HttpRequest.newBuilder(URI.create(probeUrl.trim()))
+                    .timeout(Duration.ofSeconds(15))
+                    .method("HEAD", HttpRequest.BodyPublishers.noBody())
+                    .build();
+            HttpResponse<Void> response = client.send(request, HttpResponse.BodyHandlers.discarding());
+            int status = response.statusCode();
+            if (status == 401 || status == 403) {
+                log.warn(
+                        "MinIO object storage is writable but not publicly readable. Configure "
+                                + "'mc anonymous set download' for bucket/prefix or enable backend media proxy for playback. "
+                                + "probeUrl={} status={}",
+                        probeUrl,
+                        status
+                );
+            } else if (status >= 200 && status < 300) {
+                log.info("MinIO public-read probe succeeded status={} probeUrl={}", status, probeUrl);
+            } else {
+                log.warn("MinIO public-read probe returned unexpected status={} probeUrl={}", status, probeUrl);
+            }
+        } catch (Exception ex) {
+            log.warn(
+                    "MinIO public-read probe failed (non-fatal). Configure mc anonymous set download for "
+                            + "beesync/alik/audio and beesync/alik/images, or use /api/v1/media/proxy. probeUrl={} error={}",
+                    probeUrl,
+                    ex.getMessage()
+            );
+        }
     }
 
     private void rejectMinioConsolePort(String value, String message) {
