@@ -1,0 +1,28 @@
+# Local development overlay — use only with separate host ports, not for Dokploy/Traefik production.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
+#
+# This file intentionally overrides production-safe defaults from docker-compose.yml:
+# - maps backend/frontend to localhost ports
+# - sets NEXT_PUBLIC_BACKEND_URL for direct browser -> backend calls (optional local workflow)
+# - enables CORS for http://localhost:3000
+
+services:
+  backend:
+    ports:
+      - "${BACKEND_HOST_PORT:-8080}:8080"
+    environment:
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+      CORS_ALLOWED_ORIGIN_PATTERNS: ${CORS_ALLOWED_ORIGIN_PATTERNS:-}
+      PROVIDER_CALLBACK_BASE_URL: ${PROVIDER_CALLBACK_BASE_URL:-http://localhost:8080}
+
+  frontend:
+    ports:
+      - "${FRONTEND_HOST_PORT:-3000}:3000"
+    build:
+      args:
+        NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL:-http://localhost:8080}
+        INTERNAL_BACKEND_URL: ${INTERNAL_BACKEND_URL:-http://backend:8080}
+    environment:
+      NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL:-http://localhost:8080}
+      INTERNAL_BACKEND_URL: ${INTERNAL_BACKEND_URL:-http://backend:8080}

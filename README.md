@@ -173,29 +173,74 @@ curl -X POST http://localhost:8080/api/v1/admin/schedules/{scheduleId}/run-now
 
 ## Deployment Notes
 
-- build the backend jar:
+### Production architecture (Traefik / Dokploy)
+
+The browser must call the backend through the **frontend origin** using relative URLs such as `/api/v1/auth/login`. Next.js rewrites proxy `/api/:path*` to the backend container.
+
+| Variable | Production value | Purpose |
+|----------|------------------|---------|
+| `NEXT_PUBLIC_BACKEND_URL` | *(empty)* | Browser uses same-origin `/api/...` (no cross-origin CORS) |
+| `INTERNAL_BACKEND_URL` | `http://backend:8080` | Next.js server-side proxy target inside Docker |
+| `CORS_ALLOWED_ORIGINS` | *(empty)* | Not needed for same-origin production traffic |
+| `CORS_ALLOWED_ORIGIN_PATTERNS` | `http://*.traefik.me,https://*.traefik.me` | Only when the browser intentionally calls the backend public URL |
+
+Example production env (see [.env.docker.example](/E:/Alik-Western-Armenian-Music-Generator/.env.docker.example)):
+
+```env
+NEXT_PUBLIC_BACKEND_URL=
+INTERNAL_BACKEND_URL=http://backend:8080
+CORS_ALLOWED_ORIGINS=
+CORS_ALLOWED_ORIGIN_PATTERNS=http://*.traefik.me,https://*.traefik.me
+```
+
+After deploy, verify in the browser network tab:
+
+- `GET /api/v1/auth/me` → frontend host (not backend Traefik host)
+- `GET /api/v1/generation-jobs?page=0&size=50` → frontend host
+- `POST /api/v1/auth/login` → frontend host, no CORS failure
+
+### Local development (separate ports)
+
+When the frontend runs on port 3000 and the browser calls the backend on port 8080 directly:
+
+```env
+NEXT_PUBLIC_BACKEND_URL=http://localhost:8080
+CORS_ALLOWED_ORIGINS=http://localhost:3000
+```
+
+Use the local Compose overlay (do **not** use these values as production defaults):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
+```
+
+### Build commands
+
+Backend:
 
 ```bash
 cd backend
 mvn clean package
 ```
 
-- Docker build:
+Frontend:
 
 ```bash
-cd backend
-docker build -t musicgen-backend:latest .
+npm run build
+```
+
+Docker (production-like, empty public backend URL):
+
+```bash
+export NEXT_PUBLIC_BACKEND_URL=
+export INTERNAL_BACKEND_URL=http://backend:8080
+docker compose up --build
 ```
 
 - `docker-compose.yml` is deployment-oriented and avoids binding fixed host ports
-- for local Docker usage, combine it with [docker-compose.local.yml](/E:/Alik-Western-Armenian-Music-Generator/docker-compose.local.yml):
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.local.yml up --build
-```
-
-- the frontend proxies `/api` requests to the backend internally; in deployed environments, leave `NEXT_PUBLIC_BACKEND_URL` empty unless you intentionally expose the backend on its own public URL
-- run with env vars only; do not hardcode secrets
+- `docker-compose.local.yml` is **only** for local/separate-port development
+- Copy [.env.docker.example](/E:/Alik-Western-Armenian-Music-Generator/.env.docker.example) to `.env` and fill in secrets via your deployment platform
+- Never commit real API keys, database passwords, or provider secrets (see [backend/.env.example](/E:/Alik-Western-Armenian-Music-Generator/backend/.env.example)); rotate any credentials that were previously committed
 
 ## MVP Out Of Scope
 

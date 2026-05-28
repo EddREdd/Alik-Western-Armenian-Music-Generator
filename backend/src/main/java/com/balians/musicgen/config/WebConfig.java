@@ -12,22 +12,44 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @RequiredArgsConstructor
 public class WebConfig implements WebMvcConfigurer {
 
+    private static final String[] CORS_PATH_PATTERNS = {
+        "/api/**",
+        "/media/**",
+        "/actuator/**",
+        "/api-docs/**",
+        "/swagger-ui/**",
+        "/swagger-ui.html"
+    };
+
     private final CorsProperties corsProperties;
     private final MediaStorageProperties mediaStorageProperties;
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        var mapping = registry.addMapping("/api/**")
-                .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-                .allowedHeaders("*")
-                .allowCredentials(false);
+        String[] allowedOrigins = corsProperties.getAllowedOrigins().stream()
+                .filter(origin -> origin != null && !origin.isBlank())
+                .toArray(String[]::new);
+        String[] allowedOriginPatterns = corsProperties.getAllowedOriginPatterns().stream()
+                .filter(pattern -> pattern != null && !pattern.isBlank())
+                .toArray(String[]::new);
 
-        if (!corsProperties.getAllowedOrigins().isEmpty()) {
-            mapping.allowedOrigins(corsProperties.getAllowedOrigins().toArray(String[]::new));
+        if (allowedOrigins.length == 0 && allowedOriginPatterns.length == 0) {
+            return;
         }
-        if (!corsProperties.getAllowedOriginPatterns().isEmpty()) {
-            mapping.allowedOriginPatterns(
-                    corsProperties.getAllowedOriginPatterns().toArray(String[]::new));
+
+        for (String pathPattern : CORS_PATH_PATTERNS) {
+            var mapping = registry.addMapping(pathPattern)
+                    .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+                    .allowedHeaders("*")
+                    .exposedHeaders("Content-Disposition")
+                    .allowCredentials(false);
+
+            if (allowedOrigins.length > 0) {
+                mapping.allowedOrigins(allowedOrigins);
+            }
+            if (allowedOriginPatterns.length > 0) {
+                mapping.allowedOriginPatterns(allowedOriginPatterns);
+            }
         }
     }
 
