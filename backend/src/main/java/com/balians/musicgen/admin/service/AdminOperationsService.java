@@ -52,6 +52,7 @@ import com.balians.musicgen.schedule.repository.ScheduleDefinitionRepository;
 import com.balians.musicgen.schedule.repository.ScheduleRunRepository;
 import com.balians.musicgen.schedule.service.ScheduleService;
 import com.balians.musicgen.email.SendGridEmailService;
+import com.balians.musicgen.email.template.EmailTemplateService;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
@@ -95,6 +96,7 @@ public class AdminOperationsService {
     private final PollingReconciliationService pollingReconciliationService;
     private final ScheduleService scheduleService;
     private final SendGridEmailService sendGridEmailService;
+    private final EmailTemplateService emailTemplateService;
     private final OpsProperties opsProperties;
 
     public Page<AdminGenerationJobSummaryResponse> listGenerationJobs(AdminGenerationJobFilter filter) {
@@ -328,10 +330,10 @@ public class AdminOperationsService {
             throw new BadRequestException("email is required");
         }
 
-        String subject = "invitation for piloting Alik";
-        String body = "dear friend you are been choosen to become Alik pilot period user, "
-                + "please use this code[" + inviteCode.getCode() + "] when registering to our platform. thank you";
-        boolean sent = sendGridEmailService.sendTextEmail(normalizedEmail, subject, body);
+        boolean sent = sendGridEmailService.sendRenderedEmail(
+                normalizedEmail,
+                emailTemplateService.renderInviteCodeEmail(inviteCode.getCode())
+        );
         if (!sent) {
             log.warn("Invite code email failed inviteId={} code={} to={}", inviteId, inviteCode.getCode(), normalizedEmail);
             throw new BadRequestException("Invite email was not sent. Please check backend logs.");
