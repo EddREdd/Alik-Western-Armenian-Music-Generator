@@ -132,7 +132,7 @@ export function SongCreatorPanel({
                   setSelectedLyricLocked(false)
                 }
               }}
-              className="min-h-[220px] resize-none border-border bg-card font-mono text-sm text-foreground placeholder:text-muted-foreground"
+              className="field-sizing-fixed min-h-[220px] max-h-[45vh] resize-y overflow-y-auto border-border bg-card font-mono text-sm text-foreground placeholder:text-muted-foreground"
             />
             <div className="flex items-center justify-between gap-3 text-xs">
               <p className="text-muted-foreground">

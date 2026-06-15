@@ -120,8 +120,8 @@ export function LyricsImportDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-xl">
+        <DialogHeader className="shrink-0 border-b px-6 py-4">
           <DialogTitle className="text-foreground">
             {source === "my" ? t("importFromMyLyrics") : t("importFromPublicLyrics")}
           </DialogTitle>
@@ -131,6 +131,7 @@ export function LyricsImportDialog({
               : t("selectLyricsFromPublic")}
           </DialogDescription>
         </DialogHeader>
+        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden px-6 py-4">
         {source === "public" ? (
           <div className="flex items-center gap-3 pb-2">
             <Label className="text-xs text-muted-foreground" htmlFor="public-language-filter">
@@ -161,7 +162,7 @@ export function LyricsImportDialog({
             className="pl-9"
           />
         </div>
-        <ScrollArea className="h-72">
+        <ScrollArea className="min-h-0 flex-1">
           <div className="flex flex-col gap-2 pr-4">
             {loading ? (
               <div className="py-8 text-center text-sm text-muted-foreground">{t("loading")}</div>
@@ -214,6 +215,7 @@ export function LyricsImportDialog({
             )}
           </div>
         </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   )
