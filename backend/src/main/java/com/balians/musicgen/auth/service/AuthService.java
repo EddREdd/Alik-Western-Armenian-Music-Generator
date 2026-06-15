@@ -28,6 +28,7 @@ import com.balians.musicgen.common.exception.BadRequestException;
 import com.balians.musicgen.common.exception.ConflictException;
 import com.balians.musicgen.common.exception.NotFoundException;
 import com.balians.musicgen.email.SendGridEmailService;
+import com.balians.musicgen.email.template.EmailTemplateService;
 import com.balians.musicgen.generation.dto.GenerationJobResponse;
 import com.balians.musicgen.generation.mapper.GenerationJobMapper;
 import com.balians.musicgen.generation.model.GenerationJob;
@@ -61,6 +62,7 @@ public class AuthService {
     private final GoogleIdentityService googleIdentityService;
     private final SecurityLogService securityLogService;
     private final SendGridEmailService sendGridEmailService;
+    private final EmailTemplateService emailTemplateService;
     private final GenerationJobRepository generationJobRepository;
     private final GenerationTrackRepository generationTrackRepository;
     private final GenerationJobMapper generationJobMapper;
@@ -427,20 +429,20 @@ public class AuthService {
     }
 
     private void sendPasswordResetEmail(String email, String otpCode) {
-        String subject = "Alik password reset code";
-        String body = "Use this 5-digit code to reset your password: "
-                + otpCode
-                + "\n\nIf you did not request this, you can ignore this email.";
-        boolean sent = sendGridEmailService.sendTextEmail(email, subject, body);
+        boolean sent = sendGridEmailService.sendRenderedEmail(
+                email,
+                emailTemplateService.renderPasswordResetEmail(otpCode)
+        );
         if (!sent) {
             log.warn("Password reset email failed for {}", email);
         }
     }
 
     private void sendWelcomeEmail(String email) {
-        String subject = "welcome form Alik";
-        String body = "you become Alik pilot users thank you.";
-        boolean sent = sendGridEmailService.sendTextEmail(email, subject, body);
+        boolean sent = sendGridEmailService.sendRenderedEmail(
+                email,
+                emailTemplateService.renderWelcomeEmail()
+        );
         if (!sent) {
             log.warn("Welcome email failed for {}", email);
         }

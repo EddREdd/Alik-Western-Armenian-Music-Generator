@@ -1,5 +1,6 @@
 package com.balians.musicgen.email;
 
+import com.balians.musicgen.email.template.RenderedEmail;
 import com.sendgrid.Method;
 import com.sendgrid.Request;
 import com.sendgrid.Response;
@@ -19,7 +20,20 @@ public class SendGridEmailService {
     private final SendGridEmailProperties properties;
 
     public boolean sendTextEmail(String to, String subject, String body) {
-        log.info("SendGrid email attempt to={} subject={} from={}", to, subject, properties.getFromAddress());
+        return sendEmail(to, subject, body, null);
+    }
+
+    public boolean sendRenderedEmail(String to, RenderedEmail renderedEmail) {
+        return sendEmail(
+                to,
+                renderedEmail.subject(),
+                renderedEmail.plainTextBody(),
+                renderedEmail.htmlBody()
+        );
+    }
+
+    private boolean sendEmail(String to, String subject, String plainTextBody, String htmlBody) {
+        log.info("SendGrid email attempt to={} subject={} from={} html={}", to, subject, properties.getFromAddress(), htmlBody != null);
         if (!hasText(properties.getApiKey())) {
             log.warn("SendGrid API key is not configured; skipping email send to={}", to);
             return false;
@@ -28,11 +42,25 @@ public class SendGridEmailService {
             log.warn("Attempted to send email with blank recipient");
             return false;
         }
+        if (!hasText(plainTextBody) && !hasText(htmlBody)) {
+            log.warn("Attempted to send email with empty body to={}", to);
+            return false;
+        }
 
         Email from = new Email(properties.getFromAddress(), properties.getFromName());
         Email toEmail = new Email(to);
-        Content content = new Content("text/plain", body);
-        Mail mail = new Mail(from, subject, toEmail, content);
+
+        Content primaryContent;
+        if (hasText(plainTextBody)) {
+            primaryContent = new Content("text/plain", plainTextBody);
+        } else {
+            primaryContent = new Content("text/html", htmlBody);
+        }
+
+        Mail mail = new Mail(from, subject, toEmail, primaryContent);
+        if (hasText(htmlBody) && hasText(plainTextBody)) {
+            mail.addContent(new Content("text/html", htmlBody));
+        }
 
         SendGrid sg = new SendGrid(properties.getApiKey());
         Request request = new Request();
@@ -44,10 +72,9 @@ public class SendGridEmailService {
             if (response.getStatusCode() >= 400) {
                 log.warn("SendGrid send failed status={} body={}", response.getStatusCode(), response.getBody());
                 return false;
-            } else {
-                log.info("SendGrid email accepted by provider to={} status={}", to, response.getStatusCode());
-                return true;
             }
+            log.info("SendGrid email accepted by provider to={} status={}", to, response.getStatusCode());
+            return true;
         } catch (Exception ex) {
             log.warn("Failed to send SendGrid email to={}", to, ex);
             return false;
@@ -58,4 +85,3 @@ public class SendGridEmailService {
         return value != null && !value.trim().isEmpty();
     }
 }
-

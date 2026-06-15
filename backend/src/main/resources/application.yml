@@ -90,6 +90,9 @@ email:
     api-key: ${SENDGRID_API_KEY:}
     from-address: ${SENDGRID_FROM_ADDRESS:alikfoundation@gmail.com}
     from-name: ${SENDGRID_FROM_NAME:Alik Music}
+  templates:
+    public-app-url: ${EMAIL_PUBLIC_APP_URL:http://localhost:3000}
+    support-email: ${EMAIL_SUPPORT_ADDRESS:edward@alikfoundation.com}
 
 features:
   provider-submission-enabled: ${FEATURE_PROVIDER_SUBMISSION_ENABLED:true}

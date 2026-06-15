@@ -37,6 +37,8 @@ services:
       SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
       SENDGRID_FROM_ADDRESS: ${SENDGRID_FROM_ADDRESS:-alikfoundation@gmail.com}
       SENDGRID_FROM_NAME: ${SENDGRID_FROM_NAME:-Alik Music}
+      EMAIL_PUBLIC_APP_URL: ${EMAIL_PUBLIC_APP_URL:-}
+      EMAIL_SUPPORT_ADDRESS: ${EMAIL_SUPPORT_ADDRESS:-edward@alikfoundation.com}
     expose:
       - "8080"
   frontend:
