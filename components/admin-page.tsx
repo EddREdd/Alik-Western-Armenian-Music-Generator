@@ -1024,15 +1024,15 @@ export function AdminPage() {
               if (!open) setReadyLibraryError("")
             }}
           >
-            <DialogContent className="sm:max-w-lg">
-              <DialogHeader>
+            <DialogContent className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+              <DialogHeader className="shrink-0 border-b px-6 py-4">
                 <DialogTitle>{readyLibraryEditingId ? t("edit") : t("create")} {t("readyLibrary")}</DialogTitle>
                 <DialogDescription>
                   {readyLibraryEditingId ? t("updateReadyLibraryLyric") : t("createReadyLibraryLyric")}
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="flex flex-col gap-4">
+              <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-4">
                 {readyLibraryError ? (
                   <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                     {readyLibraryError}
@@ -1055,7 +1055,7 @@ export function AdminPage() {
                     id="ready-library-body"
                     value={readyLibraryBody}
                     onChange={(e) => setReadyLibraryBody(e.target.value)}
-                    className="min-h-[180px] resize-none"
+                    className="field-sizing-fixed min-h-[180px] max-h-[45vh] resize-y overflow-y-auto"
                   />
                 </div>
 
@@ -1070,7 +1070,9 @@ export function AdminPage() {
                     {t("publishOnCreate")}
                   </label>
                 ) : null}
+              </div>
 
+              <div className="shrink-0 border-t px-6 py-4">
                 <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
                   <Button
                     onClick={() => void handleSaveReadyLibrary()}

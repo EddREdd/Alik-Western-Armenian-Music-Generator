@@ -241,7 +241,7 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
                 id="mobile-lyric-content"
                 value={newContent}
                 onChange={(e) => setNewContent(e.target.value)}
-                className="min-h-[300px] resize-none"
+                className="field-sizing-fixed min-h-[200px] max-h-[50vh] resize-y overflow-y-auto"
               />
             </div>
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
@@ -285,7 +285,7 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
                 id="mobile-edit-content"
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
-                className="min-h-[300px] resize-none"
+                className="field-sizing-fixed min-h-[200px] max-h-[50vh] resize-y overflow-y-auto"
               />
             </div>
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
@@ -571,8 +571,8 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
           }
         }}
       >
-        <DialogContent className="sm:max-w-2xl">
-          <DialogHeader>
+        <DialogContent className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
+          <DialogHeader className="shrink-0 border-b px-6 py-4">
             <DialogTitle>
               {selectedVersion ? t("version", { number: selectedVersion.versionNumber }) : t("versionPreview")}
             </DialogTitle>
@@ -581,19 +581,23 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
             </DialogDescription>
           </DialogHeader>
           {selectedVersion ? (
-            <div className="space-y-4">
+            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-4">
               <div>
                 <Label className="text-xs text-muted-foreground">{t("title")}</Label>
                 <p className="mt-1 text-sm font-medium text-foreground">{selectedVersion.title}</p>
               </div>
-              <div>
+              <div className="flex min-h-0 flex-1 flex-col">
                 <Label className="text-xs text-muted-foreground">{t("lyrics")}</Label>
-                <div className="mt-1 max-h-[340px] overflow-y-auto rounded-md border border-border bg-muted/30 p-3">
+                <div className="mt-1 min-h-[120px] flex-1 overflow-y-auto rounded-md border border-border bg-muted/30 p-3">
                   <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground">
                     {selectedVersion.body}
                   </pre>
                 </div>
               </div>
+            </div>
+          ) : null}
+          {selectedVersion ? (
+            <div className="shrink-0 border-t px-6 py-4">
               <Button
                 onClick={() => void handleRestoreVersion()}
                 disabled={restoringVersion || !selectedLyric}
@@ -611,12 +615,12 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
       </Dialog>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
+        <DialogContent className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+          <DialogHeader className="shrink-0 border-b px-6 py-4">
             <DialogTitle>{t("newLyrics")}</DialogTitle>
             <DialogDescription>{t("writeArmenianLyricsToSave")}</DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col gap-4">
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="lyric-title">{t("title")}</Label>
               <Input id="lyric-title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
@@ -627,11 +631,17 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
                 id="lyric-content"
                 value={newContent}
                 onChange={(e) => setNewContent(e.target.value)}
-                className="min-h-[200px] resize-none"
+                className="field-sizing-fixed min-h-[180px] max-h-[45vh] resize-y overflow-y-auto"
               />
             </div>
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
-            <Button onClick={handleCreate} disabled={!newTitle.trim() || !newContent.trim()}>
+          </div>
+          <div className="shrink-0 border-t px-6 py-4">
+            <Button
+              onClick={handleCreate}
+              disabled={!newTitle.trim() || !newContent.trim()}
+              className="w-full sm:w-auto sm:ml-auto sm:flex"
+            >
               {t("save")}
             </Button>
           </div>
@@ -639,14 +649,14 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
       </Dialog>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
+        <DialogContent className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+          <DialogHeader className="shrink-0 border-b px-6 py-4">
             <DialogTitle>
               {t("edit")} {t("lyrics")}
             </DialogTitle>
             <DialogDescription>{t("lockedLyricsCannotBeEdited")}</DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col gap-4">
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-6 py-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="edit-lyric-title">{t("title")}</Label>
               <Input id="edit-lyric-title" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
@@ -657,11 +667,17 @@ export function LyricsPage({ onNavigateToSong }: LyricsPageProps) {
                 id="edit-lyric-content"
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
-                className="min-h-[200px] resize-none"
+                className="field-sizing-fixed min-h-[180px] max-h-[45vh] resize-y overflow-y-auto"
               />
             </div>
             {error ? <p className="text-sm text-destructive">{error}</p> : null}
-            <Button onClick={handleSaveEdit} disabled={!editTitle.trim() || !editContent.trim()}>
+          </div>
+          <div className="shrink-0 border-t px-6 py-4">
+            <Button
+              onClick={handleSaveEdit}
+              disabled={!editTitle.trim() || !editContent.trim()}
+              className="w-full sm:w-auto sm:ml-auto sm:flex"
+            >
               {t("save")}
             </Button>
           </div>
